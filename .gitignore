@@ -1,0 +1,17 @@
+# OS & Editor
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# VS / Code / JetBrains
+.vscode/
+.vs/
+*.user
+*.suo
+
+# Scratch / Logs
+*.log
+scratch/
+tmp/
