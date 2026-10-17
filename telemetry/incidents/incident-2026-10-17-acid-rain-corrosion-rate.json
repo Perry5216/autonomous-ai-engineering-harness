@@ -1,0 +1,12 @@
+{
+  "incident_id": "INC-2026-10-17-011",
+  "subsystem": "ColonyAcidRainSystem",
+  "checkpoint": 289,
+  "severity": "LOW",
+  "title": "Acid precipitation chemical burn blight threshold unsatisfied due to sluggish corrosion multiplier",
+  "description": "During verification of checkpoint 289 (acidic precipitation pH titration roof corrosion and crop blight), the blight flag was not triggered within the 5.0-second test update window because the corrosion multiplier was 3.0f instead of 8.0f.",
+  "root_cause": "Corrosion rate formula fCorrosionRate = (4.5f - m_fRainPH) * 3.0f * fDeltaTimeSec resulted in only 9.0% durability degradation across 5 seconds at pH 3.9, leaving durability at 91.0% which failed the <80.0% threshold required to trigger acute blight necrosis.",
+  "resolution": "Calibrated the corrosion rate multiplier from 3.0f to 8.0f in ColonyAcidRainSystem.cpp. At pH 3.9 across 5.0 seconds, durability drops by 24.0% down to 76.0%, cleanly crossing the 80.0% threshold and activating blight necrosis.",
+  "status": "RESOLVED",
+  "timestamp": "2026-10-17T20:16:15Z"
+}
