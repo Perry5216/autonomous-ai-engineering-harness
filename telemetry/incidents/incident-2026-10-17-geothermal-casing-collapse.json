@@ -1,0 +1,15 @@
+{
+  "incident_id": "INC-20261017-204735",
+  "timestamp": "2026-10-17T20:47:35+01:00",
+  "target_subsystem": "ezEngine ColonyPlugin - Module 113 (Deep Crust Geothermal Fracturing & Superheated Brine Desalination)",
+  "trigger": "Deterministic Checkpoint 349 Failure (Exit Code 1)",
+  "compiler": "MSVC 19.38.33130 (Visual Studio 2022 Dev x64)",
+  "failure_signature": "Overpressure fracture injection failed to trigger catastrophic casing collapse",
+  "root_cause_analysis": "In ezColonyGeothermalDesalinationSystem::Update, when induced seismic stress rapidly climbed from 40% to 100% in a single timestep, the code evaluated 'if (stress >= MAX_SAFE_SEISMIC_STRESS_PERCENT)' (80%) first and transitioned the state to InducedSeismicTremorWarning. The 100% threshold check for CatastrophicCasingCollapse was sequestered in an 'else if' block for the warning state, preventing immediate transition upon sudden extreme overpressure.",
+  "surgical_patch": {
+    "file": "Code/EnginePlugins/ColonyPlugin/ColonyGeothermalDesalinationSystem.cpp",
+    "diff": "- if (well.m_fInducedSeismicStressPercent >= MAX_SAFE_SEISMIC_STRESS_PERCENT)\n+ if (well.m_fInducedSeismicStressPercent >= 100.0f)\n+ {\n+   well.m_State = ezColonyDesalinationState::CatastrophicCasingCollapse;\n+ }\n+ else if (well.m_fInducedSeismicStressPercent >= MAX_SAFE_SEISMIC_STRESS_PERCENT)"
+  },
+  "triage_resolution_time_ms": 1420,
+  "status": "TRIAGED_AND_RESOLVED"
+}
