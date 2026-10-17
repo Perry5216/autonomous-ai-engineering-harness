@@ -78,8 +78,8 @@ flowchart TD
 
 ### Two-Tier Token Budgeting: Latency Discipline vs. Whole-Module Headroom
 A critical production insight discovered through live profiling:
-- **Tier 1 (Reflex Triage â€” 2,048 tokens / 512 reasoning budget)**: Compiler triage must return in < 2,500 ms. Unconstrained generation causes models to write essays while the build pipeline is frozen. A strict 2,048-token limit with a 512-token reasoning budget guarantees rapid, sub-3-second AST error recovery.
-- **Tier 2 (Whole Subsystem Synthesis â€” 32,768 tokens / 4,096 reasoning budget)**: For generating complete translation units (e.g. SIMD spatial partitioning, full KD-Trees), partial code causes incomplete types. The RTX 5090 maintains **32,768 tokens resident in INT8 KV VRAM** (within a 131,072-token window), sustaining **198.8 tokens/second** without spilling to host memory.
+- **Tier 1 (Reflex Triage - 2,048 tokens / 512 reasoning budget)**: Compiler triage must return in < 2,500 ms. Unconstrained generation causes models to write essays while the build pipeline is frozen. A strict 2,048-token limit with a 512-token reasoning budget guarantees rapid, sub-3-second AST error recovery.
+- **Tier 2 (Whole Subsystem Synthesis - 32,768 tokens / 4,096 reasoning budget)**: For generating complete translation units (e.g. SIMD spatial partitioning, full KD-Trees), partial code causes incomplete types. The RTX 5090 maintains **32,768 tokens resident in INT8 KV VRAM** (within a 131,072-token window), sustaining **198.8 tokens/second** without spilling to host memory.
 - **Preventing Chain-of-Thought Starvation**: Solved the frontier failure mode where models exhaust their output limit inside <think> tags (`[strata] the reply reached max tokens while still thinking`) by reserving explicit reasoning budgets before code emission begins.
 
 ---
