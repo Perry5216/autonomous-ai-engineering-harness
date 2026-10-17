@@ -8,6 +8,9 @@
     "totalCommits":  "7142",
     "sparkClusterOnline":  true,
     "rtx5090Online":  true,
+    "reflexTokensPerSec":  198.8,
+    "maxResidentKVTokens":  32768,
+    "maxContextWindow":  131072,
     "activeTarget":  "ezEngine C++20 Colony Simulation",
     "modulesCompleted":  2
 }

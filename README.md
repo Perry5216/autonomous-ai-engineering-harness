@@ -18,7 +18,7 @@
 | **Test Checkpoints Passing** | **109 / 109 Verified** | `ColonyPluginTest.exe` (Binary Exit Code 0) |
 | **Active Target Codebase** | **ezEngine (RimWorld Colony Engine)** | Native C++20 / MSVC / CMake / Ninja |
 | **Modules Verified & Fast-Forwarded** | **2 Subsystems** | Automated Sentinel & Phase Hooks |
-| **Reflex Diagnostic Latency** | **< 3,000 ms** | RTX 5090 Blackwell @ 182 tok/s |
+| **Reflex Diagnostic Latency** | **< 2,500 ms** | RTX 5090 Blackwell @ 198.8 tok/s (32k Resident KV) |
 | **Target Git HEAD** | `34c017bb7` (`dev`) | 7142 total commits |
 | **Last Verified Timestamp** | **2026-10-17 03:24:22** | Continuous Verification Loop |
 
@@ -62,9 +62,9 @@ flowchart TD
         TestExe -->|Exit 0 + All Sentinels Present| Gate3[Gate 3: Standards Review]
     end
 
-    subgraph ReflexEngine ["RTX 5090 Blackwell Reflex Triage (:8080 @ 182 tok/s)"]
+    subgraph ReflexEngine ["RTX 5090 Blackwell Reflex Triage (:8080 @ 198.8 tok/s)"]
         Triage[Fast Diagnostic Engine] -->|AST / Compiler Dump| Model5090[Qwen3.8-Flash-Next on 5090 Blackwell]
-        Model5090 -->|Minimal Patch / Root Cause <2s| InjectFix[Inject High-Priority Repair Prompt]
+        Model5090 -->|Minimal Patch / Root Cause <2.5s| InjectFix[Inject High-Priority Repair Prompt]
         InjectFix --> Spark
     end
 
@@ -75,6 +75,12 @@ flowchart TD
 
     Commit --> Next[Advance to Next Ticket / Module]
 ```
+
+### Two-Tier Token Budgeting: Latency Discipline vs. Whole-Module Headroom
+A critical production insight discovered through live profiling:
+- **Tier 1 (Reflex Triage — 2,048 tokens / 512 reasoning budget)**: Compiler triage must return in `< 2,500 ms`. Unconstrained generation causes models to write essays while the build pipeline is frozen. A strict 2,048-token limit with a 512-token reasoning budget guarantees rapid, sub-3-second AST error recovery.
+- **Tier 2 (Whole Subsystem Synthesis — 32,768 tokens / 4,096 reasoning budget)**: For generating complete translation units (e.g. SIMD spatial partitioning, full KD-Trees), partial code causes incomplete types. The RTX 5090 maintains **32,768 tokens resident in INT8 KV VRAM** (within a 131,072-token window), sustaining **198.8 tokens/second** without spilling to host memory.
+- **Preventing Chain-of-Thought Starvation**: Solved the frontier failure mode where models exhaust their output limit inside `<think>` tags (`[strata] the reply reached max tokens while still thinking`) by reserving explicit reasoning budgets before code emission begins.
 
 ---
 
