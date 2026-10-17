@@ -47,12 +47,33 @@ function Test-SparkOnline {
     } catch { return $false }
 }
 
+function Get-5090ModelId {
+    try {
+        $res = Invoke-RestMethod -Uri "http://127.0.0.1:8080/v1/models" -TimeoutSec 2 -ErrorAction Stop
+        if ($res.data -and $res.data.Count -gt 0) {
+            return $res.data[0].id
+        }
+    } catch { }
+    return "qwen3.8-flash-next"
+}
+
+function Invoke-5090ChatCompletion([hashtable]$payload, [int]$timeoutSec = 20) {
+    $json = $payload | ConvertTo-Json -Depth 10
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($json)
+    $res = Invoke-RestMethod -Uri "http://127.0.0.1:8080/v1/chat/completions" -Method Post -Body $bytes -ContentType "application/json; charset=utf-8" -TimeoutSec $timeoutSec -ErrorAction Stop
+    $choice = $res.choices[0].message
+    if ($choice.content) { return $choice.content }
+    if ($choice.reasoning_content) { return $choice.reasoning_content }
+    return ""
+}
+
 function Invoke-5090Diagnosis([string]$errorContext, [string]$taskContext) {
     if (-not (Test-5090Online)) { return $null }
     try {
-        Write-Log "[5090 Reflex] Engaging RTX 5090 Blackwell for rapid diagnosis (<2s @ 182 tok/s)..." "Yellow"
+        $model = Get-5090ModelId
+        Write-Log "[5090 Reflex] Engaging RTX 5090 Blackwell for rapid diagnosis (<2s @ 205 tok/s)..." "Yellow"
         $body = @{
-            model = "qwen3.8-flash-next-iq3_s"
+            model = $model
             messages = @(
                 @{ role = "system"; content = "You are a senior engineer on the review/triage team. Adhere strictly to lazy senior principles: shortest correct diff, zero fluff, pinpoint root cause." }
                 @{ role = "user"; content = "Analyze this failure in ${taskContext}:`nError Output:`n$errorContext`nState the root cause in 2 sentences and output the exact minimal diff repair." }
@@ -60,12 +81,12 @@ function Invoke-5090Diagnosis([string]$errorContext, [string]$taskContext) {
             max_tokens = 2048
             reasoning_budget_tokens = 512
             temperature = 0.1
-        } | ConvertTo-Json
+        }
         $sw = [System.Diagnostics.Stopwatch]::StartNew()
-        $res = Invoke-RestMethod -Uri "http://127.0.0.1:8080/v1/chat/completions" -Method Post -Body $body -ContentType "application/json" -TimeoutSec 15 -ErrorAction Stop
+        $content = Invoke-5090ChatCompletion -payload $body -timeoutSec 15
         $sw.Stop()
         Write-Log "[5090 Reflex] Diagnosis returned in $($sw.ElapsedMilliseconds) ms." "Green"
-        return $res.choices[0].message.content
+        return $content
     } catch {
         Write-Log "[5090 Reflex] Preflight check skipped: $($_.Exception.Message)" "DarkGray"
         return $null
@@ -75,9 +96,10 @@ function Invoke-5090Diagnosis([string]$errorContext, [string]$taskContext) {
 function Invoke-5090StandardsReview([string]$diffText) {
     if (-not (Test-5090Online) -or [string]::IsNullOrWhiteSpace($diffText)) { return $null }
     try {
+        $model = Get-5090ModelId
         Write-Log "[5090 Standards] Running rapid Fowler smell & lint review on 5090 Blackwell..." "Yellow"
         $body = @{
-            model = "qwen3.8-flash-next-iq3_s"
+            model = $model
             messages = @(
                 @{ role = "system"; content = "You are the Standards Reviewer. Check this diff against clean code standards and Fowler code smells (Mysterious Name, Duplicated Code, Dead Code, Type Safety). Output a concise bulleted list of issues or 'STANDARDS CLEAN' if no issues found." }
                 @{ role = "user"; content = "Review this diff:`n$diffText" }
@@ -85,10 +107,53 @@ function Invoke-5090StandardsReview([string]$diffText) {
             max_tokens = 2048
             reasoning_budget_tokens = 512
             temperature = 0.1
-        } | ConvertTo-Json
-        $res = Invoke-RestMethod -Uri "http://127.0.0.1:8080/v1/chat/completions" -Method Post -Body $body -ContentType "application/json" -TimeoutSec 15 -ErrorAction Stop
-        return $res.choices[0].message.content
+        }
+        return Invoke-5090ChatCompletion -payload $body -timeoutSec 15
     } catch {
+        return $null
+    }
+}
+
+function Invoke-5090DoubleBlindAudit([string]$ticketContract, [string]$diffText) {
+    if (-not (Test-5090Online) -or [string]::IsNullOrWhiteSpace($diffText)) { return $null }
+    try {
+        $model = Get-5090ModelId
+        Write-Log "[5090 Independent Auditor] Running double-blind audit & code grading on RTX 5090..." "Yellow"
+        $systemPrompt = @"
+You are an independent Senior Software Auditor & Reviewer operating under strict DOUBLE-BLIND clean-room isolation.
+You have NOT seen the author's internal reasoning, prompt, or tool transcript.
+You are given ONLY the requirement contract specification and the final git diff.
+
+Evaluate the submission systematically:
+1. CONTRACT CONFORMANCE: Does the diff implement all requirements and deterministic acceptance checkpoints?
+2. FOWLER CODE SMELLS: Assess Mysterious Names, Duplicated Code, Speculative Generality, Dead Code, Type Safety, Concurrency/Edge Cases.
+3. CODE QUALITY GRADE: Assign an explicit Letter Grade (A+, A, B, C, D, F) and a Numerical Quality Score (0-100).
+4. VERDICT: Either 'AUDIT APPROVED' or 'AUDIT REJECTED' with clear, concise rationale.
+"@
+        $userPrompt = @"
+=== TICKET CONTRACT SPECIFICATION ===
+$ticketContract
+
+=== IMPLEMENTATION GIT DIFF ===
+$diffText
+"@
+        $body = @{
+            model = $model
+            messages = @(
+                @{ role = "system"; content = $systemPrompt }
+                @{ role = "user"; content = $userPrompt }
+            )
+            max_tokens = 2048
+            reasoning_budget_tokens = 512
+            temperature = 0.1
+        }
+        $sw = [System.Diagnostics.Stopwatch]::StartNew()
+        $content = Invoke-5090ChatCompletion -payload $body -timeoutSec 20
+        $sw.Stop()
+        Write-Log "[5090 Independent Auditor] Audit settled in $($sw.ElapsedMilliseconds) ms." "Green"
+        return $content
+    } catch {
+        Write-Log "[5090 Independent Auditor] Review skipped: $($_.Exception.Message)" "DarkGray"
         return $null
     }
 }
@@ -111,7 +176,9 @@ function Invoke-ProjectTests([string]$targetDir) {
             if ($pkg.scripts -and $pkg.scripts.test) {
                 Write-Log "Running npm test..." "Gray"
                 $output = npm test 2>&1 | Out-String
-                return @{ Success = ($LASTEXITCODE -eq 0); Output = $output }
+                $hasPassedAssertions = ($output -match "pass\s+[1-9]\d*") -or ($output -match "ok\s+[1-9]\d*")
+                $ok = ($LASTEXITCODE -eq 0) -and $hasPassedAssertions
+                return @{ Success = $ok; Output = $output }
             }
         }
 
@@ -274,9 +341,9 @@ $($ticket.Body)
 $diagNote
 Execution Invariants:
 1. Non-interactive: Never pause to ask questions or prompt for user confirmation.
-2. Mandatory File Modifications: You MUST write or edit the required source code and tests.
-3. Dual verification: Tests require both expected test assertions AND process return code 0.
-Implement and fix now.
+2. Phase 4 (IMPLEMENT): All planning, specs, and ADRs are completed. You MUST use the file writing/editing tools immediately to write the implementation files (e.g. in src/) and tests (e.g. in test/).
+3. Dual verification: Tests require both passing test assertions AND process return code 0 under 'npm test'.
+Implement the source code and test files now.
 "@
 
         # Dispatch to DSH loop
@@ -294,11 +361,17 @@ Implement and fix now.
             continue
         }
 
-        # Fast Standards Review via 5090
-        $diffText = git diff HEAD | Out-String
+        # Fast Standards & Double-Blind Audit via 5090 Blackwell (including new files)
+        git add -A
+        $diffText = git diff --cached HEAD | Out-String
         $standards = Invoke-5090StandardsReview $diffText
         if ($standards) {
             Write-Log "[5090 Standards Review]:`n$standards" "DarkCyan"
+        }
+
+        $auditReport = Invoke-5090DoubleBlindAudit -ticketContract $ticket.Body -diffText $diffText
+        if ($auditReport) {
+            Write-Log "[5090 Independent Double-Blind Audit]:`n$auditReport" "Magenta"
         }
 
         # Verification Gate
@@ -318,9 +391,9 @@ Implement and fix now.
             git commit -m $commitMsg 2>&1 | Out-String | Write-Host -ForegroundColor Gray
             Write-Log "TICKET $($ticket.Number) COMMITTED TO GIT." "Green"
 
-            # Auto-update public showcase portfolio repository
+            # Auto-update public showcase portfolio repository (when targeting ColonyPlugin)
             $syncScript = "C:\Users\5216p\Projects\autonomous-ai-engineering-harness\scripts\sync-portfolio.ps1"
-            if (Test-Path $syncScript) {
+            if ((Test-Path $syncScript) -and (Test-Path "$RepoPath\Output\Bin\WinVs2022Dev64\ColonyPluginTest.exe")) {
                 try {
                     Write-Log "[Portfolio Sync] Updating live showcase portfolio..." "Cyan"
                     & $syncScript

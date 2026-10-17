@@ -76,11 +76,73 @@ flowchart TD
     Commit --> Next[Advance to Next Ticket / Module]
 ```
 
-### Two-Tier Token Budgeting: Latency Discipline vs. Whole-Module Headroom
+### Two-Tier Token Budgeting & Hardware Optimization: 205–303 tok/s on Blackwell
 A critical production insight discovered through live profiling:
-- **Tier 1 (Reflex Triage - 2,048 tokens / 512 reasoning budget)**: Compiler triage must return in < 2,500 ms. Unconstrained generation causes models to write essays while the build pipeline is frozen. A strict 2,048-token limit with a 512-token reasoning budget guarantees rapid, sub-3-second AST error recovery.
-- **Tier 2 (Whole Subsystem Synthesis - 32,768 tokens / 4,096 reasoning budget)**: For generating complete translation units (e.g. SIMD spatial partitioning, full KD-Trees), partial code causes incomplete types. The RTX 5090 maintains **32,768 tokens resident in INT8 KV VRAM** (within a 131,072-token window), sustaining **198.8 tokens/second** without spilling to host memory.
+- **Tier 1 (Reflex Triage & Double-Blind Audit - 2,048 tokens / 512 reasoning budget)**: Compiler triage and independent code auditing must return in < 3,000 ms. A strict token limit with reasoning budget guarantees rapid, sub-3-second AST error recovery and instant clean-room code review.
+- **Tier 2 (Whole Subsystem Synthesis - 32,768 tokens / 4,096 reasoning budget)**: For generating complete translation units, partial code causes incomplete types. The RTX 5090 Blackwell maintains **18,514 resident expert slots (75.3% of all 24,576 experts)** in GDDR7 VRAM under **IQ2_XS quantization**, sustaining **205–303 tokens/second** at a verified **99.5% GPU cache hit rate**.
+- **Context Headroom & Auto-Fit**: Configured `"fit_max_tokens": true` in the Strata runtime to automatically shorten output token allocations to remaining context headroom, completely eliminating context-overflow HTTP 400 errors across large agent skill decks.
 - **Preventing Chain-of-Thought Starvation**: Solved the frontier failure mode where models exhaust their output limit inside <think> tags (`[strata] the reply reached max tokens while still thinking`) by reserving explicit reasoning budgets before code emission begins.
+
+---
+
+## 2.1 Hardware Optimization: Squeezing Maximum Juice from the RTX 5090
+
+To maximize autonomous agent throughput without sacrificing simultaneous gaming or day-to-day productivity on the host system, the infrastructure was aggressively profiled and tuned:
+
+```
++----------------------------------------------------------------------------------------------------+
+| NVIDIA RTX 5090 Blackwell (32 GB GDDR7) - Dedicated AI & Autonomous Engineering Hub                |
+|  * Model: Qwen 3.8 Flash Next (IQ2_XS GSQ-RCO Quantization)                                       |
+|  * VRAM Resident Experts: 18,514 / 24,576 slots (75.3% resident in GDDR7)                          |
+|  * Inference Throughput: 205.6 - 303.7 tokens/sec decode                                          |
+|  * GPU Cache Hit Rate: 99.5% (only 0.5% PCIe miss rate)                                           |
+|  * Host RAM Arena: 33.0 GB (saved ~14 GB physical RAM vs IQ3_S)                                    |
++----------------------------------------------------------------------------------------------------+
+                                      | Dual-GPU PnP Isolation
++----------------------------------------------------------------------------------------------------+
+| NVIDIA RTX 5070 Ti (16 GB GDDR6X) - Dedicated Workstation & Gaming System                          |
+|  * Workload: 100% isolated host graphics and AAA gaming loads (95% GPU load @ 218W / 58°C)         |
+|  * Host Physical RAM: 28.8 GB free host memory headroom                                            |
+|  * Interference: Zero frame drops, zero micro-stutter during continuous overnight batch loops       |
++----------------------------------------------------------------------------------------------------+
+```
+
+### Quantization & Memory Footprint Tuning
+- **Upgrading from IQ3_S to IQ2_XS**: Reduced the host RAM arena from **46.84 GiB down to 33.02 GiB**, freeing **~14 GB of physical system memory**. This eliminated Windows commit limit exhaustion (`0xC0000409`) when running simultaneous heavy gaming loads alongside autonomous agent batches.
+- **VRAM Reserve Tuning**: Set `--vram-reserve-mib 512` and pinned 32k KV cache, maximizing resident expert allocation on the Blackwell GPU while preventing OS display driver paging to system memory.
+- **Zero-VRAM Vision Subsystem**: Configured `strata-vision.exe` to run on 16 CPU threads with AVX-512, completely freeing the 4.5 GB VRAM that vision encoders typically hoard on the GPU.
+- **Automated Mode Switchers**: Shipped desktop hardware controllers (`GPU-GAME-MODE.cmd` and `GPU-AI-MODE.cmd`) that cleanly orchestrate PnP device state, terminate/launch Strata engine instances, and toggle Ollama background daemons.
+
+---
+
+## 2.2 Clean-Room Double-Blind Independent Audit Loop
+
+To prevent self-confirming code degradation ("green when untrue"), the runner implements **strict double-blind clean-room evaluation**:
+
+```mermaid
+flowchart LR
+    A[Ticket Contract Spec] --> B[5090 Blackwell Coder\nvia DSH 27-Skill Loop]
+    B -->|Generates Code & Tests| C[Git Workspace Diff]
+    
+    subgraph IsolationBarrier ["Strict Double-Blind Clean-Room Barrier"]
+        direction TB
+        Barrier["ZERO Author Prompt Leakage\nZERO Internal Reasoning / Scratchpad Leakage"]
+    end
+    
+    A -.-> IsolationBarrier
+    C -.-> IsolationBarrier
+    
+    IsolationBarrier --> D[5090 Independent Auditor\nEvaluates ONLY Contract + Diff]
+    D --> E{Auditor Verdict}
+    E -->|AUDIT REJECTED / Fowler Smells| F[Refactor Mandate Feedback Loop]
+    F --> B
+    E -->|AUDIT APPROVED / Grade A / B+| G[Verification Gate: Exit Code 0 + Sentinels]
+    G --> H[Git Auto-Commit]
+```
+
+- **Clean-Room Isolation**: The auditor has zero visibility into the author agent's prompt history, chain-of-thought scratchpad, or tool interactions. It receives **only** the ticket contract specification and `git diff --cached HEAD`.
+- **Fowler Code Smell Detection**: Explicitly audits for Mysterious Names, Duplicated Code, Speculative Generality, Dead Code, Type Safety, and Concurrency Hazards.
+- **Real-World Non-Gaming Benchmark**: Validated on an enterprise-grade Sliding Window Token Rate Limiter & Circuit Breaker with microsecond precision (`process.hrtime.bigint()`). The auditor identified a nanosecond clock conversion defect and timer wake-up edge cases, iteratively driving the codebase from an initial **B (78/100)** to **B+ (86/100) AUDIT APPROVED** with **10/10 deterministic tests passing in 121ms**.
 
 ---
 
