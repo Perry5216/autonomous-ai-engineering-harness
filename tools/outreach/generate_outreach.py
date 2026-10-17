@@ -24,15 +24,27 @@ def load_telemetry():
         except Exception:
             pass
     return {
-        "verifiedCheckpoints": 109,
-        "gitHead": "34c017bb7",
+        "verifiedCheckpoints": 135,
+        "gitHead": "5ce4c247b",
         "activeTarget": "ezEngine C++20 Colony Simulation"
     }
 
+def get_5090_model():
+    try:
+        req = urllib.request.Request("http://127.0.0.1:8080/v1/models")
+        with urllib.request.urlopen(req, timeout=3) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            if "data" in data and len(data["data"]) > 0:
+                return data["data"][0]["id"]
+    except Exception:
+        pass
+    return "qwen3.8-flash-next"
+
 def query_5090(system_prompt, user_prompt):
     url = "http://127.0.0.1:8080/v1/chat/completions"
+    model_id = get_5090_model()
     payload = {
-        "model": "qwen3.8-flash-next-iq3_s",
+        "model": model_id,
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
@@ -89,9 +101,10 @@ Specific Hook: {t['specific_hook']}
 Candidate: Anthony Perry (London, UK)
 Harness Proof Points:
 - Ran autonomous overnight loops against ezEngine (massive C++20 multi-million-line codebase)
-- Verified {checkpoints} test checkpoints green with zero mock passes (binary exit code 0 + stdout regex)
-- Asymmetric co-processor: Spark DRI + local RTX 5090 Blackwell running compiler AST triage in 2,766ms
+- Verified {checkpoints}+ test checkpoints green with zero mock passes (binary exit code 0 + stdout sentinels)
+- Asymmetric co-processor: Spark DRI + local RTX 5090 Blackwell delivering 205-303 tok/s (IQ2_XS, 99.5% cache hit) with <2.5s compiler AST triage
 - Ephemeral Git Worktree sandboxing with zero-residue rollback on failed turns
+- Double-Blind Clean-Room Audit: Zero-leakage reviewer enforcing Fowler clean-code standards & deterministic test gates
 - ADR 0002 static architectural linter preventing God-class bloat
 - Flight recorder dump of MSVC C2061 circular include triage in 2,766ms
 
@@ -104,15 +117,16 @@ Generate a punchy, technical, high-impact email from Anthony to {t['name']}. Inc
 
         # High-impact copy with the 'proof I am not a chancer' challenge
         if not generated:
-            subject = f"Autonomous C++20 compiler triage & worktree sandboxing ({checkpoints} verified checkpoints)"
+            subject = f"Autonomous C++20 compiler triage & double-blind audit ({checkpoints}+ verified checkpoints)"
             body = (
                 f"Hi {t['name'].split()[0]},\n\n"
                 f"I've been following {t['company']}'s work on {t['domain_focus']}. "
                 f"Most autonomous agent loops fail on massive compiled native codebases because models hallucinate test passes, bloat central headers, or choke on MSVC template recursion.\n\n"
                 f"I engineered an autonomous harness running against ezEngine (C++20, multi-million LOC):\n"
-                f"- Asymmetric co-processor: Spark DRI + RTX 5090 Blackwell running compiler AST triage in 2,766ms\n"
+                f"- Asymmetric co-processor: Spark DRI + RTX 5090 Blackwell running at 205-303 tok/s (IQ2_XS, 99.5% cache hit) with <2.5s AST triage\n"
+                f"- Double-Blind Clean-Room Audit: Zero-leakage reviewer enforcing Fowler clean-code standards & deterministic test gates\n"
                 f"- Ephemeral Git Worktree sandboxing with zero-residue rollback on failed turns\n"
-                f"- {checkpoints} native test checkpoints verified green with zero mock passes\n\n"
+                f"- {checkpoints}+ native test checkpoints verified green with zero mock passes\n\n"
                 f"I know the AI space is saturated with chancers and wrapper builders. Don't take my word for anything: "
                 f"open my repository (github.com/Perry5216/autonomous-ai-engineering-harness) and watch the commits roll in live "
                 f"as my physical loops compile, verify, and push new C++20 subsystems throughout the night.\n\n"

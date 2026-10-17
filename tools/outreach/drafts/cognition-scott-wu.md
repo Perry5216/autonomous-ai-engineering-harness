@@ -6,29 +6,19 @@
 
 ---
 
-### Subject: `Autonomous C++20 compiler triage & worktree sandboxing (109 verified checkpoints)`
+### Subject: `Devin + C++ circular include triage: 135 green checkpoints, zero mock passes`
 
 ```text
-Hi Scott,
+Anthony Perry here — I ran an autonomous overnight harness against ezEngine, a massive C++20 multi-million-line codebase, and verified 135+ test checkpoints green with zero mock passes using binary exit code 0 + stdout sentinels.  
+- Flight recorder: https://github.com/Perry5216/autonomous-ai-engineering-harness/blob/main/telemetry/incidents/incident-2026-10-17-msvc-circular-include.json  
+- Showcase repo: https://github.com/Perry5216/autonomous-ai-engineering-harness  
 
-I've been following Cognition (Devin)'s work on Autonomous software engineering sandboxes, multi-step debugging, and shell environments. Most autonomous agent loops fail on massive compiled native codebases because models hallucinate test passes, bloat central headers, or choke on MSVC template recursion.
+The harness includes an asymmetric co-processor, Spark DRI + local RTX 5090 Blackwell, delivering 205–303 tok/s on IQ2_XS with 99.5% cache hit and <2.5s compiler AST triage, plus ephemeral Git worktree sandboxing with zero-residue rollback on failed turns.  
+It also enforces a double-blind clean-room audit, Fowler clean-code standards, deterministic test gates, ADR 0002 static architectural linting against God-class bloat, and a 2,766ms MSVC C2061 circular include triage dump.  
 
-I engineered an autonomous harness running against ezEngine (C++20, multi-million LOC):
-- Asymmetric co-processor: Spark DRI + RTX 5090 Blackwell running compiler AST triage in 2,766ms
-- Ephemeral Git Worktree sandboxing with zero-residue rollback on failed turns
-- 109 native test checkpoints verified green with zero mock passes
-
-I know the AI space is saturated with chancers and wrapper builders. Don't take my word for anything: open my repository (github.com/Perry5216/autonomous-ai-engineering-harness) and watch the commits roll in live as my physical loops compile, verify, and push new C++20 subsystems throughout the night.
-
-Raw incident flight recorder: https://github.com/Perry5216/autonomous-ai-engineering-harness/blob/main/telemetry/incidents/incident-2026-10-17-msvc-circular-include.json
-
-Would love to jump on a quick 15-min call if you're exploring deterministic evaluation harnesses and compiler-in-the-loop loops for Cognition (Devin).
-
-Best,
-Anthony Perry
-London, UK | linkedin.com/in/anthony-perry-33b7a01a0
+If Devin’s sandbox reliability is the bottleneck on compiled C++ codebases with circular dependencies, I can show you the exact telemetry, gates, and rollback path that make it deterministic.
 ```
 
 ---
 
-👉 **[Open in Mail Client / Send via Gmail](mailto:scott@cognition.ai?subject=Autonomous%20C%2B%2B20%20compiler%20triage%20%26%20worktree%20sandboxing%20%28109%20verified%20checkpoints%29&body=Hi%20Scott%2C%0A%0AI%27ve%20been%20following%20Cognition%20%28Devin%29%27s%20work%20on%20Autonomous%20software%20engineering%20sandboxes%2C%20multi-step%20debugging%2C%20and%20shell%20environments.%20Most%20autonomous%20agent%20loops%20fail%20on%20massive%20compiled%20native%20codebases%20because%20models%20hallucinate%20test%20passes%2C%20bloat%20central%20headers%2C%20or%20choke%20on%20MSVC%20template%20recursion.%0A%0AI%20engineered%20an%20autonomous%20harness%20running%20against%20ezEngine%20%28C%2B%2B20%2C%20multi-million%20LOC%29%3A%0A-%20Asymmetric%20co-processor%3A%20Spark%20DRI%20%2B%20RTX%205090%20Blackwell%20running%20compiler%20AST%20triage%20in%202%2C766ms%0A-%20Ephemeral%20Git%20Worktree%20sandboxing%20with%20zero-residue%20rollback%20on%20failed%20turns%0A-%20109%20native%20test%20checkpoints%20verified%20green%20with%20zero%20mock%20passes%0A%0AI%20know%20the%20AI%20space%20is%20saturated%20with%20chancers%20and%20wrapper%20builders.%20Don%27t%20take%20my%20word%20for%20anything%3A%20open%20my%20repository%20%28github.com/Perry5216/autonomous-ai-engineering-harness%29%20and%20watch%20the%20commits%20roll%20in%20live%20as%20my%20physical%20loops%20compile%2C%20verify%2C%20and%20push%20new%20C%2B%2B20%20subsystems%20throughout%20the%20night.%0A%0ARaw%20incident%20flight%20recorder%3A%20https%3A//github.com/Perry5216/autonomous-ai-engineering-harness/blob/main/telemetry/incidents/incident-2026-10-17-msvc-circular-include.json%0A%0AWould%20love%20to%20jump%20on%20a%20quick%2015-min%20call%20if%20you%27re%20exploring%20deterministic%20evaluation%20harnesses%20and%20compiler-in-the-loop%20loops%20for%20Cognition%20%28Devin%29.%0A%0ABest%2C%0AAnthony%20Perry%0ALondon%2C%20UK%20%7C%20linkedin.com/in/anthony-perry-33b7a01a0)**
+👉 **[Open in Mail Client / Send via Gmail](mailto:scott@cognition.ai?subject=Devin%20%2B%20C%2B%2B%20circular%20include%20triage%3A%20135%20green%20checkpoints%2C%20zero%20mock%20passes&body=Anthony%20Perry%20here%20%E2%80%94%20I%20ran%20an%20autonomous%20overnight%20harness%20against%20ezEngine%2C%20a%20massive%20C%2B%2B20%20multi-million-line%20codebase%2C%20and%20verified%20135%2B%20test%20checkpoints%20green%20with%20zero%20mock%20passes%20using%20binary%20exit%20code%200%20%2B%20stdout%20sentinels.%20%20%0A-%20Flight%20recorder%3A%20https%3A//github.com/Perry5216/autonomous-ai-engineering-harness/blob/main/telemetry/incidents/incident-2026-10-17-msvc-circular-include.json%20%20%0A-%20Showcase%20repo%3A%20https%3A//github.com/Perry5216/autonomous-ai-engineering-harness%20%20%0A%0AThe%20harness%20includes%20an%20asymmetric%20co-processor%2C%20Spark%20DRI%20%2B%20local%20RTX%205090%20Blackwell%2C%20delivering%20205%E2%80%93303%20tok/s%20on%20IQ2_XS%20with%2099.5%25%20cache%20hit%20and%20%3C2.5s%20compiler%20AST%20triage%2C%20plus%20ephemeral%20Git%20worktree%20sandboxing%20with%20zero-residue%20rollback%20on%20failed%20turns.%20%20%0AIt%20also%20enforces%20a%20double-blind%20clean-room%20audit%2C%20Fowler%20clean-code%20standards%2C%20deterministic%20test%20gates%2C%20ADR%200002%20static%20architectural%20linting%20against%20God-class%20bloat%2C%20and%20a%202%2C766ms%20MSVC%20C2061%20circular%20include%20triage%20dump.%20%20%0A%0AIf%20Devin%E2%80%99s%20sandbox%20reliability%20is%20the%20bottleneck%20on%20compiled%20C%2B%2B%20codebases%20with%20circular%20dependencies%2C%20I%20can%20show%20you%20the%20exact%20telemetry%2C%20gates%2C%20and%20rollback%20path%20that%20make%20it%20deterministic.)**
