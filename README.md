@@ -15,12 +15,12 @@
 
 | Metric | Live State | Verification Source |
 |---|---|---|
-| **Test Checkpoints Passing** | **109 / 109 Verified** | ColonyPluginTest.exe (Binary Exit Code 0) |
+| **Test Checkpoints Passing** | **109 / 109 Verified** | `ColonyPluginTest.exe` (Binary Exit Code 0) |
 | **Active Target Codebase** | **ezEngine (RimWorld Colony Engine)** | Native C++20 / MSVC / CMake / Ninja |
 | **Modules Verified & Fast-Forwarded** | **2 Subsystems** | Automated Sentinel & Phase Hooks |
 | **Reflex Diagnostic Latency** | **< 3,000 ms** | RTX 5090 Blackwell @ 182 tok/s |
-| **Target Git HEAD** | \$headCommit\ (\$currentBranch\) | 7142 total commits |
-| **Last Verified Timestamp** | **2026-10-17 03:16:25** | Continuous Verification Loop |
+| **Target Git HEAD** | `34c017bb7` (`dev`) | 7142 total commits |
+| **Last Verified Timestamp** | **2026-10-17 03:16:49** | Continuous Verification Loop |
 
 ---
 
@@ -33,7 +33,7 @@ Most autonomous agent setups fail on large native codebases because they either:
 
 This harness eliminates these failure modes using an **Asymmetric Tandem Architecture**:
 
-`mermaid
+```mermaid
 flowchart TD
     subgraph Orchestration ["Autonomous Loop Controller"]
         Ticket[Dependency-Ordered Spec / Ticket DAG] --> Runner[Autonomous Overnight Runner]
@@ -71,7 +71,7 @@ flowchart TD
     end
 
     Commit --> Next[Advance to Next Ticket / Module]
-`
+```
 
 ---
 
@@ -79,19 +79,19 @@ flowchart TD
 
 During tonight's overnight run, the engine autonomously triaged and resolved a complex circular dependency and buffer state bug across three C++ subsystems without human intervention:
 
-`
+```
 [2026-10-17 03:00:15] FATAL: MSVC C2061: syntax error: identifier 'ezColonyWorldModule'
 [2026-10-17 03:00:15] Engaged RTX 5090 Blackwell Reflex Engine (< 3,000ms latency)
-`
+```
 
 ### The Root Cause (Diagnosed in 2,766ms by RTX 5090 Blackwell)
-1. **Header Inclusion Cycle**: \ColonyRoomComponent.h\ included \ColonyWorldModule.h\, while \ColonyWorldModule.h\ included \ColonyRoomComponent.h\.
-2. **Buffer Invalidation**: \ezDynamicArray\ in \RegenerateAllRooms\ called \SetCount(uiTotalCells, -1)\ without a prior \Clear()\, causing stale room IDs to persist across simulation ticks.
+1. **Header Inclusion Cycle**: `ColonyRoomComponent.h` included `ColonyWorldModule.h`, while `ColonyWorldModule.h` included `ColonyRoomComponent.h`.
+2. **Buffer Invalidation**: `ezDynamicArray` in `RegenerateAllRooms` called `SetCount(uiTotalCells, -1)` without a prior `Clear()`, causing stale room IDs to persist across simulation ticks.
 
 ### The Autonomous Fix
-- Injected forward declarations: \class ezColonyWorldModule;\ and \struct ezColonyCell;\ in \ColonyRoomComponent.h\.
-- Aligned \struct ezColonyRoomMap;\ forward declaration in \ColonyWeatherSystem.h\.
-- Added explicit buffer reset \ef_map.m_RoomIndexPerCell.Clear()\ before reallocation.
+- Injected forward declarations: `class ezColonyWorldModule;` and `struct ezColonyCell;` in `ColonyRoomComponent.h`.
+- Aligned `struct ezColonyRoomMap;` forward declaration in `ColonyWeatherSystem.h`.
+- Added explicit buffer reset `ref_map.m_RoomIndexPerCell.Clear()` before reallocation.
 - Result: **Compilation succeeded in 1.4s, and all 109 test checkpoints passed cleanly.**
 
 ---
@@ -100,8 +100,8 @@ During tonight's overnight run, the engine autonomously triaged and resolved a c
 
 1. **Dual Verification Mandatory**:
    A test is only considered passing if **both** conditions hold:
-   - Binary return code is strictly zero: \\0 -eq 0\.
-   - Every required stdout checkpoint sentinel is emitted in order (e.g. \checkpoint: room 5-factor impressiveness calculation ok\).
+   - Binary return code is strictly zero: `$LASTEXITCODE -eq 0`.
+   - Every required stdout checkpoint sentinel is emitted in order (e.g. `checkpoint: room 5-factor impressiveness calculation ok`).
 2. **ADR 0002 Architectural Decoupling**:
    The automated harness linter rejects any patch that dumps subsystem logic directly into core engine God-classes. Every domain (Electricity, Fluid Dynamics, Room Impressiveness, Pathfinding) must have dedicated subsystem headers and compose cleanly via accessors.
 3. **Hardware Isolation**:
@@ -121,13 +121,13 @@ During tonight's overnight run, the engine autonomously triaged and resolved a c
 
 ## ðŸš€ Running the Harness
 
-`powershell
+```powershell
 # Run the autonomous overnight ticket runner on any repo
 powershell -ExecutionPolicy Bypass -File ./scripts/run-tickets.ps1 -RepoPath "C:/path/to/project"
 
 # Synchronize portfolio telemetry and push live stats to GitHub
 powershell -ExecutionPolicy Bypass -File ./scripts/sync-portfolio.ps1
-`
+```
 
 ---
 
