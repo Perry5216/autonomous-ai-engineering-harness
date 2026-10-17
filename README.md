@@ -20,7 +20,10 @@
 | **Modules Verified & Fast-Forwarded** | **2 Subsystems** | Automated Sentinel & Phase Hooks |
 | **Reflex Diagnostic Latency** | **< 3,000 ms** | RTX 5090 Blackwell @ 182 tok/s |
 | **Target Git HEAD** | `34c017bb7` (`dev`) | 7142 total commits |
-| **Last Verified Timestamp** | **2026-10-17 03:21:40** | Continuous Verification Loop |
+| **Last Verified Timestamp** | **2026-10-17 03:24:22** | Continuous Verification Loop |
+
+> ðŸ“Š **Interactive Visual Dashboard**: Open [docs/index.html](docs/index.html) for the dark-mode real-time terminal & telemetry board.  
+> âœˆï¸ **Flight Recorder Incident Dump**: Inspect raw MSVC compiler error dumps, RTX 5090 Blackwell AST diagnoses, and surgical diffs in [	elemetry/incidents/incident-2026-10-17-msvc-circular-include.json](telemetry/incidents/incident-2026-10-17-msvc-circular-include.json).
 
 ---
 
@@ -213,6 +216,12 @@ During tonight's overnight run, the engine autonomously triaged and resolved a c
 ```powershell
 # Run the autonomous overnight ticket runner on any repo
 powershell -ExecutionPolicy Bypass -File ./scripts/run-tickets.ps1 -RepoPath "C:/path/to/project"
+
+# Run the automated harness verification & integrity smoke test
+powershell -ExecutionPolicy Bypass -File ./scripts/verify-harness.ps1
+
+# Run the ADR 0002 architectural decoupling linter
+powershell -ExecutionPolicy Bypass -File ./scripts/Test-ArchitecturalDecoupling.ps1
 
 # Spawn an isolated worktree sandbox for an agent task
 powershell -ExecutionPolicy Bypass -File ./scripts/Invoke-AgentWorktree.ps1 -RepoPath "C:/path/to/project" -TaskId "32"

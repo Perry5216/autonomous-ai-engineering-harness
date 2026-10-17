@@ -166,6 +166,9 @@ $readmeContent = @"
 | **Target Git HEAD** | ${b}$headCommit${b} (${b}$currentBranch${b}) | $commitCount total commits |
 | **Last Verified Timestamp** | **$nowStr** | Continuous Verification Loop |
 
+> 📊 **Interactive Visual Dashboard**: Open [`docs/index.html`](docs/index.html) for the dark-mode real-time terminal & telemetry board.  
+> ✈️ **Flight Recorder Incident Dump**: Inspect raw MSVC compiler error dumps, RTX 5090 Blackwell AST diagnoses, and surgical diffs in [`telemetry/incidents/incident-2026-10-17-msvc-circular-include.json`](telemetry/incidents/incident-2026-10-17-msvc-circular-include.json).
+
 ---
 
 ## 2. System Architecture: Asymmetric Tandem Loop
@@ -354,6 +357,12 @@ ${b3}powershell
 # Run the autonomous overnight ticket runner on any repo
 powershell -ExecutionPolicy Bypass -File ./scripts/run-tickets.ps1 -RepoPath "C:/path/to/project"
 
+# Run the automated harness verification & integrity smoke test
+powershell -ExecutionPolicy Bypass -File ./scripts/verify-harness.ps1
+
+# Run the ADR 0002 architectural decoupling linter
+powershell -ExecutionPolicy Bypass -File ./scripts/Test-ArchitecturalDecoupling.ps1
+
 # Spawn an isolated worktree sandbox for an agent task
 powershell -ExecutionPolicy Bypass -File ./scripts/Invoke-AgentWorktree.ps1 -RepoPath "C:/path/to/project" -TaskId "32"
 
@@ -383,7 +392,7 @@ if (-not $NoPush) {
             git branch -M main
         }
 
-        git add README.md telemetry/live-telemetry.json scripts/ docs/ examples/ 2>$null
+        git add README.md telemetry/ scripts/ docs/ examples/ 2>$null
         $status = git status --porcelain
         if ($status) {
             $msg = "fix(docs): clean UTF-8 headers and live telemetry sync ($headCommit)"
