@@ -57,7 +57,8 @@ function Invoke-5090Diagnosis([string]$errorContext, [string]$taskContext) {
                 @{ role = "system"; content = "You are a senior engineer on the review/triage team. Adhere strictly to lazy senior principles: shortest correct diff, zero fluff, pinpoint root cause." }
                 @{ role = "user"; content = "Analyze this failure in ${taskContext}:`nError Output:`n$errorContext`nState the root cause in 2 sentences and output the exact minimal diff repair." }
             )
-            max_tokens = 512
+            max_tokens = 2048
+            reasoning_budget_tokens = 512
             temperature = 0.1
         } | ConvertTo-Json
         $sw = [System.Diagnostics.Stopwatch]::StartNew()
@@ -81,7 +82,8 @@ function Invoke-5090StandardsReview([string]$diffText) {
                 @{ role = "system"; content = "You are the Standards Reviewer. Check this diff against clean code standards and Fowler code smells (Mysterious Name, Duplicated Code, Dead Code, Type Safety). Output a concise bulleted list of issues or 'STANDARDS CLEAN' if no issues found." }
                 @{ role = "user"; content = "Review this diff:`n$diffText" }
             )
-            max_tokens = 400
+            max_tokens = 2048
+            reasoning_budget_tokens = 512
             temperature = 0.1
         } | ConvertTo-Json
         $res = Invoke-RestMethod -Uri "http://127.0.0.1:8080/v1/chat/completions" -Method Post -Body $body -ContentType "application/json" -TimeoutSec 15 -ErrorAction Stop

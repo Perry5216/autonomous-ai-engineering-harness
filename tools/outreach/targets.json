@@ -1,0 +1,62 @@
+[
+  {
+    "id": "cursor-michael-truell",
+    "name": "Michael Truell",
+    "role": "Co-founder & CEO",
+    "company": "Cursor (Anysphere)",
+    "target_email": "michael@anysphere.co",
+    "domain_focus": "Background terminal agents, IDE execution sandboxes, and compiler feedback loops",
+    "specific_hook": "Cursor's terminal execution and agent mode handling complex native builds and compiler loops without hallucinating passes.",
+    "ideal_role": "Applied AI / Agent Infrastructure Engineer"
+  },
+  {
+    "id": "cursor-aman-sanger",
+    "name": "Aman Sanger",
+    "role": "Co-founder",
+    "company": "Cursor (Anysphere)",
+    "target_email": "aman@anysphere.co",
+    "domain_focus": "Model steering, low-latency speculative edits, and evaluation harnesses",
+    "specific_hook": "Speculative code generation and sub-second reflex AST triage to fix syntax errors before breaking the user's flow.",
+    "ideal_role": "Applied AI Engineer"
+  },
+  {
+    "id": "cognition-scott-wu",
+    "name": "Scott Wu",
+    "role": "Co-founder & CEO",
+    "company": "Cognition (Devin)",
+    "target_email": "scott@cognition.ai",
+    "domain_focus": "Autonomous software engineering sandboxes, multi-step debugging, and shell environments",
+    "specific_hook": "Devin's autonomous sandbox reliability on massive compiled C++ codebases with circular dependencies.",
+    "ideal_role": "Autonomous Agent Systems Engineer"
+  },
+  {
+    "id": "openai-peter-welinder",
+    "name": "Peter Welinder",
+    "role": "VP of Product & Applied AI",
+    "company": "OpenAI",
+    "target_email": "peter@openai.com",
+    "domain_focus": "Codex / Applied AI evaluation harnesses, deterministic code execution, and enterprise coding loops",
+    "specific_hook": "The Applied AI Engineer (Codex) opening in London/SF, specifically building evaluation environments that prevent 'green when untrue' test passes.",
+    "ideal_role": "Applied AI Engineer, Codex"
+  },
+  {
+    "id": "poolside-jason-warner",
+    "name": "Jason Warner",
+    "role": "Co-founder & CEO (former GitHub CTO)",
+    "company": "Poolside AI",
+    "target_email": "jason@poolside.ai",
+    "domain_focus": "Foundation models for software engineering, RL environments, and deterministic code execution",
+    "specific_hook": "Building reinforcement learning execution sandboxes that require zero mock passes and strict compiler exit codes.",
+    "ideal_role": "Software Engineering Model Harness Engineer"
+  },
+  {
+    "id": "modal-erik-bernhardsson",
+    "name": "Erik Bernhardsson",
+    "role": "Founder & CEO",
+    "company": "Modal Labs",
+    "target_email": "erik@modal.com",
+    "domain_focus": "Serverless GPU infrastructure, containerized execution sandboxes, and high-throughput inference",
+    "specific_hook": "Sub-second reflex inference and multi-GPU cluster scheduling across heterogeneous local nodes (5090 Blackwell + Spark).",
+    "ideal_role": "Inference Infrastructure / Systems Engineer"
+  }
+]
