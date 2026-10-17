@@ -1,0 +1,12 @@
+{
+  "incident_id": "INC-2026-10-17-009",
+  "timestamp": "2026-10-17T19:57:00+01:00",
+  "subsystem": "ezColonyTransportPodSystem",
+  "category": "State Transition Tick Latency",
+  "severity": "Medium",
+  "root_cause": "When updating pod flight progress in InFlightSubOrbital state, transitioning into AtmosphericReentry triggered within the 'if' block prevented the subsequent 'else if' branch from executing during the same tick. Consequently, thermal ablation of the heat shield did not commence until the subsequent tick, causing assertion failure in checkpoint 255.",
+  "resolution": "Immediately apply fractional thermal ablation proportional to the flight time elapsed since crossing the reentry threshold upon transitioning into ezColonyPodStatus::AtmosphericReentry within the update cycle.",
+  "preventative_guideline": "When state machine transitions occur inside tick update branches, either allow fall-through to the newly entered state or immediately evaluate entering-edge dynamics to prevent single-frame latency glitches.",
+  "status": "Resolved",
+  "verified_in_build": "Checkpoints 254-259 Green"
+}
