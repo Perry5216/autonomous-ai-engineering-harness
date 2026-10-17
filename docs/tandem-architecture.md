@@ -19,24 +19,25 @@ The **Asymmetric Tandem Architecture** eliminates these pathologies by separatin
 |                                                                                   |
 |  [ SPARK CLUSTER ]                                      [ RTX 5090 BLACKWELL ]    |
 |  Endpoint: :8877                                        Endpoint: :8080           |
-|  Role: Primary DRI                                      Role: Reflex & Triage     |
+|  Role: Orchestrator, Memory & Gate 1 Reviewer           Role: Tier 2 Coder & Reflex |
 |  Model: qwen3.8-flash-next                              Model: qwen3.8-flash-next |
-|  Throughput: Multi-file code generation                 Throughput: 182 tok/s     |
-|  Context: Feature blueprints, DAG specs                 Latency: < 2,000 ms       |
+|  Throughput: Knowledge Graph, DAG Orchestration         Throughput: 205-303 tok/s |
+|  Context: 50-Subsystem Memory, ADR Compliance           Latency: 373ms TTFT       |
 |                                                                                   |
 +-----------------------------------------------------------------------------------+
 ```
 
-### The Primary DRI (Spark Cluster)
-- Handles broad implementation steps.
-- Ingests full subsystem specs, module interfaces, and data-definition files.
-- Generates new subsystem headers, `.cpp` implementations, and unit test suites.
+### The Orchestrator & Gate 1 Reviewer (DGX Spark Cluster)
+- Holds persistent memory and dependency graph across all 50 subsystems.
+- Orchestrates the Pocock Skills Deck (`grill-with-docs` -> `to-spec` -> `to-tickets`).
+- **Gate 1 Architectural Review**: Validates the 5090's synthesized code against ADR 0002 Subsystem Isolation, NO_PCH self-sufficiency, and ticket contracts before compilation.
 
-### The Reflex Triage Engine (NVIDIA RTX 5090 Blackwell)
-- Operates locally at ultra-high throughput (**198.8 tokens/sec**, latency **< 2,500 ms**).
-- Dedicated exclusively to:
-  - **Fowler Code Smell & Clean Code Linting**: Pre-commit diff inspection for Mysterious Name, Duplicated Code, and Spec Compliance.
-  - **Compiler AST Triage**: Instantly parses MSVC/Clang/GCC compiler dumps, pinpoints missing `#include` directives or forward declaration cycles, and emits minimal surgical diffs.
+### The High-Speed Coder & Reflex Triage Engine (NVIDIA RTX 5090 Blackwell)
+- Operates locally on PCIe at ultra-high throughput (**205.6–303.7 tokens/sec**, latency **< 1,500 ms**).
+- Dedicated to:
+  - **Tier 2 Whole Subsystem & Ticket Code Synthesis**: Directly synthesizes production-ready C++20 `.h`, `.cpp`, and unit test suites in 3–5 seconds.
+  - **Compiler AST Triage**: Instantly parses MSVC/Clang/GCC compiler dumps, pinpoints missing `#include` directives or type mismatches, and emits minimal surgical diffs.
+  - **Fowler Code Smell & Clean Code Linting**: Gate 3 audit for Mysterious Name, Duplicated Code, and Spec Compliance.
   - **Zero Display Contention**: Hardware isolation guarantees compute runs without interfering with workstation desktop GPUs (e.g. 5070 Ti display card).
 
 ---
