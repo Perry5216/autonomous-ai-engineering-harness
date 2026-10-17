@@ -1,0 +1,31 @@
+{
+  "incident_id": "INC-20261017-183001",
+  "timestamp": "2026-10-17T18:30:01+01:00",
+  "target_subsystem": "ezEngine ColonyPlugin - Module 57 (Combat Extended Ballistics)",
+  "trigger": "CMake / MSVC C++20 Native Compilation Failure",
+  "compiler": "MSVC 19.38.33130 (Visual Studio 2022 Dev x64)",
+  "raw_compiler_output": [
+    "C:\\Users\\5216p\\ezEngine\\Code\\EnginePlugins\\ColonyPlugin\\ColonyBallisticsSystem.h(45,5): error C2061: syntax error: identifier 'ezFloat32'",
+    "C:\\Users\\5216p\\ezEngine\\Code\\EnginePlugins\\ColonyPlugin\\ColonyBallisticsSystem.h(46,5): error C2061: syntax error: identifier 'ezFloat32'",
+    "C:\\Users\\5216p\\ezEngine\\Code\\EnginePlugins\\ColonyPlugin\\ColonyBallisticsSystem.h(57,5): error C2061: syntax error: identifier 'ezFloat32'"
+  ],
+  "triage_engine": {
+    "device": "NVIDIA GeForce RTX 5090 Blackwell (Architecture: sm_120)",
+    "endpoint": "http://127.0.0.1:8080/v1/chat/completions",
+    "model": "qwen3.8-flash-next-iq2_xs",
+    "inference_throughput_tok_per_sec": 367.2,
+    "latency_ms": 2045,
+    "prompt_tokens": 465,
+    "completion_tokens": 110
+  },
+  "triage_diagnosis": "Root Cause: ezEngine does not define an 'ezFloat32' type alias in Foundation/Types/Types.h. While integer primitives are aliased (ezInt32, ezUInt32), single-precision floats use standard 'float'.\n\nMinimal Repair:\nReplace all occurrences of 'ezFloat32' with 'float' in ColonyBallisticsSystem.h and ColonyBallisticsSystem.cpp.",
+  "surgical_patch_diff": "--- a/Code/EnginePlugins/ColonyPlugin/ColonyBallisticsSystem.h\n+++ b/Code/EnginePlugins/ColonyPlugin/ColonyBallisticsSystem.h\n@@ -45,4 +45,4 @@\n-    ezFloat32 BaseDeflectionChance = 0.0f;\n-    ezFloat32 EffectiveDeflectionChance = 0.0f;\n+    float BaseDeflectionChance = 0.0f;\n+    float EffectiveDeflectionChance = 0.0f;",
+  "learned_invariant": "SKILL-009: In ezEngine, floating-point primitive types are standard 'float' and 'double'. There are no 'ezFloat32' or 'ezFloat64' aliases in Foundation/Types/Types.h.",
+  "verification_post_repair": {
+    "msvc_build_exit_code": 0,
+    "msvc_build_duration_ms": 2840,
+    "binary_test_exit_code": 0,
+    "checkpoints_verified": 186,
+    "status": "RESOLVED_AUTONOMOUSLY"
+  }
+}

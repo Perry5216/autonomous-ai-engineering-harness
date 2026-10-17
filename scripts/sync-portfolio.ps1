@@ -121,7 +121,21 @@ if (Test-Path (Join-Path $ezRoot ".git")) {
 # Deduplicate completed modules by Number (preferring higher Stage 4 modules)
 $uniqueModules = $completedModules | Where-Object { $_.Number -ge 30 } | Group-Object Number | ForEach-Object { $_.Group[-1] } | Sort-Object Number
 
-# 5. Build Telemetry JSON
+# 5. Extract Autonomous Incident Dumps
+$incidentFiles = Get-ChildItem (Join-Path $portfolioRoot "telemetry\incidents\*.json") -ErrorAction SilentlyContinue
+$incidentRecords = @()
+$incidentsTable = "| Incident ID | Target Subsystem | Failure Trigger | Triage Engine | Post-Repair Status |`n|---|---|---|---|---|`n"
+foreach ($incFile in ($incidentFiles | Sort-Object Name -Descending)) {
+    try {
+        $inc = [System.IO.File]::ReadAllText($incFile.FullName, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
+        $incidentRecords += $inc
+        $incLink = "[$($inc.incident_id)](telemetry/incidents/$($incFile.Name))"
+        $latencySec = [math]::Round($inc.triage_engine.latency_ms / 1000.0, 1)
+        $incidentsTable += "| $incLink | $($inc.target_subsystem) | $($inc.trigger) | 5090 Reflex (${latencySec}s) | **$($inc.verification_post_repair.status)** |`n"
+    } catch {}
+}
+
+# 5b. Build Telemetry JSON
 $telemetry = [PSCustomObject]@{
     timestamp          = (Get-Date -Format "o")
     humanTimestamp     = (Get-Date -Format "yyyy-MM-dd HH:mm:ss 'UTC'zzz")
@@ -134,13 +148,15 @@ $telemetry = [PSCustomObject]@{
     rtx5090Online      = $rtx5090Online
     activeTarget       = "ezEngine C++20 Colony Simulation"
     modulesCompleted   = $uniqueModules.Count
+    totalIncidentsTriaged = $incidentRecords.Count
+    incidents          = $incidentRecords
 }
 
 $telemetryJsonPath = Join-Path $portfolioRoot "telemetry\live-telemetry.json"
 $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
-$jsonContent = $telemetry | ConvertTo-Json -Depth 4
+$jsonContent = $telemetry | ConvertTo-Json -Depth 6
 [System.IO.File]::WriteAllText($telemetryJsonPath, $jsonContent, $utf8NoBom)
-Write-SyncLog "Saved telemetry to $telemetryJsonPath" "Green"
+Write-SyncLog "Saved telemetry to $telemetryJsonPath (with $($incidentRecords.Count) incidents)" "Green"
 
 # 6. Generate Clean, Professional Markdown
 $readmePath = Join-Path $portfolioRoot "README.md"
@@ -338,7 +354,13 @@ ${b3}
 
 ---
 
-## 5. Live Incident Case Study: Autonomous Circular Dependency & Buffer Triage
+## 5. Autonomous Flight Recorder: Live Self-Healing Incidents
+
+Whenever a native compiler failure, architectural rejection, or runtime error occurs, the harness automatically routes the raw diagnostics to the **RTX 5090 Blackwell Reflex Engine (< 3,000ms latency)** to diagnose the root cause, synthesize a minimal patch, and record an immutable incident flight record:
+
+$incidentsTable
+
+### Deep Case Study: Autonomous Circular Dependency & Buffer Triage
 
 During tonight's overnight run, the engine autonomously triaged and resolved a complex circular dependency and buffer state bug across three C++ subsystems without human intervention:
 
@@ -347,15 +369,15 @@ ${b3}
 [2026-10-17 03:00:15] Engaged RTX 5090 Blackwell Reflex Engine (< 3,000ms latency)
 ${b3}
 
-### The Root Cause (Diagnosed in 2,766ms by RTX 5090 Blackwell)
+#### The Root Cause (Diagnosed in 2,766ms by RTX 5090 Blackwell)
 1. **Header Inclusion Cycle**: ${b}ColonyRoomComponent.h${b} included ${b}ColonyWorldModule.h${b}, while ${b}ColonyWorldModule.h${b} included ${b}ColonyRoomComponent.h${b}.
 2. **Buffer Invalidation**: ${b}ezDynamicArray${b} in ${b}RegenerateAllRooms${b} called ${b}SetCount(uiTotalCells, -1)${b} without a prior ${b}Clear()${b}, causing stale room IDs to persist across simulation ticks.
 
-### The Autonomous Fix
+#### The Autonomous Fix
 - Injected forward declarations: ${b}class ezColonyWorldModule;${b} and ${b}struct ezColonyCell;${b} in ${b}ColonyRoomComponent.h${b}.
 - Aligned ${b}struct ezColonyRoomMap;${b} forward declaration in ${b}ColonyWeatherSystem.h${b}.
 - Added explicit buffer reset ${b}ref_map.m_RoomIndexPerCell.Clear()${b} before reallocation.
-- Result: **Compilation succeeded in 1.4s, and all 109 test checkpoints passed cleanly.**
+- Result: **Compilation succeeded in 1.4s, and all test checkpoints passed cleanly.**
 
 ---
 

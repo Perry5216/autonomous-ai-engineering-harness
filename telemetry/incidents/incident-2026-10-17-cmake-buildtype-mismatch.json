@@ -1,0 +1,33 @@
+{
+  "incident_id": "INC-20261017-183045",
+  "timestamp": "2026-10-17T18:30:45+01:00",
+  "target_subsystem": "ezEngine BuildSystem (CMake / MSVC)",
+  "trigger": "CMake Build Re-generation Failure",
+  "compiler": "CMake 4.4.3 + MSVC 19.38.33130",
+  "raw_compiler_output": [
+    "CMake Error at Code/BuildSystem/CMake/ezUtils.cmake:130 (message):",
+    "  Unknown CMAKE_BUILD_TYPE: 'Release'",
+    "Call Stack (most recent call first):",
+    "  Code/BuildSystem/CMake/ezUtils.cmake:156 (ez_set_target_output_dirs)",
+    "  Code/ThirdParty/AngelScript/CMakeLists.txt:126 (ez_create_target)"
+  ],
+  "triage_engine": {
+    "device": "NVIDIA GeForce RTX 5090 Blackwell (Architecture: sm_120)",
+    "endpoint": "http://127.0.0.1:8080/v1/chat/completions",
+    "model": "qwen3.8-flash-next-iq2_xs",
+    "inference_throughput_tok_per_sec": 361.0,
+    "latency_ms": 1720,
+    "prompt_tokens": 420,
+    "completion_tokens": 95
+  },
+  "triage_diagnosis": "Root Cause: ezEngine build system overrides standard CMake configuration types to 'Debug', 'Dev', and 'Shipping'. The default CMake configuration variable 'CMAKE_BUILD_TYPE' was set to 'Release' in CMakeCache.txt, which is rejected by ezUtils.cmake line 130.\n\nMinimal Repair:\nUpdate CMAKE_BUILD_TYPE in CMakeCache.txt to 'Dev' and invoke builds with '--config Dev'.",
+  "surgical_patch_diff": "--- a/build/CMakeCache.txt\n+++ b/build/CMakeCache.txt\n@@ -69,1 +69,1 @@\n-CMAKE_BUILD_TYPE:STRING=Release\n+CMAKE_BUILD_TYPE:STRING=Dev",
+  "learned_invariant": "SKILL-010: In ezEngine, CMake build configurations are strictly 'Debug', 'Dev', and 'Shipping'. Standard 'Release' is invalid and rejected during configure.",
+  "verification_post_repair": {
+    "msvc_build_exit_code": 0,
+    "msvc_build_duration_ms": 7500,
+    "binary_test_exit_code": 0,
+    "checkpoints_verified": 189,
+    "status": "RESOLVED_AUTONOMOUSLY"
+  }
+}
