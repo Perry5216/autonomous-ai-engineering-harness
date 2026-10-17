@@ -72,18 +72,45 @@ function Invoke-5090Diagnosis([string]$errorContext, [string]$taskContext) {
     try {
         $model = Get-5090ModelId
         Write-Log "[5090 Reflex] Engaging RTX 5090 Blackwell for rapid diagnosis (<2s @ 205 tok/s)..." "Yellow"
+
+        # Web Ground-Truth Search: Lookup error signature against official docs & verified solutions
+        $webTruth = ""
+        $lookupScript = "$PSScriptRoot\web-error-lookup.py"
+        if (Test-Path $lookupScript) {
+            try {
+                Write-Log "[Web Grounding] Researching authoritative documentation & verified solutions for error signature..." "Cyan"
+                $uvExe = "C:\Users\5216p\.local\bin\uv.exe"
+                if (Test-Path $uvExe) {
+                    $webTruth = & $uvExe run --with ddgs python $lookupScript $errorContext $taskContext 2>$null | Out-String
+                } else {
+                    $webTruth = python $lookupScript $errorContext $taskContext 2>$null | Out-String
+                }
+                if ($webTruth -and $webTruth.Trim()) {
+                    Write-Log "[Web Grounding] Retrieved authoritative documentation receipts." "Green"
+                }
+            } catch {
+                Write-Log "[Web Grounding] Offline or search bypassed: $($_.Exception.Message)" "DarkGray"
+            }
+        }
+
+        $userPrompt = "Analyze this failure in ${taskContext}:`nError Output:`n$errorContext"
+        if ($webTruth -and $webTruth.Trim()) {
+            $userPrompt += "`n`n$($webTruth.Trim())"
+        }
+        $userPrompt += "`n`nState the root cause in 2 sentences, citing relevant documentation if applicable, and output the exact minimal diff repair."
+
         $body = @{
             model = $model
             messages = @(
-                @{ role = "system"; content = "You are a senior engineer on the review/triage team. Adhere strictly to lazy senior principles: shortest correct diff, zero fluff, pinpoint root cause." }
-                @{ role = "user"; content = "Analyze this failure in ${taskContext}:`nError Output:`n$errorContext`nState the root cause in 2 sentences and output the exact minimal diff repair." }
+                @{ role = "system"; content = "You are a senior engineer on the review/triage team. Adhere strictly to lazy senior principles: shortest correct diff, zero fluff, pinpoint root cause grounded in authoritative documentation." }
+                @{ role = "user"; content = $userPrompt }
             )
             max_tokens = 2048
             reasoning_budget_tokens = 512
             temperature = 0.1
         }
         $sw = [System.Diagnostics.Stopwatch]::StartNew()
-        $content = Invoke-5090ChatCompletion -payload $body -timeoutSec 15
+        $content = Invoke-5090ChatCompletion -payload $body -timeoutSec 20
         $sw.Stop()
         Write-Log "[5090 Reflex] Diagnosis returned in $($sw.ElapsedMilliseconds) ms." "Green"
         return $content
