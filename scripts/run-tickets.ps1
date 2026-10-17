@@ -316,6 +316,17 @@ Implement and fix now.
             git commit -m $commitMsg 2>&1 | Out-String | Write-Host -ForegroundColor Gray
             Write-Log "TICKET $($ticket.Number) COMMITTED TO GIT." "Green"
 
+            # Auto-update public showcase portfolio repository
+            $syncScript = "C:\Users\5216p\Projects\autonomous-ai-engineering-harness\scripts\sync-portfolio.ps1"
+            if (Test-Path $syncScript) {
+                try {
+                    Write-Log "[Portfolio Sync] Updating live showcase portfolio..." "Cyan"
+                    & $syncScript
+                } catch {
+                    Write-Log "[Portfolio Sync Warning] Sync failed: $($_.Exception.Message)" "Yellow"
+                }
+            }
+
             $ticketSuccess = $true
             $completedCount++
             break
