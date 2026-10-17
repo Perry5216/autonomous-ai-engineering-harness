@@ -20,7 +20,7 @@
 | **Modules Verified & Fast-Forwarded** | **2 Subsystems** | Automated Sentinel & Phase Hooks |
 | **Reflex Diagnostic Latency** | **< 3,000 ms** | RTX 5090 Blackwell @ 182 tok/s |
 | **Target Git HEAD** | `34c017bb7` (`dev`) | 7142 total commits |
-| **Last Verified Timestamp** | **2026-10-17 03:18:45** | Continuous Verification Loop |
+| **Last Verified Timestamp** | **2026-10-17 03:19:56** | Continuous Verification Loop |
 
 ---
 
@@ -75,7 +75,51 @@ flowchart TD
 
 ---
 
-## 3. Live Incident Case Study: Autonomous Circular Dependency & Buffer Triage
+## 3. Controlling Agentic Chaos: Git Worktree Sandboxing & Atomic Promotion
+
+Deploying autonomous coding agents directly onto an active working directory is a recipe for state pollution:
+- **Index Lock Contention**: Concurrent file scanners, IDE linters, and build tools collide on `.git/index.lock`.
+- **Dirty Workspace Poisoning**: An agent that fails midway through an edit leaves dirty uncompilable files that ruin subsequent agent runs.
+- **Operator Lockout**: Developers cannot inspect or edit code while an overnight loop is modifying their working directory.
+
+This harness eliminates entropy leakage via **Worktree-Per-Task Sandboxing**:
+
+```mermaid
+flowchart TD
+    subgraph RepoHost ["Primary Git Repository (dev/main)"]
+        MainBranch[Pristine Branch: dev\nALWAYS COMPILED & GREEN]
+        GitStore[(Shared .git/objects Store)]
+    end
+
+    subgraph Spawn ["Ephemeral Provisioning"]
+        MainBranch -->|git worktree add -b agent/task-NN| Sandbox[Isolated Worktree Sandbox\n.worktrees/agent-task-NN]
+        GitStore -.->|Zero-Copy Disk Sharing| Sandbox
+    end
+
+    subgraph SandboxedExecution ["Sandboxed Agent Turn"]
+        Sandbox --> Turn[Agent Modifications & MSVC Compile]
+        Turn --> GateCheck{Dual-Gate Verification}
+    end
+
+    subgraph PromotionResolution ["Atomic Promotion vs Zero-Residue Rollback"]
+        GateCheck -->|PASS: Exit 0 + Sentinels| Promote[Fast-Forward Merge to dev]
+        Promote --> PrunePass[git worktree remove --force\nClean Prune]
+        PrunePass --> MainBranch
+
+        GateCheck -->|FAIL: Retries Exhausted| Rollback[git worktree remove --force\ngit branch -D agent/task-NN]
+        Rollback --> Pristine[dev Remains 100% Pristine\nZero State Poisoning]
+    end
+```
+
+### Key Worktree Invariants:
+1. **Zero Blast Radius**: All agent file generation, CMake cache generation, and compilation take place inside ephemeral worktree paths.
+2. **Atomic Promotion**: Changes only touch integration branches via fast-forward merges after binary compilation and test sentinels are 100% verified.
+3. **Zero-Residue Teardown**: Failed attempts are forcefully pruned at the filesystem and Git ref level (`git worktree remove --force`), eliminating half-baked files.
+4. **Zero Clone Overhead**: Worktrees share `.git/objects` directly, requiring 0 bytes of network transit and near-instant provisioning.
+
+---
+
+## 4. Live Incident Case Study: Autonomous Circular Dependency & Buffer Triage
 
 During tonight's overnight run, the engine autonomously triaged and resolved a complex circular dependency and buffer state bug across three C++ subsystems without human intervention:
 
@@ -96,7 +140,7 @@ During tonight's overnight run, the engine autonomously triaged and resolved a c
 
 ---
 
-## 4. Core Invariants: Zero "Green When Untrue"
+## 5. Core Invariants: Zero "Green When Untrue"
 
 1. **Dual Verification Mandatory**:
    A test is only considered passing if **both** conditions hold:
@@ -109,7 +153,7 @@ During tonight's overnight run, the engine autonomously triaged and resolved a c
 
 ---
 
-## 5. Active Feature Modules Verified
+## 6. Active Feature Modules Verified
 
 | Module | Feature Name | Verification Gate | Status |
 |---|---|---|---|
@@ -119,11 +163,14 @@ During tonight's overnight run, the engine autonomously triaged and resolved a c
 
 ---
 
-## 6. Running the Harness
+## 7. Running the Harness & Sandboxes
 
 ```powershell
 # Run the autonomous overnight ticket runner on any repo
 powershell -ExecutionPolicy Bypass -File ./scripts/run-tickets.ps1 -RepoPath "C:/path/to/project"
+
+# Spawn an isolated worktree sandbox for an agent task
+powershell -ExecutionPolicy Bypass -File ./scripts/Invoke-AgentWorktree.ps1 -RepoPath "C:/path/to/project" -TaskId "32"
 
 # Synchronize portfolio telemetry and push live stats to GitHub
 powershell -ExecutionPolicy Bypass -File ./scripts/sync-portfolio.ps1
