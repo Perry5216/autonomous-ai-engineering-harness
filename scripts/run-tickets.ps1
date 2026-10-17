@@ -20,7 +20,9 @@ param(
     [string]$FeatureSlug = "",
     [int]$MaxAttempts = 3,
     [switch]$RunOnce = $false,
-    [string]$CustomTestCommand = ""
+    [string]$CustomTestCommand = "",
+    [switch]$CleanWebCache = $false,
+    [switch]$FlushWebCache = $false
 )
 
 $ErrorActionPreference = "Continue"
@@ -28,6 +30,19 @@ $ErrorActionPreference = "Continue"
 function Write-Log([string]$msg, [string]$color = "Cyan") {
     $ts = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     Write-Host "[$ts] $msg" -ForegroundColor $color
+}
+
+# Handle cache maintenance flags
+$lookupScript = "$PSScriptRoot\web-error-lookup.py"
+if (Test-Path $lookupScript) {
+    if ($FlushWebCache) {
+        Write-Log "[SSD Cache] Flushing web error lookup cache..." "Yellow"
+        python $lookupScript --flush
+    }
+    if ($CleanWebCache) {
+        Write-Log "[SSD Cache] Pruning expired entries from web error lookup cache..." "Yellow"
+        python $lookupScript --clean
+    }
 }
 
 # -----------------------------------------------------------------------------
