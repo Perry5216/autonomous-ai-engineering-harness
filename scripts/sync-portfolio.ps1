@@ -383,7 +383,7 @@ if (-not $NoPush) {
             git branch -M main
         }
 
-        git add README.md telemetry/live-telemetry.json scripts/ docs/ 2>$null
+        git add README.md telemetry/live-telemetry.json scripts/ docs/ examples/ 2>$null
         $status = git status --porcelain
         if ($status) {
             $msg = "fix(docs): clean UTF-8 headers and live telemetry sync ($headCommit)"
