@@ -1,0 +1,12 @@
+{
+  "incident_id": "INC-2026-10-17-012",
+  "subsystem": "ColonyFungalSporeSystem / ColonyOrbitalLaserShieldSystem",
+  "checkpoint": 290,
+  "severity": "LOW",
+  "title": "MSVC C2447 / C2825 syntax error caused by misspelled export macro EZ_COLONY_PLUGIN_DLL",
+  "description": "During compilation of Modules 94 and 95, MSVC failed with C2447 ('{': missing function header) and C2825 ('left of :: must be a class/struct/union').",
+  "root_cause": "The export macro in ColonyPluginDLL.h is defined as EZ_COLONYPLUGIN_DLL (no underscore between COLONY and PLUGIN). The new headers defined classes using EZ_COLONY_PLUGIN_DLL, which was undefined and led the compiler to parse subsequent tokens as malformed expressions.",
+  "resolution": "Applied search-and-replace to update EZ_COLONY_PLUGIN_DLL to EZ_COLONYPLUGIN_DLL in ColonyFungalSporeSystem.h and ColonyOrbitalLaserShieldSystem.h. Full compilation succeeded cleanly with 0 warnings.",
+  "status": "RESOLVED",
+  "timestamp": "2026-10-17T20:19:30Z"
+}
