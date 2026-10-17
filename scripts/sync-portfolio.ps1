@@ -184,7 +184,7 @@ $readmeContent = @"
 | **Active Target Codebase** | [ezEngine Colony Simulation Plugin](https://github.com/Perry5216/ezEngine/tree/dev/Code/EnginePlugins/ColonyPlugin) | Native C++20 / MSVC / CMake / Ninja |
 | **Modules Verified & Fast-Forwarded** | **$($uniqueModules.Count) Subsystems** | Automated Sentinel & Phase Hooks |
 | **Reflex Diagnostic Latency** | **< 2,500 ms** | RTX 5090 Blackwell @ 198.8 tok/s (32k Resident KV) |
-| **Target Git HEAD** | [\`$headCommit\`](https://github.com/Perry5216/ezEngine/commit/$headCommit) (\`$currentBranch\`) | $commitCount total commits |
+| **Target Git HEAD** | [${b}$headCommit${b}](https://github.com/Perry5216/ezEngine/commit/$headCommit) (${b}$currentBranch${b}) | $commitCount total commits |
 | **Last Verified Timestamp** | **$nowStr** | Continuous Verification Loop |
 
 - **Interactive Visual Dashboard**: Open [docs/index.html](docs/index.html) for the dark-mode real-time terminal and telemetry board.  
