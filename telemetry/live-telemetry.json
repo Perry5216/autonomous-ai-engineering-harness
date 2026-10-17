@@ -1,170 +1,170 @@
 {
-    "timestamp":  "2026-10-17T18:41:53.7267433+01:00",
-    "humanTimestamp":  "2026-10-17 18:41:53 UTC+01:00",
-    "verifiedCheckpoints":  190,
-    "testStatus":  "PASSING (Exit Code 0)",
-    "gitHead":  "d7e1ac9d3",
-    "gitBranch":  "dev",
-    "totalCommits":  "7175",
-    "sparkClusterOnline":  true,
-    "rtx5090Online":  true,
-    "activeTarget":  "ezEngine C++20 Colony Simulation",
-    "modulesCompleted":  26,
-    "totalIncidentsTriaged":  5,
-    "incidents":  [
-                      {
-                          "incident_id":  "INC-20261017-180931",
-                          "timestamp":  "2026-10-17T18:09:31+01:00",
-                          "target_subsystem":  "ezEngine ColonyPlugin - Module 55 (Hospitality \u0026 Guest Quarters)",
-                          "trigger":  "Gate 3 / 5090 Blackwell Code Review Failure (STATUS: REJECT)",
-                          "compiler":  "MSVC 19.38.33130 (Visual Studio 2022 Dev x64)",
-                          "raw_compiler_output":  [
-                                                      "Gate 3 Martin Fowler Review Rejection:",
-                                                      "- Point 1: ColonyHospitalitySystem allocates ezDynamicArray in constructor and uses heap reallocations.",
-                                                      "- Point 2: Bed indices use unchecked array indexing without runtime bounds validation."
-                                                  ],
-                          "triage_engine":  {
-                                                "device":  "NVIDIA GeForce RTX 5090 Blackwell (Architecture: sm_120)",
-                                                "endpoint":  "http://127.0.0.1:8080/v1/chat/completions",
-                                                "model":  "qwen3.8-flash-next-iq2_xs",
-                                                "inference_throughput_tok_per_sec":  352.1,
-                                                "latency_ms":  1950,
-                                                "prompt_tokens":  490,
-                                                "completion_tokens":  140
-                                            },
-                          "triage_diagnosis":  "Root Cause: High-performance simulation systems must enforce zero-allocation semantics on bounded domains. Using ezDynamicArray introduces malloc/free cycles. Array access lacked production bounds validation.\n\nMinimal Repair:\nMigrate to ezStaticArray\u003cT, N\u003e with EZ_ASSERT_ALWAYS bounds checks and provide non-throwing TryGetBed() accessors.",
-                          "surgical_patch_diff":  "--- a/Code/EnginePlugins/ColonyPlugin/ColonyHospitalitySystem.h\n+++ b/Code/EnginePlugins/ColonyPlugin/ColonyHospitalitySystem.h\n@@ -25,2 +25,3 @@\n-  ezDynamicArray\u003cezColonyGuestBed\u003e m_GuestBeds;\n+  ezStaticArray\u003cezColonyGuestBed, MaxGuestBeds\u003e m_GuestBeds;\n+  ezColonyGuestBed* TryGetBed(ezUInt32 uiIndex);",
-                          "learned_invariant":  "SKILL-008: In hot subsystems with bounded domains, use ezStaticArray to ensure zero heap allocations, enforce bounds via EZ_ASSERT_ALWAYS, and provide non-throwing TryGet accessors.",
-                          "verification_post_repair":  {
-                                                           "msvc_build_exit_code":  0,
-                                                           "msvc_build_duration_ms":  2980,
-                                                           "binary_test_exit_code":  0,
-                                                           "checkpoints_verified":  180,
-                                                           "status":  "RESOLVED_AUTONOMOUSLY"
-                                                       }
-                      },
-                      {
-                          "incident_id":  "INC-20261017-183001",
-                          "timestamp":  "2026-10-17T18:30:01+01:00",
-                          "target_subsystem":  "ezEngine ColonyPlugin - Module 57 (Combat Extended Ballistics)",
-                          "trigger":  "CMake / MSVC C++20 Native Compilation Failure",
-                          "compiler":  "MSVC 19.38.33130 (Visual Studio 2022 Dev x64)",
-                          "raw_compiler_output":  [
-                                                      "C:\\Users\\5216p\\ezEngine\\Code\\EnginePlugins\\ColonyPlugin\\ColonyBallisticsSystem.h(45,5): error C2061: syntax error: identifier \u0027ezFloat32\u0027",
-                                                      "C:\\Users\\5216p\\ezEngine\\Code\\EnginePlugins\\ColonyPlugin\\ColonyBallisticsSystem.h(46,5): error C2061: syntax error: identifier \u0027ezFloat32\u0027",
-                                                      "C:\\Users\\5216p\\ezEngine\\Code\\EnginePlugins\\ColonyPlugin\\ColonyBallisticsSystem.h(57,5): error C2061: syntax error: identifier \u0027ezFloat32\u0027"
-                                                  ],
-                          "triage_engine":  {
-                                                "device":  "NVIDIA GeForce RTX 5090 Blackwell (Architecture: sm_120)",
-                                                "endpoint":  "http://127.0.0.1:8080/v1/chat/completions",
-                                                "model":  "qwen3.8-flash-next-iq2_xs",
-                                                "inference_throughput_tok_per_sec":  367.2,
-                                                "latency_ms":  2045,
-                                                "prompt_tokens":  465,
-                                                "completion_tokens":  110
-                                            },
-                          "triage_diagnosis":  "Root Cause: ezEngine does not define an \u0027ezFloat32\u0027 type alias in Foundation/Types/Types.h. While integer primitives are aliased (ezInt32, ezUInt32), single-precision floats use standard \u0027float\u0027.\n\nMinimal Repair:\nReplace all occurrences of \u0027ezFloat32\u0027 with \u0027float\u0027 in ColonyBallisticsSystem.h and ColonyBallisticsSystem.cpp.",
-                          "surgical_patch_diff":  "--- a/Code/EnginePlugins/ColonyPlugin/ColonyBallisticsSystem.h\n+++ b/Code/EnginePlugins/ColonyPlugin/ColonyBallisticsSystem.h\n@@ -45,4 +45,4 @@\n-    ezFloat32 BaseDeflectionChance = 0.0f;\n-    ezFloat32 EffectiveDeflectionChance = 0.0f;\n+    float BaseDeflectionChance = 0.0f;\n+    float EffectiveDeflectionChance = 0.0f;",
-                          "learned_invariant":  "SKILL-009: In ezEngine, floating-point primitive types are standard \u0027float\u0027 and \u0027double\u0027. There are no \u0027ezFloat32\u0027 or \u0027ezFloat64\u0027 aliases in Foundation/Types/Types.h.",
-                          "verification_post_repair":  {
-                                                           "msvc_build_exit_code":  0,
-                                                           "msvc_build_duration_ms":  2840,
-                                                           "binary_test_exit_code":  0,
-                                                           "checkpoints_verified":  186,
-                                                           "status":  "RESOLVED_AUTONOMOUSLY"
-                                                       }
-                      },
-                      {
-                          "incident_id":  "INC-20261017-030015",
-                          "timestamp":  "2026-10-17T03:00:15+01:00",
-                          "target_subsystem":  "ezEngine ColonyPlugin - Module 31",
-                          "trigger":  "CMake / MSVC C++20 Native Compilation Failure",
-                          "compiler":  "MSVC 19.44.35219 (Visual Studio 2022 Dev x64)",
-                          "raw_compiler_output":  [
-                                                      "C:\\Users\\5216p\\ezEngine\\Code\\EnginePlugins\\ColonyPlugin\\ColonyRoomComponent.h(12,28): error C2061: syntax error: identifier \u0027ezColonyWorldModule\u0027",
-                                                      "C:\\Users\\5216p\\ezEngine\\Code\\EnginePlugins\\ColonyPlugin\\ColonyWeatherSystem.h(15,8): error C2371: \u0027ezColonyRoomMap\u0027: redefinition; different basic types",
-                                                      "C:\\Users\\5216p\\ezEngine\\Code\\EnginePlugins\\ColonyPlugin\\ColonyRoomRoleSystem.cpp(84,33): error C2039: \u0027m_RoomIndexPerCell\u0027: is not a member of \u0027ezColonyRoomMap\u0027"
-                                                  ],
-                          "triage_engine":  {
-                                                "device":  "NVIDIA GeForce RTX 5090 Blackwell (Architecture: sm_120)",
-                                                "endpoint":  "http://127.0.0.1:8080/v1/chat/completions",
-                                                "model":  "qwen3.8-flash-next-iq3_s",
-                                                "inference_throughput_tok_per_sec":  182.4,
-                                                "latency_ms":  2766,
-                                                "prompt_tokens":  482,
-                                                "completion_tokens":  164
-                                            },
-                          "triage_diagnosis":  "Root Cause: ColonyRoomComponent.h includes ColonyWorldModule.h, while ColonyWorldModule.h includes ColonyRoomComponent.h, causing an incomplete type cycle. Additionally, ColonyWeatherSystem.h forward declared \u0027class ezColonyRoomMap\u0027 when the type is defined as \u0027struct ezColonyRoomMap\u0027. In RegenerateAllRooms, ezDynamicArray::SetCount does not reinitialize elements if capacity equals total cells.\n\nMinimal Repair:\n1. Replace #include \u003cColonyPlugin/ColonyWorldModule.h\u003e in ColonyRoomComponent.h with \u0027class ezColonyWorldModule;\u0027 and \u0027struct ezColonyCell;\u0027.\n2. Align forward declaration in ColonyWeatherSystem.h to \u0027struct ezColonyRoomMap;\u0027.\n3. Add \u0027ref_map.m_RoomIndexPerCell.Clear();\u0027 before SetCount in RegenerateAllRooms.",
-                          "surgical_patch_diff":  "diff --git a/Code/EnginePlugins/ColonyPlugin/ColonyRoomComponent.h\n--- a/Code/EnginePlugins/ColonyPlugin/ColonyRoomComponent.h\n+++ b/Code/EnginePlugins/ColonyPlugin/ColonyRoomComponent.h\n@@ -5,3 +5,4 @@\n-#include \u003cColonyPlugin/ColonyWorldModule.h\u003e\n+class ezColonyWorldModule;\n+struct ezColonyCell;\n--- a/Code/EnginePlugins/ColonyPlugin/ColonyWeatherSystem.h\n+++ b/Code/EnginePlugins/ColonyPlugin/ColonyWeatherSystem.h\n@@ -15,1 +15,1 @@\n-class ezColonyRoomMap;\n+struct ezColonyRoomMap;\n--- a/Code/EnginePlugins/ColonyPlugin/ColonyRoomRoleSystem.cpp\n+++ b/Code/EnginePlugins/ColonyPlugin/ColonyRoomRoleSystem.cpp\n@@ -82,2 +82,3 @@\n+    ref_map.m_RoomIndexPerCell.Clear();\n     ref_map.m_RoomIndexPerCell.SetCount(uiTotalCells, -1);",
-                          "verification_post_repair":  {
-                                                           "msvc_build_exit_code":  0,
-                                                           "msvc_build_duration_ms":  1420,
-                                                           "binary_test_exit_code":  0,
-                                                           "checkpoints_verified":  109,
-                                                           "status":  "RESOLVED_AUTONOMOUSLY"
-                                                       }
-                      },
-                      {
-                          "incident_id":  "INC-20261017-175247",
-                          "timestamp":  "2026-10-17T17:52:47+01:00",
-                          "target_subsystem":  "ezEngine ColonyPlugin - Module 53 (Deep Anomaly \u0026 Void Containment)",
-                          "trigger":  "CMake / MSVC C++20 Native Compilation Failure",
-                          "compiler":  "MSVC 19.38.33130 (Visual Studio 2022 Dev x64)",
-                          "raw_compiler_output":  [
-                                                      "C:\\Users\\5216p\\ezEngine\\Code\\EnginePlugins\\ColonyPlugin\\Test\\ColonyPluginTest.cpp(5214,1): fatal error C2601: \u0027TestAnomalyContainment\u0027: a local function definition is illegal"
-                                                  ],
-                          "triage_engine":  {
-                                                "device":  "NVIDIA GeForce RTX 5090 Blackwell (Architecture: sm_120)",
-                                                "endpoint":  "http://127.0.0.1:8080/v1/chat/completions",
-                                                "model":  "qwen3.8-flash-next-iq2_xs",
-                                                "inference_throughput_tok_per_sec":  348.6,
-                                                "latency_ms":  1840,
-                                                "prompt_tokens":  512,
-                                                "completion_tokens":  128
-                                            },
-                          "triage_diagnosis":  "Root Cause: The autonomous code synthesis defined a named helper function \u0027void TestAnomalyContainment()\u0027 directly inside the body of the enclosing \u0027RunChecks()\u0027 test function. In MSVC C++20, nested function definitions are illegal (C2601).\n\nMinimal Repair:\nFlatten the test logic directly into the enclosing function scope or wrap inside an anonymous block \u0027{ ... }\u0027 with local lambdas.",
-                          "surgical_patch_diff":  "--- a/Code/EnginePlugins/ColonyPlugin/Test/ColonyPluginTest.cpp\n+++ b/Code/EnginePlugins/ColonyPlugin/Test/ColonyPluginTest.cpp\n@@ -5214,3 +5214,3 @@\n-void TestAnomalyContainment()\n-{\n+{\n+  ezColonyAnomalySystem anomaly;",
-                          "learned_invariant":  "SKILL-006: In C++20, define test logic directly within the enclosing function scope or use local lambdas to avoid illegal nested function definitions (C2601).",
-                          "verification_post_repair":  {
-                                                           "msvc_build_exit_code":  0,
-                                                           "msvc_build_duration_ms":  3210,
-                                                           "binary_test_exit_code":  0,
-                                                           "checkpoints_verified":  174,
-                                                           "status":  "RESOLVED_AUTONOMOUSLY"
-                                                       }
-                      },
-                      {
-                          "incident_id":  "INC-20261017-183045",
-                          "timestamp":  "2026-10-17T18:30:45+01:00",
-                          "target_subsystem":  "ezEngine BuildSystem (CMake / MSVC)",
-                          "trigger":  "CMake Build Re-generation Failure",
-                          "compiler":  "CMake 4.4.3 + MSVC 19.38.33130",
-                          "raw_compiler_output":  [
-                                                      "CMake Error at Code/BuildSystem/CMake/ezUtils.cmake:130 (message):",
-                                                      "  Unknown CMAKE_BUILD_TYPE: \u0027Release\u0027",
-                                                      "Call Stack (most recent call first):",
-                                                      "  Code/BuildSystem/CMake/ezUtils.cmake:156 (ez_set_target_output_dirs)",
-                                                      "  Code/ThirdParty/AngelScript/CMakeLists.txt:126 (ez_create_target)"
-                                                  ],
-                          "triage_engine":  {
-                                                "device":  "NVIDIA GeForce RTX 5090 Blackwell (Architecture: sm_120)",
-                                                "endpoint":  "http://127.0.0.1:8080/v1/chat/completions",
-                                                "model":  "qwen3.8-flash-next-iq2_xs",
-                                                "inference_throughput_tok_per_sec":  361.0,
-                                                "latency_ms":  1720,
-                                                "prompt_tokens":  420,
-                                                "completion_tokens":  95
-                                            },
-                          "triage_diagnosis":  "Root Cause: ezEngine build system overrides standard CMake configuration types to \u0027Debug\u0027, \u0027Dev\u0027, and \u0027Shipping\u0027. The default CMake configuration variable \u0027CMAKE_BUILD_TYPE\u0027 was set to \u0027Release\u0027 in CMakeCache.txt, which is rejected by ezUtils.cmake line 130.\n\nMinimal Repair:\nUpdate CMAKE_BUILD_TYPE in CMakeCache.txt to \u0027Dev\u0027 and invoke builds with \u0027--config Dev\u0027.",
-                          "surgical_patch_diff":  "--- a/build/CMakeCache.txt\n+++ b/build/CMakeCache.txt\n@@ -69,1 +69,1 @@\n-CMAKE_BUILD_TYPE:STRING=Release\n+CMAKE_BUILD_TYPE:STRING=Dev",
-                          "learned_invariant":  "SKILL-010: In ezEngine, CMake build configurations are strictly \u0027Debug\u0027, \u0027Dev\u0027, and \u0027Shipping\u0027. Standard \u0027Release\u0027 is invalid and rejected during configure.",
-                          "verification_post_repair":  {
-                                                           "msvc_build_exit_code":  0,
-                                                           "msvc_build_duration_ms":  7500,
-                                                           "binary_test_exit_code":  0,
-                                                           "checkpoints_verified":  189,
-                                                           "status":  "RESOLVED_AUTONOMOUSLY"
-                                                       }
-                      }
-                  ]
+  "timestamp": "2026-10-17T18:53:34.9020927+01:00",
+  "humanTimestamp": "2026-10-17 18:53:34 UTC+01:00",
+  "verifiedCheckpoints": 193,
+  "testStatus": "PASSING (Exit Code 0)",
+  "gitHead": "830b24324",
+  "gitBranch": "dev",
+  "totalCommits": "7176",
+  "sparkClusterOnline": true,
+  "rtx5090Online": true,
+  "activeTarget": "ezEngine C++20 Colony Simulation",
+  "modulesCompleted": 27,
+  "totalIncidentsTriaged": 5,
+  "incidents": [
+    {
+      "incident_id": "INC-20261017-180931",
+      "timestamp": "2026-10-17T18:09:31+01:00",
+      "target_subsystem": "ezEngine ColonyPlugin - Module 55 (Hospitality & Guest Quarters)",
+      "trigger": "Gate 3 / 5090 Blackwell Code Review Failure (STATUS: REJECT)",
+      "compiler": "MSVC 19.38.33130 (Visual Studio 2022 Dev x64)",
+      "raw_compiler_output": [
+        "Gate 3 Martin Fowler Review Rejection:",
+        "- Point 1: ColonyHospitalitySystem allocates ezDynamicArray in constructor and uses heap reallocations.",
+        "- Point 2: Bed indices use unchecked array indexing without runtime bounds validation."
+      ],
+      "triage_engine": {
+        "device": "NVIDIA GeForce RTX 5090 Blackwell (Architecture: sm_120)",
+        "endpoint": "http://127.0.0.1:8080/v1/chat/completions",
+        "model": "qwen3.8-flash-next-iq2_xs",
+        "inference_throughput_tok_per_sec": 352.1,
+        "latency_ms": 1950,
+        "prompt_tokens": 490,
+        "completion_tokens": 140
+      },
+      "triage_diagnosis": "Root Cause: High-performance simulation systems must enforce zero-allocation semantics on bounded domains. Using ezDynamicArray introduces malloc/free cycles. Array access lacked production bounds validation.\n\nMinimal Repair:\nMigrate to ezStaticArray<T, N> with EZ_ASSERT_ALWAYS bounds checks and provide non-throwing TryGetBed() accessors.",
+      "surgical_patch_diff": "--- a/Code/EnginePlugins/ColonyPlugin/ColonyHospitalitySystem.h\n+++ b/Code/EnginePlugins/ColonyPlugin/ColonyHospitalitySystem.h\n@@ -25,2 +25,3 @@\n-  ezDynamicArray<ezColonyGuestBed> m_GuestBeds;\n+  ezStaticArray<ezColonyGuestBed, MaxGuestBeds> m_GuestBeds;\n+  ezColonyGuestBed* TryGetBed(ezUInt32 uiIndex);",
+      "learned_invariant": "SKILL-008: In hot subsystems with bounded domains, use ezStaticArray to ensure zero heap allocations, enforce bounds via EZ_ASSERT_ALWAYS, and provide non-throwing TryGet accessors.",
+      "verification_post_repair": {
+        "msvc_build_exit_code": 0,
+        "msvc_build_duration_ms": 2980,
+        "binary_test_exit_code": 0,
+        "checkpoints_verified": 180,
+        "status": "RESOLVED_AUTONOMOUSLY"
+      }
+    },
+    {
+      "incident_id": "INC-20261017-183001",
+      "timestamp": "2026-10-17T18:30:01+01:00",
+      "target_subsystem": "ezEngine ColonyPlugin - Module 57 (Combat Extended Ballistics)",
+      "trigger": "CMake / MSVC C++20 Native Compilation Failure",
+      "compiler": "MSVC 19.38.33130 (Visual Studio 2022 Dev x64)",
+      "raw_compiler_output": [
+        "C:\\Users\\5216p\\ezEngine\\Code\\EnginePlugins\\ColonyPlugin\\ColonyBallisticsSystem.h(45,5): error C2061: syntax error: identifier 'ezFloat32'",
+        "C:\\Users\\5216p\\ezEngine\\Code\\EnginePlugins\\ColonyPlugin\\ColonyBallisticsSystem.h(46,5): error C2061: syntax error: identifier 'ezFloat32'",
+        "C:\\Users\\5216p\\ezEngine\\Code\\EnginePlugins\\ColonyPlugin\\ColonyBallisticsSystem.h(57,5): error C2061: syntax error: identifier 'ezFloat32'"
+      ],
+      "triage_engine": {
+        "device": "NVIDIA GeForce RTX 5090 Blackwell (Architecture: sm_120)",
+        "endpoint": "http://127.0.0.1:8080/v1/chat/completions",
+        "model": "qwen3.8-flash-next-iq2_xs",
+        "inference_throughput_tok_per_sec": 367.2,
+        "latency_ms": 2045,
+        "prompt_tokens": 465,
+        "completion_tokens": 110
+      },
+      "triage_diagnosis": "Root Cause: ezEngine does not define an 'ezFloat32' type alias in Foundation/Types/Types.h. While integer primitives are aliased (ezInt32, ezUInt32), single-precision floats use standard 'float'.\n\nMinimal Repair:\nReplace all occurrences of 'ezFloat32' with 'float' in ColonyBallisticsSystem.h and ColonyBallisticsSystem.cpp.",
+      "surgical_patch_diff": "--- a/Code/EnginePlugins/ColonyPlugin/ColonyBallisticsSystem.h\n+++ b/Code/EnginePlugins/ColonyPlugin/ColonyBallisticsSystem.h\n@@ -45,4 +45,4 @@\n-    ezFloat32 BaseDeflectionChance = 0.0f;\n-    ezFloat32 EffectiveDeflectionChance = 0.0f;\n+    float BaseDeflectionChance = 0.0f;\n+    float EffectiveDeflectionChance = 0.0f;",
+      "learned_invariant": "SKILL-009: In ezEngine, floating-point primitive types are standard 'float' and 'double'. There are no 'ezFloat32' or 'ezFloat64' aliases in Foundation/Types/Types.h.",
+      "verification_post_repair": {
+        "msvc_build_exit_code": 0,
+        "msvc_build_duration_ms": 2840,
+        "binary_test_exit_code": 0,
+        "checkpoints_verified": 186,
+        "status": "RESOLVED_AUTONOMOUSLY"
+      }
+    },
+    {
+      "incident_id": "INC-20261017-030015",
+      "timestamp": "2026-10-17T03:00:15+01:00",
+      "target_subsystem": "ezEngine ColonyPlugin - Module 31",
+      "trigger": "CMake / MSVC C++20 Native Compilation Failure",
+      "compiler": "MSVC 19.44.35219 (Visual Studio 2022 Dev x64)",
+      "raw_compiler_output": [
+        "C:\\Users\\5216p\\ezEngine\\Code\\EnginePlugins\\ColonyPlugin\\ColonyRoomComponent.h(12,28): error C2061: syntax error: identifier 'ezColonyWorldModule'",
+        "C:\\Users\\5216p\\ezEngine\\Code\\EnginePlugins\\ColonyPlugin\\ColonyWeatherSystem.h(15,8): error C2371: 'ezColonyRoomMap': redefinition; different basic types",
+        "C:\\Users\\5216p\\ezEngine\\Code\\EnginePlugins\\ColonyPlugin\\ColonyRoomRoleSystem.cpp(84,33): error C2039: 'm_RoomIndexPerCell': is not a member of 'ezColonyRoomMap'"
+      ],
+      "triage_engine": {
+        "device": "NVIDIA GeForce RTX 5090 Blackwell (Architecture: sm_120)",
+        "endpoint": "http://127.0.0.1:8080/v1/chat/completions",
+        "model": "qwen3.8-flash-next-iq3_s",
+        "inference_throughput_tok_per_sec": 182.4,
+        "latency_ms": 2766,
+        "prompt_tokens": 482,
+        "completion_tokens": 164
+      },
+      "triage_diagnosis": "Root Cause: ColonyRoomComponent.h includes ColonyWorldModule.h, while ColonyWorldModule.h includes ColonyRoomComponent.h, causing an incomplete type cycle. Additionally, ColonyWeatherSystem.h forward declared 'class ezColonyRoomMap' when the type is defined as 'struct ezColonyRoomMap'. In RegenerateAllRooms, ezDynamicArray::SetCount does not reinitialize elements if capacity equals total cells.\n\nMinimal Repair:\n1. Replace #include <ColonyPlugin/ColonyWorldModule.h> in ColonyRoomComponent.h with 'class ezColonyWorldModule;' and 'struct ezColonyCell;'.\n2. Align forward declaration in ColonyWeatherSystem.h to 'struct ezColonyRoomMap;'.\n3. Add 'ref_map.m_RoomIndexPerCell.Clear();' before SetCount in RegenerateAllRooms.",
+      "surgical_patch_diff": "diff --git a/Code/EnginePlugins/ColonyPlugin/ColonyRoomComponent.h\n--- a/Code/EnginePlugins/ColonyPlugin/ColonyRoomComponent.h\n+++ b/Code/EnginePlugins/ColonyPlugin/ColonyRoomComponent.h\n@@ -5,3 +5,4 @@\n-#include <ColonyPlugin/ColonyWorldModule.h>\n+class ezColonyWorldModule;\n+struct ezColonyCell;\n--- a/Code/EnginePlugins/ColonyPlugin/ColonyWeatherSystem.h\n+++ b/Code/EnginePlugins/ColonyPlugin/ColonyWeatherSystem.h\n@@ -15,1 +15,1 @@\n-class ezColonyRoomMap;\n+struct ezColonyRoomMap;\n--- a/Code/EnginePlugins/ColonyPlugin/ColonyRoomRoleSystem.cpp\n+++ b/Code/EnginePlugins/ColonyPlugin/ColonyRoomRoleSystem.cpp\n@@ -82,2 +82,3 @@\n+    ref_map.m_RoomIndexPerCell.Clear();\n     ref_map.m_RoomIndexPerCell.SetCount(uiTotalCells, -1);",
+      "verification_post_repair": {
+        "msvc_build_exit_code": 0,
+        "msvc_build_duration_ms": 1420,
+        "binary_test_exit_code": 0,
+        "checkpoints_verified": 109,
+        "status": "RESOLVED_AUTONOMOUSLY"
+      }
+    },
+    {
+      "incident_id": "INC-20261017-175247",
+      "timestamp": "2026-10-17T17:52:47+01:00",
+      "target_subsystem": "ezEngine ColonyPlugin - Module 53 (Deep Anomaly & Void Containment)",
+      "trigger": "CMake / MSVC C++20 Native Compilation Failure",
+      "compiler": "MSVC 19.38.33130 (Visual Studio 2022 Dev x64)",
+      "raw_compiler_output": [
+        "C:\\Users\\5216p\\ezEngine\\Code\\EnginePlugins\\ColonyPlugin\\Test\\ColonyPluginTest.cpp(5214,1): fatal error C2601: 'TestAnomalyContainment': a local function definition is illegal"
+      ],
+      "triage_engine": {
+        "device": "NVIDIA GeForce RTX 5090 Blackwell (Architecture: sm_120)",
+        "endpoint": "http://127.0.0.1:8080/v1/chat/completions",
+        "model": "qwen3.8-flash-next-iq2_xs",
+        "inference_throughput_tok_per_sec": 348.6,
+        "latency_ms": 1840,
+        "prompt_tokens": 512,
+        "completion_tokens": 128
+      },
+      "triage_diagnosis": "Root Cause: The autonomous code synthesis defined a named helper function 'void TestAnomalyContainment()' directly inside the body of the enclosing 'RunChecks()' test function. In MSVC C++20, nested function definitions are illegal (C2601).\n\nMinimal Repair:\nFlatten the test logic directly into the enclosing function scope or wrap inside an anonymous block '{ ... }' with local lambdas.",
+      "surgical_patch_diff": "--- a/Code/EnginePlugins/ColonyPlugin/Test/ColonyPluginTest.cpp\n+++ b/Code/EnginePlugins/ColonyPlugin/Test/ColonyPluginTest.cpp\n@@ -5214,3 +5214,3 @@\n-void TestAnomalyContainment()\n-{\n+{\n+  ezColonyAnomalySystem anomaly;",
+      "learned_invariant": "SKILL-006: In C++20, define test logic directly within the enclosing function scope or use local lambdas to avoid illegal nested function definitions (C2601).",
+      "verification_post_repair": {
+        "msvc_build_exit_code": 0,
+        "msvc_build_duration_ms": 3210,
+        "binary_test_exit_code": 0,
+        "checkpoints_verified": 174,
+        "status": "RESOLVED_AUTONOMOUSLY"
+      }
+    },
+    {
+      "incident_id": "INC-20261017-183045",
+      "timestamp": "2026-10-17T18:30:45+01:00",
+      "target_subsystem": "ezEngine BuildSystem (CMake / MSVC)",
+      "trigger": "CMake Build Re-generation Failure",
+      "compiler": "CMake 4.4.3 + MSVC 19.38.33130",
+      "raw_compiler_output": [
+        "CMake Error at Code/BuildSystem/CMake/ezUtils.cmake:130 (message):",
+        "  Unknown CMAKE_BUILD_TYPE: 'Release'",
+        "Call Stack (most recent call first):",
+        "  Code/BuildSystem/CMake/ezUtils.cmake:156 (ez_set_target_output_dirs)",
+        "  Code/ThirdParty/AngelScript/CMakeLists.txt:126 (ez_create_target)"
+      ],
+      "triage_engine": {
+        "device": "NVIDIA GeForce RTX 5090 Blackwell (Architecture: sm_120)",
+        "endpoint": "http://127.0.0.1:8080/v1/chat/completions",
+        "model": "qwen3.8-flash-next-iq2_xs",
+        "inference_throughput_tok_per_sec": 361.0,
+        "latency_ms": 1720,
+        "prompt_tokens": 420,
+        "completion_tokens": 95
+      },
+      "triage_diagnosis": "Root Cause: ezEngine build system overrides standard CMake configuration types to 'Debug', 'Dev', and 'Shipping'. The default CMake configuration variable 'CMAKE_BUILD_TYPE' was set to 'Release' in CMakeCache.txt, which is rejected by ezUtils.cmake line 130.\n\nMinimal Repair:\nUpdate CMAKE_BUILD_TYPE in CMakeCache.txt to 'Dev' and invoke builds with '--config Dev'.",
+      "surgical_patch_diff": "--- a/build/CMakeCache.txt\n+++ b/build/CMakeCache.txt\n@@ -69,1 +69,1 @@\n-CMAKE_BUILD_TYPE:STRING=Release\n+CMAKE_BUILD_TYPE:STRING=Dev",
+      "learned_invariant": "SKILL-010: In ezEngine, CMake build configurations are strictly 'Debug', 'Dev', and 'Shipping'. Standard 'Release' is invalid and rejected during configure.",
+      "verification_post_repair": {
+        "msvc_build_exit_code": 0,
+        "msvc_build_duration_ms": 7500,
+        "binary_test_exit_code": 0,
+        "checkpoints_verified": 189,
+        "status": "RESOLVED_AUTONOMOUSLY"
+      }
+    }
+  ]
 }
