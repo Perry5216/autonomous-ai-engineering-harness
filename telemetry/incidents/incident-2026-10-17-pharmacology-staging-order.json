@@ -1,0 +1,31 @@
+{
+  "incident_id": "INC-20261017-191807",
+  "timestamp": "2026-10-17T19:18:07+01:00",
+  "target_subsystem": "ezEngine ColonyPlugin - Module 69 (Advanced Pharmacology)",
+  "trigger": "Deterministic Checkpoint 215 Failure (Exit Code 1)",
+  "compiler": "MSVC 19.38.33130 (Visual Studio 2022 Dev x64)",
+  "raw_compiler_output": [
+    "checkpoint: smooth wall engraving quality and subject selection ok",
+    "checkpoint: engraving observation beauty and colonist legend mood buff ok",
+    "Patient failed to enter SurgicalPlanes anesthesia or pain suppression failed",
+    "Return Code: 1"
+  ],
+  "triage_engine": {
+    "device": "NVIDIA GeForce RTX 5090 Blackwell (Architecture: sm_120)",
+    "endpoint": "http://127.0.0.1:8080/v1/chat/completions",
+    "model": "qwen3.8-flash-next-iq3_s",
+    "inference_throughput_tok_per_sec": 196.2,
+    "latency_ms": 2180,
+    "prompt_tokens": 420,
+    "completion_tokens": 158
+  },
+  "triage_diagnosis": "Root Cause: In ColonyPharmacologySystem::Update(), state evaluation was positioned before metabolic drug clearance. The 4.0-second metabolism decay reduced drug concentration from 0.935 to 0.735, but the stage machine reflected the prior frame's ParalyzedOverdose value until the subsequent update cycle. Additionally, pain suppression decay was being applied unconditionally even while patients remained in SurgicalPlanes.\n\nMinimal Repair:\n1. Move hepatic & renal metabolic clearance before stage classification.\n2. In SurgicalPlanes and ParalyzedOverdose, lock pain suppression to 1.0f (complete analgesic anesthesia).\n3. Only decay pain suppression when anesthesia stage drops below SurgicalPlanes.",
+  "surgical_patch_diff": "diff --git a/Code/EnginePlugins/ColonyPlugin/ColonyPharmacologySystem.cpp b/Code/EnginePlugins/ColonyPlugin/ColonyPharmacologySystem.cpp\n--- a/Code/EnginePlugins/ColonyPlugin/ColonyPharmacologySystem.cpp\n+++ b/Code/EnginePlugins/ColonyPlugin/ColonyPharmacologySystem.cpp\n@@ -140,7 +140,10 @@ void ezColonyPharmacologySystem::Update(float fDeltaTimeSec)\n+    // Hepatic & renal drug metabolism clearance\n+    prof.m_fAnestheticConcentration = ezMath::Max(0.0f, prof.m_fAnestheticConcentration - (0.05f * fDeltaTimeSec));\n+\n     // Anesthetic staging\n     if (prof.m_fAnestheticConcentration >= 0.85f)",
+  "verification_post_repair": {
+    "msvc_build_exit_code": 0,
+    "msvc_build_duration_ms": 1150,
+    "binary_test_exit_code": 0,
+    "checkpoints_verified": 217,
+    "status": "RESOLVED_AUTONOMOUSLY"
+  }
+}
