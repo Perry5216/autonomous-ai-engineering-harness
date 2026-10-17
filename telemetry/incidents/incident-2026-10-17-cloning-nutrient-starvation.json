@@ -1,0 +1,12 @@
+{
+  "incident_id": "INC-2026-10-17-010",
+  "timestamp": "2026-10-17T20:12:00+01:00",
+  "subsystem": "ezColonyCloningSystem",
+  "category": "Fluid Depletion Edge Evaluation",
+  "severity": "Medium",
+  "root_cause": "When updating amniotic cloning gestation, fluid consumption drained remaining nutrient broth to 0.0 inside the 'if' block during the tick. However, evaluation of tissue necrosis was locked inside an 'else' branch, preventing cellular death from triggering until the subsequent frame.",
+  "resolution": "Evaluate the zero/negative fluid threshold independently after consumption so that tissue necrosis is triggered immediately within the same tick when reserves exhaust.",
+  "preventative_guideline": "State changes caused by resource depletion within a frame must be evaluated sequentially after consumption rather than deferred via exclusive else branches.",
+  "status": "Resolved",
+  "verified_in_build": "Checkpoints 278-283 Green"
+}
