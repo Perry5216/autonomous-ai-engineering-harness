@@ -1,0 +1,12 @@
+{
+  "incident_id": "INC-2026-10-17-013",
+  "subsystem": "ColonyFusionTorusSystem",
+  "checkpoint": 303,
+  "severity": "LOW",
+  "title": "Fusion reactor net power output lagged one tick behind burning plasma ignition transition",
+  "description": "During verification of checkpoint 303 (burning plasma Lawson ignition and inductive MHD power generation), the reactor transitioned to BurningPlasmaIgnition, but m_fNetPowerOutputMW remained 0.0f until the subsequent simulation update tick.",
+  "root_cause": "The state transition check was placed in the OhmicHeating branch, while power generation was calculated in the BurningPlasmaIgnition branch using an else if. This caused an off-by-one tick latency before power generation was dispatched.",
+  "resolution": "Immediately assigned m_fNetPowerOutputMW = 250.0f and accumulated m_fTotalNetPowerMW upon successful transition into BurningPlasmaIgnition. All 307 checkpoints pass with code 0.",
+  "status": "RESOLVED",
+  "timestamp": "2026-10-17T20:26:15Z"
+}
