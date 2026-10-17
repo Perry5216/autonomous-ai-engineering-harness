@@ -98,8 +98,8 @@ if (Test-Path $logFile) {
 }
 
 # Also discover completed modules directly from git commit history
-if (Test-Path (Join-Path $targetRepo ".git")) {
-    Push-Location $targetRepo
+if (Test-Path (Join-Path $ezRoot ".git")) {
+    Push-Location $ezRoot
     try {
         $gitCommits = git log --grep="feat(colony):" -n 60 --pretty=format:"%s" 2>$null
         foreach ($c in $gitCommits) {
