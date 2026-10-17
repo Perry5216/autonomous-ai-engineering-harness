@@ -20,7 +20,7 @@
 | **Modules Verified & Fast-Forwarded** | **2 Subsystems** | Automated Sentinel & Phase Hooks |
 | **Reflex Diagnostic Latency** | **< 3,000 ms** | RTX 5090 Blackwell @ 182 tok/s |
 | **Target Git HEAD** | `34c017bb7` (`dev`) | 7142 total commits |
-| **Last Verified Timestamp** | **2026-10-17 03:19:56** | Continuous Verification Loop |
+| **Last Verified Timestamp** | **2026-10-17 03:21:28** | Continuous Verification Loop |
 
 ---
 
@@ -75,7 +75,52 @@ flowchart TD
 
 ---
 
-## 3. Controlling Agentic Chaos: Git Worktree Sandboxing & Atomic Promotion
+## 3. Deterministic Ticket DAG & Autonomous State Machine
+
+Instead of executing unconstrained chat prompts or flat to-do lists, the harness enforces a **Git-native, dependency-ordered Directed Acyclic Graph (DAG)** of Markdown tickets:
+
+- **Strict Topological Sorting**: Tasks declare explicit prerequisites (`**Blocked by:** 30, 31`). High-level systems cannot run until low-level dependencies are compiled and verified green.
+- **Git-Native Versioning**: Tickets reside in `.scratch/<feature>/issues/<NN>-<slug>.md` alongside the code and test suites. No dependency on flaky external SaaS trackers.
+- **Fail-Safe State Machine**:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Discovered: Scanner finds *.md tickets
+    Discovered --> Blocked: Blockers != 'done'
+    Discovered --> Ready: All Blockers == 'done'
+    Blocked --> Ready: Upstream Tickets Reach 'done'
+    Ready --> InProgress: Claimed by Overnight Runner
+
+    state InProgress {
+        [*] --> WorktreeSandbox: Provision Ephemeral Git Worktree
+        WorktreeSandbox --> CodeGen: Dispatch to Spark Cluster (:8877)
+        CodeGen --> Gate1_ADR: ADR 0002 Decoupling Linter
+        Gate1_ADR --> Gate2_BuildTest: CMake / MSVC + Native Sentinels
+        Gate2_BuildTest --> Gate3_Smell: RTX 5090 Blackwell Fowler Review
+    }
+
+    InProgress --> TriageRetry: Gate Fails & Retries < MaxAttempts
+    state TriageRetry {
+        [*] --> FastReflex: 5090 Diagnoses Root Cause (<2s)
+        FastReflex --> InjectRepair: Formulate Minimal Surgical Patch
+    }
+    InjectRepair --> CodeGen
+
+    InProgress --> TerminalFail: Retries >= MaxAttempts (Loop Halts)
+    InProgress --> Done: All Gates Verified Green
+
+    state Done {
+        [*] --> CommitGit: Commit with Semantic Hash
+        CommitGit --> FastForward: Atomic FF-Merge to dev
+        FastForward --> UpdateMarkdown: Status = done
+        UpdateMarkdown --> SyncPortfolio: Auto-Push Telemetry to GitHub
+    }
+    Done --> [*]
+```
+
+---
+
+## 4. Controlling Agentic Chaos: Git Worktree Sandboxing & Atomic Promotion
 
 Deploying autonomous coding agents directly onto an active working directory is a recipe for state pollution:
 - **Index Lock Contention**: Concurrent file scanners, IDE linters, and build tools collide on `.git/index.lock`.
@@ -119,7 +164,7 @@ flowchart TD
 
 ---
 
-## 4. Live Incident Case Study: Autonomous Circular Dependency & Buffer Triage
+## 5. Live Incident Case Study: Autonomous Circular Dependency & Buffer Triage
 
 During tonight's overnight run, the engine autonomously triaged and resolved a complex circular dependency and buffer state bug across three C++ subsystems without human intervention:
 
@@ -140,7 +185,7 @@ During tonight's overnight run, the engine autonomously triaged and resolved a c
 
 ---
 
-## 5. Core Invariants: Zero "Green When Untrue"
+## 6. Core Invariants: Zero "Green When Untrue"
 
 1. **Dual Verification Mandatory**:
    A test is only considered passing if **both** conditions hold:
@@ -153,7 +198,7 @@ During tonight's overnight run, the engine autonomously triaged and resolved a c
 
 ---
 
-## 6. Active Feature Modules Verified
+## 7. Active Feature Modules Verified
 
 | Module | Feature Name | Verification Gate | Status |
 |---|---|---|---|
@@ -163,7 +208,7 @@ During tonight's overnight run, the engine autonomously triaged and resolved a c
 
 ---
 
-## 7. Running the Harness & Sandboxes
+## 8. Running the Harness & Sandboxes
 
 ```powershell
 # Run the autonomous overnight ticket runner on any repo
