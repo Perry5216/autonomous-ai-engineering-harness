@@ -116,10 +116,12 @@ $telemetry = [PSCustomObject]@{
 }
 
 $telemetryJsonPath = Join-Path $portfolioRoot "telemetry\live-telemetry.json"
-$telemetry | ConvertTo-Json -Depth 4 | Set-Content -Path $telemetryJsonPath -Encoding utf8
+$utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+$jsonContent = $telemetry | ConvertTo-Json -Depth 4
+[System.IO.File]::WriteAllText($telemetryJsonPath, $jsonContent, $utf8NoBom)
 Write-SyncLog "Saved telemetry to $telemetryJsonPath" "Green"
 
-# 6. Generate Stunning Dynamic README.md
+# 6. Generate Clean, Professional Markdown
 $readmePath = Join-Path $portfolioRoot "README.md"
 $sparkBadge = if ($sparkOnline) { "https://img.shields.io/badge/Spark_Cluster-ONLINE_(:8877)-brightgreen?style=for-the-badge&logo=apachespark" } else { "https://img.shields.io/badge/Spark_Cluster-OFFLINE-red?style=for-the-badge" }
 $rtxBadge = if ($rtx5090Online) { "https://img.shields.io/badge/RTX_5090_Blackwell-REFLEX_ACTIVE_(:8080)-76B900?style=for-the-badge&logo=nvidia" } else { "https://img.shields.io/badge/RTX_5090_Blackwell-OFFLINE-red?style=for-the-badge" }
@@ -153,7 +155,7 @@ $readmeContent = @"
 
 ---
 
-## ⚡ Live Telemetry (Updated Automatically via Loop)
+## 1. Live Telemetry (Updated Automatically via Loop)
 
 | Metric | Live State | Verification Source |
 |---|---|---|
@@ -166,7 +168,7 @@ $readmeContent = @"
 
 ---
 
-## 🧠 System Architecture: Asymmetric Tandem Loop
+## 2. System Architecture: Asymmetric Tandem Loop
 
 Most autonomous agent setups fail on large native codebases because they either:
 1. **Hallucinate test passes** by mocking assertions or accepting non-zero exit codes.
@@ -217,7 +219,7 @@ ${b3}
 
 ---
 
-## 🔬 Live Incident Case Study: Autonomous Circular Dependency & Buffer Triage
+## 3. Live Incident Case Study: Autonomous Circular Dependency & Buffer Triage
 
 During tonight's overnight run, the engine autonomously triaged and resolved a complex circular dependency and buffer state bug across three C++ subsystems without human intervention:
 
@@ -238,7 +240,7 @@ ${b3}
 
 ---
 
-## 🛡️ Core Invariants: Zero "Green When Untrue"
+## 4. Core Invariants: Zero "Green When Untrue"
 
 1. **Dual Verification Mandatory**:
    A test is only considered passing if **both** conditions hold:
@@ -251,13 +253,13 @@ ${b3}
 
 ---
 
-## 📂 Active Feature Modules Verified
+## 5. Active Feature Modules Verified
 
 $modulesTable
 
 ---
 
-## 🚀 Running the Harness
+## 6. Running the Harness
 
 ${b3}powershell
 # Run the autonomous overnight ticket runner on any repo
@@ -272,10 +274,10 @@ ${b3}
 ### Author
 **Anthony Perry**  
 Autonomous AI Systems & Applied AI Engineering  
-GitHub: [@Perry5216](https://github.com/Perry5216) · [LinkedIn](https://www.linkedin.com/in/anthony-perry-33b7a01a0/)
+GitHub: [@Perry5216](https://github.com/Perry5216) | [LinkedIn](https://www.linkedin.com/in/anthony-perry-33b7a01a0/)
 "@
 
-Set-Content -Path $readmePath -Value $readmeContent -Encoding utf8
+[System.IO.File]::WriteAllText($readmePath, $readmeContent, $utf8NoBom)
 Write-SyncLog "Regenerated README.md ($readmePath)" "Green"
 
 # 7. Git Auto-Commit & Push
@@ -292,7 +294,7 @@ if (-not $NoPush) {
         git add README.md telemetry/live-telemetry.json scripts/ docs/ 2>$null
         $status = git status --porcelain
         if ($status) {
-            $msg = "chore(telemetry): live loop update - $checkpointCount checkpoints verified [$headCommit] ($(Get-Date -Format 'HH:mm:ss'))"
+            $msg = "fix(docs): clean UTF-8 headers and live telemetry sync ($headCommit)"
             git commit -m $msg 2>&1 | Out-String | Write-SyncLog -color "Gray"
 
             # Check if remote origin is configured

@@ -1,4 +1,4 @@
-﻿# Autonomous AI Engineering Harness
+# Autonomous AI Engineering Harness
 ### Asymmetric Tandem Architecture: Spark Cluster (DRI) + NVIDIA RTX 5090 Blackwell (Fast Reflex & Triage)
 
 [![Verified Checkpoints](https://img.shields.io/badge/Verified_Checkpoints-109_PASSING-00C853?style=for-the-badge&logo=checkmarx)](#)
@@ -11,7 +11,7 @@
 
 ---
 
-## âš¡ Live Telemetry (Updated Automatically via Loop)
+## 1. Live Telemetry (Updated Automatically via Loop)
 
 | Metric | Live State | Verification Source |
 |---|---|---|
@@ -20,11 +20,11 @@
 | **Modules Verified & Fast-Forwarded** | **2 Subsystems** | Automated Sentinel & Phase Hooks |
 | **Reflex Diagnostic Latency** | **< 3,000 ms** | RTX 5090 Blackwell @ 182 tok/s |
 | **Target Git HEAD** | `34c017bb7` (`dev`) | 7142 total commits |
-| **Last Verified Timestamp** | **2026-10-17 03:16:49** | Continuous Verification Loop |
+| **Last Verified Timestamp** | **2026-10-17 03:18:45** | Continuous Verification Loop |
 
 ---
 
-## ðŸ§  System Architecture: Asymmetric Tandem Loop
+## 2. System Architecture: Asymmetric Tandem Loop
 
 Most autonomous agent setups fail on large native codebases because they either:
 1. **Hallucinate test passes** by mocking assertions or accepting non-zero exit codes.
@@ -75,7 +75,7 @@ flowchart TD
 
 ---
 
-## ðŸ”¬ Live Incident Case Study: Autonomous Circular Dependency & Buffer Triage
+## 3. Live Incident Case Study: Autonomous Circular Dependency & Buffer Triage
 
 During tonight's overnight run, the engine autonomously triaged and resolved a complex circular dependency and buffer state bug across three C++ subsystems without human intervention:
 
@@ -96,7 +96,7 @@ During tonight's overnight run, the engine autonomously triaged and resolved a c
 
 ---
 
-## ðŸ›¡ï¸ Core Invariants: Zero "Green When Untrue"
+## 4. Core Invariants: Zero "Green When Untrue"
 
 1. **Dual Verification Mandatory**:
    A test is only considered passing if **both** conditions hold:
@@ -109,7 +109,7 @@ During tonight's overnight run, the engine autonomously triaged and resolved a c
 
 ---
 
-## ðŸ“‚ Active Feature Modules Verified
+## 5. Active Feature Modules Verified
 
 | Module | Feature Name | Verification Gate | Status |
 |---|---|---|---|
@@ -119,7 +119,7 @@ During tonight's overnight run, the engine autonomously triaged and resolved a c
 
 ---
 
-## ðŸš€ Running the Harness
+## 6. Running the Harness
 
 ```powershell
 # Run the autonomous overnight ticket runner on any repo
@@ -134,4 +134,4 @@ powershell -ExecutionPolicy Bypass -File ./scripts/sync-portfolio.ps1
 ### Author
 **Anthony Perry**  
 Autonomous AI Systems & Applied AI Engineering  
-GitHub: [@Perry5216](https://github.com/Perry5216) Â· [LinkedIn](https://www.linkedin.com/in/anthony-perry-33b7a01a0/)
+GitHub: [@Perry5216](https://github.com/Perry5216) | [LinkedIn](https://www.linkedin.com/in/anthony-perry-33b7a01a0/)
