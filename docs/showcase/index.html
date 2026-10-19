@@ -3970,7 +3970,7 @@
         const localCanvas = document.getElementById("local-colony-canvas");
         const localCtx = localCanvas.getContext("2d");
 
-        const LOCAL_MAP_SIZE = 32; // 32x32 cells = 1024 local tiles
+        let LOCAL_MAP_SIZE = 32; // 32x32 Outpost or 48x48 Expedition
         let localColonyGrid = [];
         let localZoom = 1; // 1x, 2x, 4x
         let localHoverCell = { x: 10, y: 10 };
@@ -3978,14 +3978,23 @@
         let showLocalPawns = true;
         let showLocalHazards = false;
         let showLocalOres = false;
-        let localAnimationTick = 0;        const DEPLOYED_COLONISTS = [
-            { arch: 'miner', name: 'Spark Mitchell', role: 'Leader · Miner', x: 10, y: 10, animOffset: 0 },
-            { arch: 'engineer', name: 'Garrison Vance', role: 'Machinist', x: 12, y: 10, animOffset: 12 },
-            { arch: 'medic', name: 'Dr. Mara Lin', role: 'Doctor', x: 14, y: 10, animOffset: 24 },
-            { arch: 'soldier', name: 'Torque Stone', role: 'Security', x: 16, y: 12, animOffset: 36 }
+        let localAnimationTick = 0;
+
+        function getCompoundOffset() {
+            return {
+                x: Math.floor((LOCAL_MAP_SIZE - 32) / 2),
+                y: Math.floor((LOCAL_MAP_SIZE - 32) / 2)
+            };
+        }
+
+        const BASE_DEPLOYED_COLONISTS = [
+            { arch: 'miner', name: 'Spark Mitchell', role: 'Leader · Miner', x: 9.5, y: 12.2, animOffset: 0 },
+            { arch: 'engineer', name: 'Garrison Vance', role: 'Machinist', x: 19.2, y: 10.5, animOffset: 12 },
+            { arch: 'medic', name: 'Dr. Mara Lin', role: 'Doctor', x: 10.5, y: 13.8, animOffset: 24 },
+            { arch: 'soldier', name: 'Torque Stone', role: 'Security', x: 16.5, y: 13.2, animOffset: 36 }
         ];
 
-        let DEPLOYED_BUILDINGS = [
+        const BASE_DEPLOYED_BUILDINGS = [
             { key: "turbine", name: "Geothermal Turbine", x: 8, y: 9, w: 2, h: 2, state: "active" },
             { key: "smelter", name: "Electric Arc Smelter", x: 15, y: 9, w: 2, h: 2, state: "idle" },
             { key: "turret", name: "Point-Defense Coil Turret", x: 17, y: 12, w: 1, h: 1, state: "idle" },
@@ -3996,7 +4005,7 @@
             { key: "drone_bay", name: "Drone Hangar Bay", x: 17, y: 8, w: 2, h: 2, state: "active" }
         ];
 
-        let DEPLOYED_FURNITURE = [
+        const BASE_DEPLOYED_FURNITURE = [
             { key: "furn_table", x: 11, y: 10, w: 2, h: 1, label: "Dining Table" },
             { key: "furn_bench", x: 11, y: 9, w: 2, h: 0.8, label: "Mess Bench" },
             { key: "furn_bench", x: 11, y: 11.2, w: 2, h: 0.8, label: "Mess Bench" },
@@ -4007,7 +4016,7 @@
             { key: "furn_lantern", x: 9, y: 8, w: 1, h: 1, label: "Fungal Lantern" }
         ];
 
-        let DEPLOYED_CONVEYORS = [
+        const BASE_DEPLOYED_CONVEYORS = [
             // Top Row (Eastbound)
             { type: 'conveyor', dir: 'e', x: 20, y: 10 },
             { type: 'conveyor', dir: 'e', x: 21, y: 10 },
@@ -4031,6 +4040,44 @@
             { type: 'inserter', x: 24, y: 12, label: "Pultrusion Feed" },
             { type: 'chute', x: 22, y: 14, label: "Vault Chute" }
         ];
+
+        let DEPLOYED_COLONISTS = [];
+        let DEPLOYED_BUILDINGS = [];
+        let DEPLOYED_FURNITURE = [];
+        let DEPLOYED_CONVEYORS = [];
+
+        function rebuildColonyCompoundLayout() {
+            const off = getCompoundOffset();
+            DEPLOYED_COLONISTS = BASE_DEPLOYED_COLONISTS.map(c => ({ ...c, x: c.x + off.x, y: c.y + off.y }));
+            DEPLOYED_BUILDINGS = BASE_DEPLOYED_BUILDINGS.map(b => ({ ...b, x: b.x + off.x, y: b.y + off.y }));
+            DEPLOYED_FURNITURE = BASE_DEPLOYED_FURNITURE.map(f => ({ ...f, x: f.x + off.x, y: f.y + off.y }));
+            DEPLOYED_CONVEYORS = BASE_DEPLOYED_CONVEYORS.map(cv => ({ ...cv, x: cv.x + off.x, y: cv.y + off.y }));
+            if (typeof DEPLOYED_DRONES !== 'undefined' && Array.isArray(DEPLOYED_DRONES)) {
+                DEPLOYED_DRONES.forEach(d => {
+                    if (d.key === "agronomy") { d.baseX = 8.5 + off.x; d.baseY = 13.5 + off.y; }
+                    else if (d.key === "sanitation") { d.baseX = 12.0 + off.x; d.baseY = 10.5 + off.y; }
+                    else if (d.key === "hauler") { d.baseX = 15.5 + off.x; d.baseY = 10.0 + off.y; }
+                    else if (d.key === "sentry") { d.baseX = 18.0 + off.x; d.baseY = 13.0 + off.y; }
+                });
+            }
+        }
+        rebuildColonyCompoundLayout();
+
+        function setLocalMapScale(scale) {
+            if (LOCAL_MAP_SIZE === scale) return;
+            playTactileSound('click');
+            LOCAL_MAP_SIZE = scale;
+            const btn32 = document.getElementById("btn-scale-32");
+            const btn48 = document.getElementById("btn-scale-48");
+            if (btn32) btn32.classList.toggle("active", scale === 32);
+            if (btn48) btn48.classList.toggle("active", scale === 48);
+            const badge = document.getElementById("local-telemetry-badge");
+            if (badge) {
+                badge.innerText = `TRANSLATION RATIO: 1 WORLD SECTOR -> ${scale}x${scale} CELLS (${scale * scale} TILES)`;
+            }
+            rebuildColonyCompoundLayout();
+            loadLocalColonySector(selectedSector.x, selectedSector.y);
+        }
 
         let CONVEYOR_ITEMS = [
             { item: "item_iron_ore", progress: 0.1 },
