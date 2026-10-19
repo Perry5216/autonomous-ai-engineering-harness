@@ -1,8 +1,8 @@
 {
-    "timestamp":  "2026-10-19T21:00:38.1787393+01:00",
-    "humanTimestamp":  "2026-10-19 21:00:38 UTC+01:00",
-    "verifiedCheckpoints":  578,
-    "testStatus":  "PASSING (Exit Code 0)",
+    "timestamp":  "2026-10-19T21:08:39.7888829+01:00",
+    "humanTimestamp":  "2026-10-19 21:08:39 UTC+01:00",
+    "verifiedCheckpoints":  4,
+    "testStatus":  "FAILING (Exit Code 1)",
     "gitHead":  "6bdc81882",
     "gitBranch":  "dev",
     "totalCommits":  "7281",
