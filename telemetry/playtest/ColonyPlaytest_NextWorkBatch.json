@@ -1,49 +1,60 @@
 {
-  "batch_id": "BATCH-72",
+  "batch_id": "BATCH-73",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "Finalize the simulation loop by implementing deterministic state hashing for rapid save/load verification and optimizing the Monte Carlo convergence check for the 5,500-tick milestone. These tasks close the final gaps in state integrity and performance profiling, ensuring the engine achieves 100% coverage with zero deadlocks.",
+  "overview": "This batch focuses on finalizing the endgame state machine and optimizing memory footprint for long-running simulations. By implementing deterministic state hashing and a compact tick-based history buffer, we ensure 100% reproducibility and minimal memory overhead for the 5,500+ tick campaign. These changes close the final gaps in simulation determinism and resource management.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Implement Deterministic State Hashing for Save/Load Verification",
+      "title": "Implement Deterministic State Hashing for Endgame Snapshots",
       "target_files": [
-        "Source/Engine/Core/StateHasher.h",
-        "Source/Engine/Core/StateHasher.cpp"
+        "Source/Engine/Core/StateHash.h",
+        "Source/Engine/Core/StateHash.cpp"
       ],
-      "architectural_spec": "1. Define `struct StateHash` using `std::array<uint64_t, 4>` for 256-bit output.\n2. Implement `ComputeStateHash(const SimulationState& state)` using a custom FNV-1a variant optimized for C++20 `constexpr` evaluation where possible.\n3. Ensure zero heap allocations by using fixed-size arrays for intermediate hash states.\n4. Integrate with `SimulationState` via a `friend` declaration for direct member access.\n5. Add `static_assert` checks for struct size alignment.\n6. Provide `operator==` for fast comparison.\n7. Include `ToString()` for debug logging.\n8. Ensure thread-safety via `std::atomic` for the global tick counter used in hashing.",
-      "acceptance_criteria": "1. Hash computation completes in < 100ns for a standard 5,500-tick state.\n2. Identical states produce identical hashes across 100 Monte Carlo runs.\n3. No heap allocations during hash computation.\n4. Unit tests verify collision resistance for 10,000 random states.",
-      "player_fun_impact": "Instant save/load verification, reducing perceived load times and ensuring data integrity.",
+      "architectural_spec": "Create a zero-heap, constexpr-friendly hash function for the core simulation state. Use a 64-bit FNV-1a variant. The struct `EndgameSnapshot` will hold the tick count, active colonist IDs (fixed array), and resource totals. The hash is computed incrementally per tick to avoid full re-scans. No dynamic allocations. All logic fits within 40 lines.",
+      "acceptance_criteria": [
+        "Hash value is identical across 100 Monte Carlo runs for the same seed.",
+        "No heap allocations during hash computation.",
+        "Compilation time increases by < 1ms."
+      ],
+      "player_fun_impact": "Ensures save/load consistency and enables fast, reliable replay verification.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Optimize Monte Carlo Convergence Check for 5,500-Tick Milestone",
+      "title": "Compact Tick-Based History Buffer for Colonist Paths",
       "target_files": [
-        "Source/Simulation/MonteCarlo/ConvergenceChecker.h",
-        "Source/Simulation/MonteCarlo/ConvergenceChecker.cpp"
+        "Source/Simulation/Colonist/PathHistory.h",
+        "Source/Simulation/Colonist/PathHistory.cpp"
       ],
-      "architectural_spec": "1. Create `class ConvergenceChecker` with a fixed-size ring buffer `std::array<float, 16>` for recent variance values.\n2. Implement `CheckConvergence()` using a sliding window average of the last 16 ticks.\n3. Use `std::numbers::pi` and standard deviations for statistical validation.\n4. Avoid dynamic memory by pre-allocating the ring buffer.\n5. Add `IsConverged()` returning `bool` based on variance < 1e-6.\n6. Integrate with the main simulation loop via a pointer to the checker.\n7. Ensure `constexpr` initialization of the buffer size.\n8. Log convergence status only on state change to minimize I/O overhead.",
-      "acceptance_criteria": "1. Convergence detected within 5 ticks of the theoretical limit.\n2. Memory footprint < 1KB per checker instance.\n3. No false positives in 1,000 test runs.\n4. Integration with the main loop adds < 0.1ms overhead.",
-      "player_fun_impact": "Faster simulation stabilization, leading to quicker resolution of complex scenarios.",
+      "architectural_spec": "Replace the std::deque path history with a circular buffer of fixed size (e.g., 64 entries). Each entry stores a packed 32-bit coordinate and a 16-bit timestamp. Use `std::array` for storage. Implement `push_back` and `get_at_offset` with O(1) complexity. Total logic under 50 lines. No virtual functions.",
+      "acceptance_criteria": [
+        "Memory usage per colonist reduced by 40%.",
+        "Path reconstruction is accurate for the last 64 ticks.",
+        "No cache misses in tight simulation loops."
+      ],
+      "player_fun_impact": "Smoother frame rates during large-scale colony views due to reduced cache pressure.",
       "estimated_complexity": "Small"
     },
     {
       "task_id": "TASK-803",
       "priority": "P2 - Quality-of-Life",
       "domain": "Storyteller/AI",
-      "title": "Add Compact Event Log Serialization for Endgame Summary",
+      "title": "Static Event Queue for Endgame Ascension Triggers",
       "target_files": [
-        "Source/Storyteller/EventLog.h",
-        "Source/Storyteller/EventLog.cpp"
+        "Source/Storyteller/EndgameEvents.h"
       ],
-      "architectural_spec": "1. Define `struct CompactEvent` with `uint16_t id`, `uint16_t tick`, and `uint32_t payload`.\n2. Implement `SerializeToBuffer()` using a fixed-size `std::span<uint8_t>`.\n3. Use bit-packing for `id` and `tick` to fit within 32 bits where possible.\n4. Provide `DeserializeFromBuffer()` with strict bounds checking.\n5. Ensure `constexpr` support for the event ID enum.\n6. Add `GetEventCount()` for quick summary generation.\n7. Integrate with the `StateHasher` for checksum validation.\n8. Limit log size to 1,024 events for the endgame summary.",
-      "acceptance_criteria": "1. Serialization size reduced by 40% compared to JSON.\n2. Deserialization speed > 10MB/s.\n3. No data loss in round-trip tests.\n4. Compatible with the existing `StateHasher`.",
-      "player_fun_impact": "Smaller save files and faster loading of endgame summaries.",
+      "architectural_spec": "Define a static array of `Event` structs for the final 10 ticks. Each event contains a tick ID and a string ID (enum). Implement a simple linear search for the current tick. No dynamic memory. Logic is purely declarative and fits in 30 lines. Integrates with the existing `StateHash` system.",
+      "acceptance_criteria": [
+        "Events trigger exactly at their defined tick.",
+        "Zero allocations during event processing.",
+        "Header-only implementation."
+      ],
+      "player_fun_impact": "Provides clear, immediate feedback on ascension milestones without lag.",
       "estimated_complexity": "Atomic"
     }
   ]
