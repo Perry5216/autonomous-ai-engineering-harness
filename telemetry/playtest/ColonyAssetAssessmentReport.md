@@ -1,6 +1,6 @@
 # Project Deep-Mantle: Autonomous Asset Assessment Report
 
-**Generated:** 2026-10-19 18:46:09 UTC  
+**Generated:** 2026-10-19 18:58:50 UTC  
 **Evaluated By:** Operator's Local AI Cluster (DGX Spark :8877 & RTX 5090 Blackwell :8080)  
 **RTX 5090 Role Transition:** `ROLE_ENTER` -> `ROLE_EXIT` Clean VRAM Hand-off  
 **Total Assets Evaluated:** 52  
@@ -9,84 +9,77 @@
 
 ## 1. Operator AI Cognitive Assessment & Feature Directives
 
-Hello. As the Lead Visual Designer and Gameplay Architect for **Project Deep-Mantle**, I have analyzed the asset domains and the core simulation parameters. Below is my decisive evaluation and architectural roadmap.
+Here is the architectural and visual design audit for **Project Deep-Mantle**, executed from the perspective of the Lead Visual Designer and Gameplay Architect on the DGX Spark & RTX 5090 cluster.
 
-### 1. Visual & Spatial Evaluation: Does this make sense?
+### 1. Visual & Spatial Consistency Audit
+**Does this make sense?**
 
-**Verdict:** Yes, but it requires strict adherence to a **Modular Orthographic Grid System**. The current asset list is logically sound for a subterranean setting, but visual coherence depends on three specific constraints:
+**Verdict:** The current asset taxonomy is logically sound but visually fragmented. To achieve a cohesive "Deep-Mantle" aesthetic, we must enforce strict orthographic discipline.
 
-*   **Perspective Consistency (2.5D Orthographic):**
-    *   **Standard:** Use a fixed 2:1 isometric or strict top-down orthographic view. This minimizes occlusion issues common in dense subterranean layouts.
-    *   **Alignment:** All assets must snap to a 16x16 or 32x32 pixel grid.
-    *   **Layering:**
-        *   *Layer 0:* Floor tiles (Conveyors, Chutes).
-        *   *Layer 1:* Static structures (Pultrusion Mill, Storage Shelf).
-        *   *Layer 2:* Dynamic entities (Drones, Muffalo, Deer).
-        *   *Layer 3:* UI/Overlays (Terminal Desk screens, Lithophone notes).
-    *   **Issue to Watch:** The "Lithophone" and "Terminal Desk" are complex shapes. Ensure their bounding boxes do not overlap with adjacent conveyor belts in the 16-bit scaling. Use "transparent" pixels for non-solid parts of the sprite to maintain grid integrity.
+*   **Perspective Alignment:**
+    *   **Standard:** All assets must adhere to a **2:1 isometric projection** (or strict top-down orthographic if using a grid-based UI overlay).
+    *   **Issue:** Mixed perspectives are common in early drafts. For example, the *Lithophone* (Domain 2) often has a 3D depth cue, while *Conveyors* (Domain 6) are flat 2D sprites.
+    *   **Fix:** Flatten all furniture and machinery to a single z-plane. Use **layered parallax** only for background cave walls, not for interactive objects. Ensure the *Sentry Rover* (Domain 1) and *Wolf* (Domain 4) share the same pivot point (bottom-center) for consistent shadow casting.
 
-*   **16-bit Pixel Scaling & Palette:**
-    *   **Palette:** Use a limited, high-contrast palette (e.g., 16–32 colors) to distinguish functional states.
-        *   *Green:* Active/Powered.
-        *   *Amber:* Idle/Buffering.
-        *   *Red:* Error/Overheat.
-        *   *Blue:* Data/Research.
-    *   **DPI:** Assets must be crisp at 1x scale. No anti-aliasing blur; use nearest-neighbor interpolation for the pixel art itself.
+*   **16-bit Pixel Scaling & Quantization:**
+    *   **Grid Size:** Adopt a **16x16 base grid** for small items (Stool, Inserter) and **32x32** for large structures (Turbine, Spore Tree).
+    *   **Palette Constraint:** Limit to a **16-color palette per asset group** to reduce VRAM load on the RTX 5090 cluster and enhance retro-futuristic clarity.
+    *   **Quantization:** Use **nearest-neighbor interpolation** for all sprites. No anti-aliasing on pixel art. For 3D-rendered assets (if any), render at 2x native resolution and downsample to 1x for crisp edges.
 
 *   **Spatial Consistency:**
-    *   **Verticality:** Since this is subterranean, use **Z-layering** visually.
-        *   *Canopies (Spore Tree, Crystal Pine)* should have a slight "lift" effect (drop shadow offset by 1–2 pixels) to indicate they occupy vertical space above the floor grid.
-        *   *Fauna (Muffalo, Wolf)* should have a 4-frame walk cycle that aligns with the grid steps (1 pixel per frame step).
-
-**Conclusion:** The visual system is viable if we enforce a **strict 3-layer Z-order** and a **limited color palette** for functional clarity.
+    *   **Domain 1 (Drones):** Ensure *Drone Bay* and *Sentry Rover* share the same "tech-blue" accent color to denote active systems.
+    *   **Domain 6 (Logistics):** Conveyors must have **directional arrows** baked into the sprite (N/E/S/W) to prevent player confusion. The *Chute* should visually "drop" items with a 1-frame animation offset.
 
 ---
 
-### 2. Gameplay Loop: Is it clear? Will the player understand?
+### 2. Gameplay Loop Clarity
+**Is it clear? Will the player understand?**
 
-**Verdict:** The loop is **highly intuitive** if structured as a **Nested Feedback System**. It combines Factorio’s linear automation with RimWorld’s emergent survival.
+**Verdict:** The loop is **Factorio-grade automation** nested within **RimWorld-grade survival**. It is clear *if* the UI hierarchy is strict.
 
-**The Core Loop (3-Step Cycle):**
+*   **Core Loop Structure:**
+    1.  **Extract:** Use *Pultrusion Mill* and *Smelter* to process raw cave minerals.
+    2.  **Automate:** Connect via *Conveyors* and *Inserters* to *Hydroponics* and *Research Bench*.
+    3.  **Sustain:** *Agronomy Drones* feed *Muffalos* and *Deer*; *Sanitation Drones* clean *Mess Benches*.
+    4.  **Defend:** *Sentry Rovers* and *Turrets* handle *Rogue Subversion Loops* (enemy waves).
+    5.  **Expand:** Unlock new *Flora* (Spore Tree) and *Fauna* (Wolf) to increase colony efficiency.
 
-1.  **Input (Extraction & Processing):**
-    *   *Player Action:* Place **Conveyors** and **Inserters** to move raw materials from **Spore Trees/Berry Bushes** to **Pultrusion Mills/Smelters**.
-    *   *Visual Cue:* Green lights on machines indicate active processing. Amber lights indicate buffer full.
-    *   *Clarity:* Use **color-coded item icons** on the conveyor belts (e.g., Blue for Crystal, Green for Spore).
-
-2.  **Processing (Automation & Defense):**
-    *   *Player Action:* Assign **Sentry Rovers** to patrol zones. Use **Drone Bays** to dispatch **Haulers** for long-distance transport.
-    *   *RimWorld Element:* **Pawns** (or autonomous drones) interact with **Terminal Desks** to unlock research (e.g., "Efficient Smelting").
-    *   *Clarity:* A **Mini-Map** showing active drone paths and resource flow.
-
-3.  **Output (Survival & Expansion):**
-    *   *Player Action:* Use processed goods to upgrade **Habitation Furniture** (e.g., Lithophone for morale, Mess Bench for efficiency).
-    *   *Fauna Interaction:* **Muffalo** provide wool/milk; **Wolves** are threats or companions.
-    *   *Clarity:* **Progress Bars** above each machine showing completion percentage.
-
-**Why it works:**
-*   **Factorio-Grade:** Linear, predictable, satisfying "click-and-place" automation.
-*   **RimWorld-Grade:** Emergent events (e.g., "Spore Bloom" event boosts Berry Bush yield; "Wolf Pack" event requires Sentry Rover deployment).
-
-**Player Understanding:**
-*   Use **Tooltips** on hover: "Pultrusion Mill: Converts Spore → Fiber. Speed: 1 item/sec."
-*   **Color-Coded Paths:** Conveyor belts change color based on item type.
+*   **Player Comprehension Enhancements:**
+    *   **Color-Coded Systems:**
+        *   **Blue:** Power/Logic (Turbine, Terminal Desk).
+        *   **Green:** Biology/Flora (Spore Tree, Healroot).
+        *   **Orange:** Logistics (Conveyors, Inserters).
+        *   **Red:** Defense (Turret, Sentry Rover).
+    *   **Tooltip Hierarchy:**
+        *   **Line 1:** Name (e.g., "Pultrusion Mill").
+        *   **Line 2:** Function (e.g., "Converts Raw Ore to Bars").
+        *   **Line 3:** Status (e.g., "Idle | 12/16 Speed").
+    *   **Visual Feedback:** When an *Inserter* moves an item, the item sprite should **pop** slightly (1px up) to indicate transfer. When a *Turret* fires, the muzzle flash should be a **single-frame white square** for maximum readability.
 
 ---
 
-### 3. AI-Generated Artifacts: Replacement, Quantization, and Alignment
+### 3. AI Artifacts & Replacement Strategy
+**Where does it look AI-generated? What needs replacement?**
 
-**Problem:** AI-generated pixel art often suffers from **inconsistent line weights**, **misaligned grids**, and **color bleeding**.
+**Verdict:** AI-generated pixel art often suffers from **inconsistent line weights**, **muddy palettes**, and **misaligned grids**. Here is the replacement plan:
 
-**Solutions:**
+| Asset Domain | Common AI Artifact | Replacement Strategy |
+| :--- | :--- | :--- |
+| **1. Drones** | Blurry edges on *Sentry Rover*; inconsistent wheel sizes. | **Redraw manually** using a 16x16 grid. Ensure wheels are perfect circles (4px diameter). Use **dithering** for shadows, not gradients. |
+| **2. Furniture** | *Lithophone* has too many colors (20+); *Stool* lacks depth. | **Quantize to 8 colors**. Add a **1px black outline** to all furniture for separation from the background. |
+| **3. Flora** | *Spore Tree* has non-pixel-aligned branches; *Healroot* looks like a blob. | **Snap to grid**. Use **3-tier height** for trees (Base, Mid, Top). *Healroot* should be a simple 3-leaf sprite with a glowing center. |
+| **4. Fauna** | *Wolf* walk cycle has 5 frames (should be 4); *Muffalo* fur is noisy. | **Reduce to 4-frame cycle** (Idle, Step1, Step2, Step3). Simplify fur to **2-tone shading** (light/dark). |
+| **5. Machinery** | *Turbine* blades are misaligned; *Smelter* glow is uneven. | **Use symmetry tools**. Ensure *Turbine* blades are 45° rotated copies. *Smelter* glow should be a **single bright yellow pixel** in the center. |
+| **6. Logistics** | *Conveyors* have inconsistent arrow sizes; *Chute* lacks depth. | **Standardize arrows** to 3x3 pixels. Add a **1px drop shadow** under *Chute* items to show depth. |
 
-| Asset Domain | Issue | Solution |
-|--------------|-------|----------|
-| **Drones & Defenses** | Inconsistent sprite sizes (e.g., Sentry Rover is 18x18, Hauler is 16x16). | **Quantize to 16x16.** Pad smaller sprites with transparent pixels. Ensure all walk cycles are exactly 4 frames. |
-| **Habitation Furniture** | Misaligned baselines (e.g., Stool sits 1 pixel higher than Table). | **Snap to Grid.** Use a 1-pixel baseline for all floor-standing objects. Align tops of tables/desks to the same Y-coordinate. |
-| **Flora & Canopies** | Color bleeding (e.g., Spore Tree green blends into Crystal Pine blue). | **Palette Separation.** Use distinct, non-overlapping color ranges for each flora type. Add a 1-pixel black outline to each sprite for clarity. |
-| **Fauna** | Inconsistent walk cycle timing (e.g., Wolf has 5 frames, Deer has 4). | **Standardize to 4 Frames.** 1: Idle, 2: Step L, 3: Idle, 4: Step R. Ensure all animals use the same timing. |
-| **Industrial Machinery** | Complex shapes cause occlusion (e.g., Turbine blades block Conveyor view). | **Simplify Silhouettes.** Reduce detail in Turbine/Smelter sprites. Use **transparent pixels** for non-solid parts. Ensure 1-pixel gaps between adjacent machines. |
-| **Factory Logistics** | Conveyor belt arrows misaligned with item flow. | **Align Arrows to Grid.** Ensure arrows point exactly in the direction of item movement. Use **animated sprites** (2-frame loop) for belt
+**Technical Note:** Use **Nearest-Neighbor Upscaling** for all sprites. If using 3D renders, export as **PNG with alpha channel** and apply **pixel-perfect snapping** in the engine.
+
+---
+
+### 4. New Depth & Fun Features
+**Maximizing Player Engagement**
+
+To elevate the loop beyond basic automation, integrate these **Deep-Mantle-specific mechanics
 
 ## 2. Domain Asset Telemetry
 
