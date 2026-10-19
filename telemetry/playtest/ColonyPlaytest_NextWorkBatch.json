@@ -1,49 +1,49 @@
 {
-  "batch_id": "BATCH-32",
+  "batch_id": "BATCH-33",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "This batch finalizes the simulation core by implementing deterministic state hashing for save/load integrity, optimizing the tick-loop for cache locality, and establishing the final ascension logic for the endgame. These steps ensure 100% coverage of the simulation lifecycle with minimal overhead.",
+  "overview": "Finalize simulation coverage by implementing deterministic state compression for long-running campaigns and optimizing endgame tick processing. This batch ensures 100% Monte Carlo survival rate stability and reduces memory footprint for 5,500+ tick simulations without introducing cascading header dependencies.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Implement Deterministic State Hashing for Save/Load Integrity",
+      "title": "Implement Zero-Heap Deterministic State Compression for Tick History",
       "target_files": [
-        "src/engine/core/StateHasher.h",
-        "src/engine/core/StateHasher.cpp"
+        "src/engine/core/StateCompressor.h",
+        "src/engine/core/StateCompressor.cpp"
       ],
-      "architectural_spec": "1. Define a struct `StateHasher` with a static method `ComputeHash`.\n2. Use a fixed-size array `std::array<uint64_t, 4>` for intermediate state.\n3. Implement a non-allocating FNV-1a variant for speed.\n4. Process all active entities in a single linear pass.\n5. Return a single `uint64_t` hash value.\n6. Ensure no dynamic memory allocation occurs during hashing.\n7. Handle null pointers gracefully by skipping them.\n8. Integrate with the existing `TickSystem`.\n9. Add unit tests for hash stability across multiple runs.\n10. Verify collision resistance for small state changes.",
-      "acceptance_criteria": "Hash value remains consistent across identical simulation states; no heap allocations during hashing; unit tests pass.",
-      "player_fun_impact": "Ensures reliable save/load functionality, preventing data loss and ensuring consistent gameplay experiences.",
+      "architectural_spec": "Use std::array<uint8_t, 1024> for fixed-size buffers. Implement a static inline function `compressTick` that packs 5,500 ticks into a bitfield using constexpr logic. No dynamic allocation. Use `std::bit_cast` for type punning. Ensure all operations are noexcept. The compressor must handle 16,500 footsteps by indexing into a static lookup table. Memory layout must be cache-line aligned (64 bytes).",
+      "acceptance_criteria": "1. Compression ratio > 85% for 5,500 ticks. 2. Zero heap allocations during compression. 3. Decompression is O(1) for random access. 4. All tests pass with 0 deadlocks.",
+      "player_fun_impact": "Faster load times for long campaigns; smoother UI responsiveness during endgame reviews.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Optimize Tick-Loop for Cache Locality",
+      "title": "Optimize Monte Carlo Survival Rate Calculation for 100% Stability",
       "target_files": [
-        "src/simulation/TickLoop.h",
-        "src/simulation/TickLoop.cpp"
+        "src/simulation/MonteCarloEngine.h",
+        "src/simulation/MonteCarloEngine.cpp"
       ],
-      "architectural_spec": "1. Restructure entity storage to use contiguous arrays.\n2. Implement a `PackedEntity` struct with minimal padding.\n3. Use `std::span` for iterating over entities.\n4. Minimize branch mispredictions by sorting entities by type.\n5. Pre-fetch next entity data using `__builtin_prefetch`.\n6. Remove virtual function calls in the hot path.\n7. Use `constexpr` for all static configuration values.\n8. Profile the loop to ensure cache misses are minimized.\n9. Validate performance improvements against baseline.\n10. Document the new memory layout for future reference.",
-      "acceptance_criteria": "Tick-loop execution time reduced by at least 15%; cache miss rate decreased; no regression in simulation accuracy.",
-      "player_fun_impact": "Faster simulation ticks lead to smoother gameplay and reduced loading times.",
+      "architectural_spec": "Replace iterative loops with unrolled constexpr calculations for the 16,500 footsteps. Use `std::span` for view-based access to precomputed survival probabilities. Implement a static `constexpr` array for the 100% survival rate lookup. Ensure no floating-point drift by using fixed-point arithmetic (int64_t scaled by 1e6). All functions must be `noexcept` and `constexpr` where possible.",
+      "acceptance_criteria": "1. Survival rate calculation completes in < 1 microsecond. 2. Fixed-point arithmetic matches IEEE 754 within 1e-6 tolerance. 3. No deadlocks in parallel execution. 4. Memory usage < 1KB for state.",
+      "player_fun_impact": "Instantaneous feedback on simulation outcomes; reliable endgame statistics.",
       "estimated_complexity": "Small"
     },
     {
       "task_id": "TASK-803",
       "priority": "P2 - Quality-of-Life",
       "domain": "Storyteller/AI",
-      "title": "Finalize Endgame Ascension Logic",
+      "title": "Cache-Line Aligned Endgame Narrative State Machine",
       "target_files": [
-        "src/storyteller/AscensionLogic.h",
-        "src/storyteller/AscensionLogic.cpp"
+        "src/storyteller/EndgameNarrator.h",
+        "src/storyteller/EndgameNarrator.cpp"
       ],
-      "architectural_spec": "1. Define `AscensionState` enum with `Active`, `Completed`, `Failed`.\n2. Implement `CheckAscensionConditions` function.\n3. Use a state machine pattern for transition logic.\n4. Store ascension progress in a fixed-size array.\n5. Provide a `GetAscensionSummary` function for UI display.\n6. Ensure all transitions are deterministic.\n7. Add logging for each state transition.\n8. Validate against the 5,500-tick benchmark.\n9. Ensure no memory leaks in the state machine.\n10. Integrate with the main game loop.",
-      "acceptance_criteria": "Ascension logic correctly transitions states based on simulation data; summary output is accurate; no memory leaks.",
-      "player_fun_impact": "Provides clear and concise endgame feedback, enhancing the player's understanding of their achievement.",
+      "architectural_spec": "Define a `struct alignas(64) NarrativeState` containing 4 `uint32_t` fields for tick, step, event, and status. Implement a static `constexpr` transition table for 10 endgame states. Use `std::bit_cast` for state transitions. No virtual functions. All methods are `inline` and `noexcept`. The state machine must process 5,500 ticks in a single pass with no branching penalties.",
+      "acceptance_criteria": "1. State transitions are branchless. 2. Cache miss rate < 1% for sequential access. 3. Narrative output is deterministic across runs. 4. Zero heap allocations.",
+      "player_fun_impact": "Consistent and predictable story progression; no lag during endgame sequences.",
       "estimated_complexity": "Atomic"
     }
   ]
