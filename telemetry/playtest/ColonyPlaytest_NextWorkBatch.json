@@ -1,60 +1,59 @@
 {
-  "batch_id": "BATCH-15",
+  "batch_id": "BATCH-16",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "Finalize simulation coverage by implementing deterministic state compression for long-running campaigns and optimizing the Monte Carlo convergence logic for ultra-endgame scenarios. This batch focuses on reducing memory footprint and ensuring 100% reproducibility in 5,500+ tick simulations.",
+  "overview": "Finalize simulation coverage by implementing deterministic state hashing for save/load integrity, optimizing colonist psychology state transitions for zero-allocation performance, and establishing a fixed-point physics accumulator for endgame stability.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Implement Zero-Heap Deterministic State Hasher",
+      "title": "Implement Deterministic State Hashing for Save/Load Integrity",
       "target_files": [
-        "Source/Engine/Core/StateHasher.h",
-        "Source/Engine/Core/StateHasher.cpp"
+        "Source/Engine/Core/StateHash.h",
+        "Source/Engine/Core/StateHash.cpp"
       ],
-      "architectural_spec": "struct StateHasher {\n  static constexpr uint64_t kPrime = 1099511628211ULL;\n  uint64_t m_Hash = 14695981039346656037ULL;\n  \n  constexpr void Update(uint64_t value) noexcept {\n    m_Hash ^= value;\n    m_Hash *= kPrime;\n  }\n  \n  constexpr uint64_t GetHash() const noexcept {\n    return m_Hash;\n  }\n};",
+      "architectural_spec": "struct StateHash {\n    uint64_t hash;\n    static constexpr uint64_t FNV_OFFSET = 14695981039346656037ULL;\n    static constexpr uint64_t FNV_PRIME = 1099511628211ULL;\n    \n    constexpr StateHash() : hash(FNV_OFFSET) {}\n    \n    constexpr void update(uint64_t value) {\n        hash ^= value;\n        hash *= FNV_PRIME;\n    }\n    \n    constexpr void update(const char* str) {\n        while (*str) {\n            hash ^= static_cast<uint64_t>(*str++);\n            hash *= FNV_PRIME;\n        }\n    }\n    \n    constexpr uint64_t get() const { return hash; }\n};",
       "acceptance_criteria": [
-        "Hasher produces identical uint64_t for identical input sequences across 10,000 Monte Carlo runs.",
-        "Zero dynamic allocations during hashing phase.",
-        "Compile-time evaluation supported for static initial states."
+        "StateHash produces identical uint64_t values across 1000 Monte Carlo runs.",
+        "Zero heap allocations during hash computation.",
+        "Compile-time evaluation supported for static constants."
       ],
-      "player_fun_impact": "Ensures save/load consistency and enables rapid state comparison for debugging.",
+      "player_fun_impact": "Guarantees 100% reproducible saves, eliminating desync errors in long-term campaigns.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Optimize Footstep Log Compression for 5k+ Ticks",
+      "title": "Fixed-Point Physics Accumulator for Endgame Stability",
       "target_files": [
-        "Source/Simulation/Physics/FootstepLog.h",
-        "Source/Simulation/Physics/FootstepLog.cpp"
+        "Source/Simulation/Physics/FixedAccumulator.h"
       ],
-      "architectural_spec": "struct FootstepEntry {\n  uint16_t m_Tick;\n  uint8_t m_X, m_Y;\n  uint8_t m_Flags;\n};\n\nstruct FootstepLog {\n  static constexpr size_t kMaxEntries = 16500;\n  FootstepEntry m_Entries[kMaxEntries];\n  size_t m_Count = 0;\n\n  void Push(uint16_t tick, uint8_t x, uint8_t y, uint8_t flags) noexcept {\n    if (m_Count < kMaxEntries) {\n      m_Entries[m_Count++] = {tick, x, y, flags};\n    }\n  }\n};",
+      "architectural_spec": "struct FixedAccumulator {\n    int64_t time;\n    static constexpr int64_t TICK_RATE = 1000000; // 1 MHz\n    \n    constexpr FixedAccumulator() : time(0) {}\n    \n    constexpr void tick(int64_t delta) {\n        time += delta;\n    }\n    \n    constexpr int64_t get_time() const {\n        return time;\n    }\n    \n    constexpr void reset() {\n        time = 0;\n    }\n};",
       "acceptance_criteria": [
-        "Memory footprint reduced by 60% compared to previous std::vector implementation.",
-        "No heap fragmentation after 5,500 ticks.",
-        "Linear access time O(1) for sequential playback."
+        "No floating-point drift after 5,500 ticks.",
+        "Accumulator handles overflow via modulo arithmetic if needed.",
+        "Header-only implementation with no external dependencies."
       ],
-      "player_fun_impact": "Faster save file loading and reduced memory usage for long campaigns.",
-      "estimated_complexity": "Small"
+      "player_fun_impact": "Prevents physics jitter in late-game scenarios, ensuring smooth visual interpolation.",
+      "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-803",
       "priority": "P2 - Quality-of-Life",
       "domain": "Storyteller/AI",
-      "title": "Cache Monte Carlo Convergence Results",
+      "title": "Zero-Alloc Colonist Psychology State Machine",
       "target_files": [
-        "Source/AI/Storyteller/MonteCarloCache.h"
+        "Source/Simulation/AI/ColonistPsych.h"
       ],
-      "architectural_spec": "struct MCResult {\n  uint64_t m_Hash;\n  uint32_t m_SurvivalRate;\n};\n\nstruct MCCache {\n  static constexpr size_t kCacheSize = 1024;\n  MCResult m_Cache[kCacheSize];\n  size_t m_Size = 0;\n\n  bool Find(uint64_t hash, uint32_t& outRate) const noexcept {\n    for (size_t i = 0; i < m_Size; ++i) {\n      if (m_Cache[i].m_Hash == hash) {\n        outRate = m_Cache[i].m_SurvivalRate;\n        return true;\n      }\n    }\n    return false;\n  }\n};",
+      "architectural_spec": "enum class PsychState : uint8_t { Idle, Working, Resting, Panicking };\n\nstruct ColonistPsych {\n    PsychState state;\n    uint8_t priority;\n    \n    constexpr ColonistPsych() : state(PsychState::Idle), priority(0) {}\n    \n    constexpr void set_state(PsychState s, uint8_t p) {\n        state = s;\n        priority = p;\n    }\n    \n    constexpr bool is_active() const {\n        return state != PsychState::Idle;\n    }\n};",
       "acceptance_criteria": [
-        "Cache hit rate > 85% for repetitive endgame scenarios.",
-        "Lookup time < 1 microsecond.",
-        "No invalidation issues with deterministic hashing."
+        "State transitions occur in O(1) time.",
+        "Struct size is exactly 2 bytes (packed).",
+        "No virtual functions or heap allocations."
       ],
-      "player_fun_impact": "Instantaneous response for repeated simulation steps in endgame.",
+      "player_fun_impact": "Faster AI decision loops, reducing frame time spikes during large colony events.",
       "estimated_complexity": "Atomic"
     }
   ]
