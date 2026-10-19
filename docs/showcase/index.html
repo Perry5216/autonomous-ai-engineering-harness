@@ -4954,48 +4954,32 @@
                 localCtx.font = "bold 8px monospace";
                 localCtx.fillText("CLEAR LANDING DROP ZONE", lzX + 6, lzY + 11);
 
-                // Supply crates deployed in landing zone
+                // Physical Supply Crates & Cargo Containers deployed in landing zone
                 const crates = [
-                    { x: 10, y: 11, col: "#22c55e", label: "FOOD" },
-                    { x: 10, y: 12, col: "#94a3b8", label: "STEEL" },
-                    { x: 11, y: 11, col: "#38bdf8", label: "PLAS" },
-                    { x: 12, y: 11, col: "#ef4444", label: "MED" },
-                    { x: 13, y: 11, col: "#f59e0b", label: "COMP" }
+                    { x: 10, y: 11, item: "item_composite_rebar" },
+                    { x: 10, y: 12, item: "item_steel_ingot" },
+                    { x: 11, y: 11, item: "item_plasteel_plate" },
+                    { x: 12, y: 11, item: "item_nanite_medicine" },
+                    { x: 13, y: 11, item: "item_electronic_component" }
                 ];
                 crates.forEach(cr => {
                     const cx = cr.x * cellSize - offsetX;
                     const cy = cr.y * cellSize - offsetY;
                     if (cx >= 0 && cx <= cw && cy >= 0 && cy <= ch) {
-                        const s = cellSize * 0.65;
+                        const s = cellSize * 0.85;
                         const ox = cx + (cellSize - s) * 0.5;
                         const oy = cy + (cellSize - s) * 0.5;
 
-                        // Tactile drop shadow
+                        // Tactile elliptical drop shadow
                         localCtx.fillStyle = "rgba(0, 0, 0, 0.55)";
-                        localCtx.fillRect(ox + 1, oy + s - 2, s, 3);
+                        localCtx.beginPath();
+                        localCtx.ellipse(ox + s * 0.5, oy + s * 0.85, s * 0.42, s * 0.18, 0, 0, Math.PI * 2);
+                        localCtx.fill();
 
-                        // Crate body
-                        localCtx.fillStyle = cr.col;
-                        localCtx.fillRect(ox, oy, s, s - 2);
-
-                        // Specular top rim
-                        localCtx.fillStyle = "rgba(255, 255, 255, 0.45)";
-                        localCtx.fillRect(ox, oy, s, 2);
-
-                        // Metal corner reinforcement brackets
-                        localCtx.fillStyle = "#0f172a";
-                        localCtx.fillRect(ox, oy, 2.5, 2.5);
-                        localCtx.fillRect(ox + s - 2.5, oy, 2.5, 2.5);
-                        localCtx.fillRect(ox, oy + s - 4.5, 2.5, 2.5);
-                        localCtx.fillRect(ox + s - 2.5, oy + s - 4.5, 2.5, 2.5);
-
-                        // Stencil center cargo strap
-                        localCtx.fillStyle = "rgba(0, 0, 0, 0.35)";
-                        localCtx.fillRect(ox + 2.5, oy + (s - 2) * 0.4, s - 5, 2);
-
-                        localCtx.strokeStyle = "rgba(0, 0, 0, 0.8)";
-                        localCtx.lineWidth = 1;
-                        localCtx.strokeRect(ox, oy, s, s - 2);
+                        const img = TILE_SPRITE_CACHE[cr.item];
+                        if (img && img.complete && img.naturalWidth > 0) {
+                            localCtx.drawImage(img, ox, oy, s, s);
+                        }
                     }
                 });
 
