@@ -4372,6 +4372,14 @@
             preloadTileSprite(`liquid_water_shore_${m}`, `Tiles/liquid_water_shore_${m}.png`);
         }
 
+        // 8-variant authentic pixel art cavern floor tiles (0..7) and inner corner overlays
+        for (let f = 0; f < 8; f++) {
+            preloadTileSprite(`floor_basalt_${f}`, `Tiles/tile_floor_basalt_${f}.png`);
+        }
+        ["tl", "tr", "bl", "br"].forEach(c => {
+            preloadTileSprite(`wall_basalt_corner_${c}`, `Tiles/tile_wall_basalt_corner_${c}.png`);
+        });
+
         // Floor Wear & Breakup Variants (v0..v3)
         for (let v = 0; v < 4; v++) {
             preloadTileSprite(`floor_basalt_v${v}`, `Tiles/tile_floor_basalt_v${v}.png`);
@@ -4790,116 +4798,38 @@
                             localCtx.lineTo(px + cellSize - 2, py + 2);
                             localCtx.stroke();
                         } else {
-                            // Natural Excavated Basalt Cavern Floor: Seamless Continuous Strata & Micro-Roughness
-                            const strataFloor = Math.sin(x * 0.35 + y * 0.2) * 2.5 + Math.cos(y * 0.3 - x * 0.15) * 2.0;
-                            const fR = Math.max(18, Math.min(30, Math.round(22 + strataFloor)));
-                            const fG = Math.max(22, Math.min(34, Math.round(26 + strataFloor)));
-                            const fB = Math.max(30, Math.min(46, Math.round(36 + strataFloor * 1.2)));
-                            localCtx.fillStyle = `rgb(${fR}, ${fG}, ${fB})`;
-                            localCtx.fillRect(px, py, cellSize + 0.5, cellSize + 0.5);
-
-                            // Subtle Mineral Flecks (Feldspar, Mica, Basalt dust) - scattered in world space, zero square borders
-                            const fleckSeed = (x * 43 + y * 67 + currentSeed) % 100;
-                            if (fleckSeed % 2 === 0) {
-                                const fx1 = px + (fleckSeed % 11) + 2;
-                                const fy1 = py + ((fleckSeed * 3) % 11) + 2;
-                                localCtx.fillStyle = "rgba(100, 120, 150, 0.35)";
-                                localCtx.fillRect(fx1, fy1, 1, 1);
-                            }
-                            if (fleckSeed % 3 === 0) {
-                                const fx2 = px + ((fleckSeed * 7) % 11) + 2;
-                                const fy2 = py + ((fleckSeed * 5) % 11) + 2;
-                                localCtx.fillStyle = "rgba(15, 18, 26, 0.6)";
-                                localCtx.fillRect(fx2, fy2, 1, 1);
+                            // Authentic 16-Bit Pixel Art Basalt Floor (8 seamless variants)
+                            const fIdx = (x * 7 + y * 13 + currentSeed) % 8;
+                            const floorImg = TILE_SPRITE_CACHE[`floor_basalt_${fIdx}`] || TILE_SPRITE_CACHE["floor_basalt"];
+                            if (floorImg && floorImg.complete && floorImg.naturalWidth > 0) {
+                                localCtx.drawImage(floorImg, px, py, cellSize + 0.5, cellSize + 0.5);
+                            } else {
+                                localCtx.fillStyle = "#1e2432";
+                                localCtx.fillRect(px, py, cellSize + 0.5, cellSize + 0.5);
                             }
                         }
 
-                        // Inner Concave Corner Fillets (Eliminates boxy 90-degree stair-step inside corners where room meets rock)
+                        // Inner Concave Corner Overlays (Seamlessly softens 90-degree room corners)
                         const hasRockN = (y > 0 && localColonyGrid[y-1][x].isWall);
                         const hasRockS = (y < LOCAL_MAP_SIZE - 1 && localColonyGrid[y+1][x].isWall);
                         const hasRockW = (x > 0 && localColonyGrid[y][x-1].isWall);
                         const hasRockE = (x < LOCAL_MAP_SIZE - 1 && localColonyGrid[y][x+1].isWall);
-                        const filletHalf = cellSize * 0.45;
-                        const rockFillCol = "#111319";
-                        const rockLitRidge = "#526078";
-                        const rockCliffFace = "#0a0c10";
 
-                        // Inner Top-Left Corner (Rock at North AND West)
                         if (hasRockN && hasRockW) {
-                            localCtx.fillStyle = rockFillCol;
-                            localCtx.beginPath();
-                            localCtx.moveTo(px, py);
-                            localCtx.lineTo(px + filletHalf, py);
-                            localCtx.lineTo(px, py + filletHalf);
-                            localCtx.closePath();
-                            localCtx.fill();
-
-                            localCtx.strokeStyle = rockLitRidge;
-                            localCtx.lineWidth = 1.5;
-                            localCtx.beginPath();
-                            localCtx.moveTo(px + filletHalf, py);
-                            localCtx.lineTo(px, py + filletHalf);
-                            localCtx.stroke();
-
-                            localCtx.fillStyle = "#879bb9";
-                            localCtx.fillRect(px + filletHalf - 1, py, 1.5, 1.5);
+                            const cImg = TILE_SPRITE_CACHE["wall_basalt_corner_tl"];
+                            if (cImg && cImg.complete && cImg.naturalWidth > 0) localCtx.drawImage(cImg, px, py, cellSize + 0.5, cellSize + 0.5);
                         }
-
-                        // Inner Top-Right Corner (Rock at North AND East)
                         if (hasRockN && hasRockE) {
-                            localCtx.fillStyle = rockFillCol;
-                            localCtx.beginPath();
-                            localCtx.moveTo(px + cellSize, py);
-                            localCtx.lineTo(px + cellSize - filletHalf, py);
-                            localCtx.lineTo(px + cellSize, py + filletHalf);
-                            localCtx.closePath();
-                            localCtx.fill();
-
-                            localCtx.strokeStyle = rockLitRidge;
-                            localCtx.lineWidth = 1.5;
-                            localCtx.beginPath();
-                            localCtx.moveTo(px + cellSize - filletHalf, py);
-                            localCtx.lineTo(px + cellSize, py + filletHalf);
-                            localCtx.stroke();
-
-                            localCtx.fillStyle = "#879bb9";
-                            localCtx.fillRect(px + cellSize - filletHalf, py, 1.5, 1.5);
+                            const cImg = TILE_SPRITE_CACHE["wall_basalt_corner_tr"];
+                            if (cImg && cImg.complete && cImg.naturalWidth > 0) localCtx.drawImage(cImg, px, py, cellSize + 0.5, cellSize + 0.5);
                         }
-
-                        // Inner Bottom-Left Corner (Rock at South AND West)
                         if (hasRockS && hasRockW) {
-                            localCtx.fillStyle = rockCliffFace;
-                            localCtx.beginPath();
-                            localCtx.moveTo(px, py + cellSize);
-                            localCtx.lineTo(px + filletHalf, py + cellSize);
-                            localCtx.lineTo(px, py + cellSize - filletHalf);
-                            localCtx.closePath();
-                            localCtx.fill();
-
-                            localCtx.strokeStyle = rockCliffFace;
-                            localCtx.lineWidth = 1.5;
-                            localCtx.beginPath();
-                            localCtx.moveTo(px + filletHalf, py + cellSize);
-                            localCtx.lineTo(px, py + cellSize - filletHalf);
-                            localCtx.stroke();
+                            const cImg = TILE_SPRITE_CACHE["wall_basalt_corner_bl"];
+                            if (cImg && cImg.complete && cImg.naturalWidth > 0) localCtx.drawImage(cImg, px, py, cellSize + 0.5, cellSize + 0.5);
                         }
-
-                        // Inner Bottom-Right Corner (Rock at South AND East)
                         if (hasRockS && hasRockE) {
-                            localCtx.fillStyle = rockCliffFace;
-                            localCtx.beginPath();
-                            localCtx.moveTo(px + cellSize, py + cellSize);
-                            localCtx.lineTo(px + cellSize - filletHalf, py + cellSize);
-                            localCtx.lineTo(px + cellSize, py + cellSize - filletHalf);
-                            localCtx.closePath();
-                            localCtx.fill();
-
-                            localCtx.strokeStyle = rockCliffFace;
-                            localCtx.lineWidth = 1.5;
-                            localCtx.beginPath();
-                            localCtx.moveTo(px + cellSize - filletHalf, py + cellSize);
-                            localCtx.lineTo(px + cellSize, py + cellSize - filletHalf);
-                            localCtx.stroke();
+                            const cImg = TILE_SPRITE_CACHE["wall_basalt_corner_br"];
+                            if (cImg && cImg.complete && cImg.naturalWidth > 0) localCtx.drawImage(cImg, px, py, cellSize + 0.5, cellSize + 0.5);
                         }
 
                         // Loose Talus / Scree Rubble Debris Spilling from Cliff Base
@@ -4929,7 +4859,7 @@
                 }
             }
 
-            // PASS 2: Monolithic Geological Rock Mass (RimWorld / ONI Continuous Bedrock)
+            // PASS 2: Monolithic Geological Rock Walls (Authentic 16-Bit Pixel Art Autotiles)
             for (let y = 0; y < LOCAL_MAP_SIZE; y++) {
                 for (let x = 0; x < LOCAL_MAP_SIZE; x++) {
                     const cell = localColonyGrid[y][x];
@@ -4944,90 +4874,31 @@
                     const hasS = (y < LOCAL_MAP_SIZE - 1 && localColonyGrid[y+1][x].isWall);
                     const hasW = (x > 0 && localColonyGrid[y][x-1].isWall);
 
-                    // Ensure underlying floor is painted so chamfered outer corners reveal seamless floor stone
+                    // Underneath boundary walls, composite seamless floor first so transparent 45-deg cuts show floor
                     if (!hasN || !hasS || !hasE || !hasW) {
-                        const strataF = Math.sin(x * 0.35 + y * 0.2) * 2.5 + Math.cos(y * 0.3 - x * 0.15) * 2.0;
-                        localCtx.fillStyle = `rgb(${Math.max(18, Math.min(30, Math.round(22 + strataF)))}, ${Math.max(22, Math.min(34, Math.round(26 + strataF)))}, ${Math.max(30, Math.min(46, Math.round(36 + strataF * 1.2)))})`;
+                        const fIdx = (x * 7 + y * 13 + currentSeed) % 8;
+                        const floorImg = TILE_SPRITE_CACHE[`floor_basalt_${fIdx}`] || TILE_SPRITE_CACHE["floor_basalt"];
+                        if (floorImg && floorImg.complete && floorImg.naturalWidth > 0) {
+                            localCtx.drawImage(floorImg, px, py, cellSize + 0.5, cellSize + 0.5);
+                        }
+                    }
+
+                    // 16-Bit Autotile Bitmask: Bit 0=N, Bit 1=E, Bit 2=S, Bit 3=W
+                    const mask = (hasN ? 1 : 0) | (hasE ? 2 : 0) | (hasS ? 4 : 0) | (hasW ? 8 : 0);
+
+                    // Determine wall theme prefix
+                    let wallPrefix = "wall_basalt";
+                    if (cell.terrain.includes("plasteel")) wallPrefix = "wall_plasteel";
+                    else if (cell.terrain.includes("obsidian")) wallPrefix = "wall_obsidian";
+                    else if (cell.terrain.includes("cryo")) wallPrefix = "wall_cryo";
+                    else if (cell.terrain.includes("granite")) wallPrefix = "wall_granite";
+
+                    const wallImg = TILE_SPRITE_CACHE[`${wallPrefix}_${mask}`] || TILE_SPRITE_CACHE[`wall_basalt_${mask}`] || TILE_SPRITE_CACHE["wall_basalt"];
+                    if (wallImg && wallImg.complete && wallImg.naturalWidth > 0) {
+                        localCtx.drawImage(wallImg, px, py, cellSize + 0.5, cellSize + 0.5);
+                    } else {
+                        localCtx.fillStyle = "#1e2536";
                         localCtx.fillRect(px, py, cellSize + 0.5, cellSize + 0.5);
-                    }
-
-                    // 1. Multi-Scale Continuous Geological Strata (Macro Wave + Micro Sedimentary Bands)
-                    const strataMacro = Math.sin(x * 0.28 + y * 0.12) * 4.0 + Math.cos(y * 0.22) * 3.0;
-                    const strataMicro = Math.sin(x * 0.85 + y * 0.45) * 1.5;
-                    const strata = strataMacro + strataMicro;
-
-                    let baseR = 17, baseG = 19, baseB = 25;
-                    if (cell.terrain.includes("obsidian") || cell.terrain.includes("magma")) {
-                        baseR = 14; baseG = 14; baseB = 16;
-                    } else if (cell.terrain.includes("cryo")) {
-                        baseR = 20; baseG = 26; baseB = 38;
-                    } else if (cell.terrain.includes("plasteel")) {
-                        baseR = 18; baseG = 28; baseB = 44;
-                    } else if (cell.terrain.includes("granite") || cell.terrain.includes("pumice")) {
-                        baseR = 26; baseG = 22; baseB = 20;
-                    }
-                    const r = Math.max(10, Math.min(48, Math.round(baseR + strata)));
-                    const g = Math.max(12, Math.min(52, Math.round(baseG + strata)));
-                    const b = Math.max(16, Math.min(65, Math.round(baseB + strata * 1.25)));
-                    const rockFill = `rgb(${r}, ${g}, ${b})`;
-
-                    // 2. 45-Degree Convex Corner Chamfers (Eliminates boxy 90-degree square stair-steps)
-                    const half = cellSize * 0.45;
-                    localCtx.fillStyle = rockFill;
-                    localCtx.beginPath();
-
-                    // Top-Left Corner
-                    if (!hasN && !hasW) {
-                        localCtx.moveTo(px, py + half);
-                        localCtx.lineTo(px + half, py);
-                    } else {
-                        localCtx.moveTo(px, py);
-                    }
-
-                    // Top-Right Corner
-                    if (!hasN && !hasE) {
-                        localCtx.lineTo(px + cellSize - half, py);
-                        localCtx.lineTo(px + cellSize, py + half);
-                    } else {
-                        localCtx.lineTo(px + cellSize, py);
-                    }
-
-                    // Bottom-Right Corner
-                    if (!hasS && !hasE) {
-                        localCtx.lineTo(px + cellSize, py + cellSize - half);
-                        localCtx.lineTo(px + cellSize - half, py + cellSize);
-                    } else {
-                        localCtx.lineTo(px + cellSize, py + cellSize);
-                    }
-
-                    // Bottom-Left Corner
-                    if (!hasS && !hasW) {
-                        localCtx.lineTo(px + half, py + cellSize);
-                        localCtx.lineTo(px, py + cellSize - half);
-                    } else {
-                        localCtx.lineTo(px, py + cellSize);
-                    }
-
-                    localCtx.closePath();
-                    localCtx.fill();
-
-                    // 3. Tactile Mineral Texture: Feldspar, Quartz & Augite Micro-Flecks
-                    const cellSeed = (x * 73 + y * 97) % 100;
-                    localCtx.fillStyle = (cellSeed % 2 === 0) ? `rgb(${r + 8}, ${g + 9}, ${b + 13})` : `rgb(${Math.max(6, r - 5)}, ${Math.max(8, g - 5)}, ${Math.max(10, b - 6)})`;
-                    localCtx.fillRect(px + (cellSeed % 9) + 2, py + ((cellSeed * 3) % 9) + 2, 1, 1);
-                    localCtx.fillRect(px + ((cellSeed * 5) % 9) + 2, py + ((cellSeed * 7) % 9) + 2, 1, 1);
-
-                    // 4. Continuous Quartz & Calcite Hairline Crystal Veins (World Coordinates)
-                    if ((x * 13 + y * 29) % 9 === 0) {
-                        localCtx.strokeStyle = "rgba(70, 85, 115, 0.45)";
-                        localCtx.lineWidth = 1;
-                        localCtx.beginPath();
-                        localCtx.moveTo(px, py + cellSize * 0.35);
-                        localCtx.lineTo(px + cellSize, py + cellSize * 0.42);
-                        localCtx.stroke();
-                        // Specular quartz glint
-                        localCtx.fillStyle = "#8ba0c2";
-                        localCtx.fillRect(px + cellSize * 0.5, py + cellSize * 0.38, 1.5, 1.5);
                     }
 
                     // Ore Vein Inclusions embedded into solid rock
@@ -5036,112 +4907,6 @@
                         if (veinImg && veinImg.complete && veinImg.naturalWidth > 0) {
                             localCtx.drawImage(veinImg, px, py, cellSize + 0.5, cellSize + 0.5);
                         }
-                    }
-
-                    // Deep Interior Bedrock: 100% seamless, zero borders
-                    if (hasN && hasE && hasS && hasW) {
-                        continue;
-                    }
-
-                    // 5. South Vertical Cliff Face & Columnar Basalt Overhang
-                    if (!hasS) {
-                        const cliffTop = py + cellSize * 0.58;
-                        const cliffBot = py + cellSize;
-                        localCtx.fillStyle = "#0a0c10";
-                        localCtx.fillRect(px, cliffTop, cellSize, cliffBot - cliffTop);
-
-                        // Columnar vertical jointing
-                        for (let cx = px + 2; cx < px + cellSize; cx += 3) {
-                            localCtx.strokeStyle = "#050608";
-                            localCtx.lineWidth = 1;
-                            localCtx.beginPath();
-                            localCtx.moveTo(cx, cliffTop + 1);
-                            localCtx.lineTo(cx, cliffBot - 1);
-                            localCtx.stroke();
-
-                            // Column specular edge highlight
-                            localCtx.fillStyle = "rgba(35, 42, 58, 0.75)";
-                            localCtx.fillRect(cx + 1, cliffTop + 1, 1, cliffBot - cliffTop - 2);
-                        }
-                        localCtx.fillStyle = "#040507";
-                        localCtx.fillRect(px, cliffBot - 1, cellSize, 1);
-
-                        // Ambient occlusion drop shadow cast 6px onto floor below
-                        localCtx.fillStyle = "rgba(2, 3, 6, 0.75)";
-                        localCtx.beginPath();
-                        localCtx.moveTo(px, cliffBot);
-                        localCtx.lineTo(px + cellSize * 0.25, cliffBot + 6);
-                        localCtx.lineTo(px + cellSize * 0.65, cliffBot + 5);
-                        localCtx.lineTo(px + cellSize, cliffBot + 7);
-                        localCtx.lineTo(px + cellSize, cliffBot);
-                        localCtx.closePath();
-                        localCtx.fill();
-
-                        // Scree rubble chunks spilled at base
-                        const rSeed = (x * 19 + y * 37) % 6;
-                        localCtx.fillStyle = "#222735";
-                        localCtx.fillRect(px + 2 + rSeed, cliffBot + 1, 3, 2);
-                        localCtx.fillStyle = "#4a5568";
-                        localCtx.fillRect(px + 2 + rSeed, cliffBot + 1, 1, 1);
-                        localCtx.fillStyle = "#1a1f2b";
-                        localCtx.fillRect(px + 9 - rSeed, cliffBot + 2, 3, 2);
-                    }
-
-                    // 6. North Illuminated Chiseled Ridge (Overhead Rim Light)
-                    if (!hasN) {
-                        localCtx.fillStyle = "#526078";
-                        localCtx.fillRect(px, py, cellSize, Math.max(1, cellSize * 0.12));
-                        localCtx.fillStyle = "#879bb9";
-                        localCtx.fillRect(px + 2, py, cellSize - 4, 1);
-                        if ((x + y) % 3 === 0) {
-                            localCtx.fillStyle = "#cad7e8";
-                            localCtx.fillRect(px + 5, py + 1, 1.5, 1);
-                        }
-                    }
-
-                    // 7. West Rim Lighting & East Shadow Groove
-                    if (!hasW) {
-                        localCtx.fillStyle = "#2d3442";
-                        localCtx.fillRect(px, py, Math.max(1, cellSize * 0.08), cellSize);
-                    }
-                    if (!hasE) {
-                        localCtx.fillStyle = "#08090d";
-                        localCtx.fillRect(px + cellSize - Math.max(1, cellSize * 0.08), py, Math.max(1, cellSize * 0.08), cellSize);
-                    }
-
-                    // 8. Chamfer Diagonal Bevel Strokes
-                    localCtx.lineWidth = 1.5;
-                    if (!hasN && !hasW) {
-                        localCtx.strokeStyle = "#526078";
-                        localCtx.beginPath();
-                        localCtx.moveTo(px, py + half);
-                        localCtx.lineTo(px + half, py);
-                        localCtx.stroke();
-                        localCtx.fillStyle = "#879bb9";
-                        localCtx.fillRect(px + half, py, 1.5, 1);
-                    }
-                    if (!hasN && !hasE) {
-                        localCtx.strokeStyle = "#526078";
-                        localCtx.beginPath();
-                        localCtx.moveTo(px + cellSize - half, py);
-                        localCtx.lineTo(px + cellSize, py + half);
-                        localCtx.stroke();
-                        localCtx.fillStyle = "#879bb9";
-                        localCtx.fillRect(px + cellSize - half, py, 1.5, 1);
-                    }
-                    if (!hasS && !hasW) {
-                        localCtx.strokeStyle = "#0a0c10";
-                        localCtx.beginPath();
-                        localCtx.moveTo(px, py + cellSize - half);
-                        localCtx.lineTo(px + half, py + cellSize);
-                        localCtx.stroke();
-                    }
-                    if (!hasS && !hasE) {
-                        localCtx.strokeStyle = "#0a0c10";
-                        localCtx.beginPath();
-                        localCtx.moveTo(px + cellSize - half, py + cellSize);
-                        localCtx.lineTo(px + cellSize, py + cellSize - half);
-                        localCtx.stroke();
                     }
                 }
             }
