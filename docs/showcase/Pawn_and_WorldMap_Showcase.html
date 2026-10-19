@@ -4670,176 +4670,74 @@
                 soil: "#3f3f46"
             };
 
-            // 1. Draw Terrain Layer (Pixel-Art Autotiles, Fluid Shores, 3D Cliff Facades & Drop Shadows)
+            // 1. Draw Terrain Layer (Two-Pass Monolithic Bedrock & Excavated Cavern Floor)
+            // PASS 1: Excavated Cavern Floor, Fluids, and Tactical Floor Grid
             for (let y = 0; y < LOCAL_MAP_SIZE; y++) {
                 for (let x = 0; x < LOCAL_MAP_SIZE; x++) {
                     const cell = localColonyGrid[y][x];
+                    if (cell.isWall) continue; // Solid rock walls rendered in Pass 2
+
                     const px = x * cellSize - offsetX;
                     const py = y * cellSize - offsetY;
-
                     if (px + cellSize < 0 || px > cw || py + cellSize < 0 || py > ch) continue;
 
-                    let drawnSprite = false;
-
-                    // =========================================================
-                    // A. SUBTERRANEAN ROCK WALLS (16-Tile Autotiles + 3D Cliff Facades)
-                    // =========================================================
-                    if (cell.isWall) {
-                        const hasN = (y > 0 && localColonyGrid[y-1][x].isWall);
-                        const hasE = (x < LOCAL_MAP_SIZE - 1 && localColonyGrid[y][x+1].isWall);
-                        const hasS = (y < LOCAL_MAP_SIZE - 1 && localColonyGrid[y+1][x].isWall);
-                        const hasW = (x > 0 && localColonyGrid[y][x-1].isWall);
-                        const mask = (hasN ? 1 : 0) | (hasE ? 2 : 0) | (hasS ? 4 : 0) | (hasW ? 8 : 0);
-                        const prefix = cell.autoPrefix || "wall_basalt";
-                        const autoImg = TILE_SPRITE_CACHE[`${prefix}_${mask}`] || TILE_SPRITE_CACHE[`wall_basalt_${mask}`] || TILE_SPRITE_CACHE["wall_basalt"];
-
-                        if (autoImg && autoImg.complete && autoImg.naturalWidth > 0) {
-                            localCtx.drawImage(autoImg, px, py, cellSize + 0.5, cellSize + 0.5);
-                            drawnSprite = true;
-                        } else {
-                            localCtx.fillStyle = "#18191f";
-                            localCtx.fillRect(px, py, cellSize + 0.5, cellSize + 0.5);
-                        }
-
-                        // Ore Vein Inclusions embedded in rock wall
-                        if (cell.oreType) {
-                            const veinImg = TILE_SPRITE_CACHE[`vein_${cell.oreType}`];
-                            if (veinImg && veinImg.complete && veinImg.naturalWidth > 0) {
-                                localCtx.drawImage(veinImg, px, py, cellSize + 0.5, cellSize + 0.5);
-                            }
-                        }
-
-                        // 1. South Rock Face Drop-Shadow & 3D Cliff Facade (casts shadow onto open floor below)
-                        if (!hasS) {
-                            localCtx.fillStyle = "rgba(5, 8, 14, 0.72)";
-                            localCtx.fillRect(px, py + cellSize * 0.72, cellSize, cellSize * 0.28);
-
-                            // Jagged cliff drop-shadow extending 5px down onto cavern floor
-                            localCtx.fillStyle = "rgba(0, 0, 0, 0.65)";
-                            localCtx.beginPath();
-                            localCtx.moveTo(px, py + cellSize);
-                            localCtx.lineTo(px + cellSize * 0.25, py + cellSize + 4);
-                            localCtx.lineTo(px + cellSize * 0.6, py + cellSize + 3);
-                            localCtx.lineTo(px + cellSize, py + cellSize + 5);
-                            localCtx.lineTo(px + cellSize, py + cellSize);
-                            localCtx.closePath();
-                            localCtx.fill();
-                        }
-
-                        // 2. North Chiseled Ridge Light Highlight
-                        if (!hasN) {
-                            localCtx.fillStyle = "rgba(255, 255, 255, 0.25)";
-                            localCtx.fillRect(px, py, cellSize, Math.max(1, cellSize * 0.12));
-                            localCtx.fillStyle = "rgba(255, 255, 255, 0.4)";
-                            localCtx.fillRect(px + cellSize * 0.2, py, cellSize * 0.25, 2);
-                            localCtx.fillRect(px + cellSize * 0.65, py, cellSize * 0.2, 2);
-                        }
-
-                        // 3. West Rim Highlight
-                        if (!hasW) {
-                            localCtx.fillStyle = "rgba(255, 255, 255, 0.15)";
-                            localCtx.fillRect(px, py, Math.max(1, cellSize * 0.08), cellSize);
-                        }
-
-                        // 4. East Drop Shadow
-                        if (!hasE) {
-                            localCtx.fillStyle = "rgba(0, 0, 0, 0.35)";
-                            localCtx.fillRect(px + cellSize - Math.max(1, cellSize * 0.1), py, Math.max(1, cellSize * 0.1), cellSize);
-                        }
-
-                        // 5. Outer Convex Corner Chamfers (Eliminates boxy 90-degree square corners)
-                        if (!hasN && !hasW) {
-                            localCtx.fillStyle = "rgba(5, 8, 14, 0.75)";
-                            localCtx.beginPath();
-                            localCtx.moveTo(px, py);
-                            localCtx.lineTo(px + 4, py);
-                            localCtx.lineTo(px, py + 4);
-                            localCtx.closePath();
-                            localCtx.fill();
-                        }
-                        if (!hasN && !hasE) {
-                            localCtx.fillStyle = "rgba(5, 8, 14, 0.75)";
-                            localCtx.beginPath();
-                            localCtx.moveTo(px + cellSize, py);
-                            localCtx.lineTo(px + cellSize - 4, py);
-                            localCtx.lineTo(px + cellSize, py + 4);
-                            localCtx.closePath();
-                            localCtx.fill();
-                        }
-                    }
-
-                    // =========================================================
-                    // B. FLUID SURFACES (MOLTEN MAGMA & AQUIFER WATER WITH 16-MASK SHORES)
-                    // =========================================================
-                    else if (cell.isLava || cell.terrain === "magma" || cell.terrain === "liquid_magma") {
+                    // Fluid Surfaces (Molten Magma & Aquifer Water with animated shores)
+                    if (cell.isLava || cell.terrain === "magma" || cell.terrain === "liquid_magma") {
                         const frame = Math.floor(localAnimationTick / 8) % 4;
                         const fluidImg = TILE_SPRITE_CACHE[`liquid_magma_${frame}`];
                         if (fluidImg && fluidImg.complete && fluidImg.naturalWidth > 0) {
                             localCtx.drawImage(fluidImg, px, py, cellSize + 0.5, cellSize + 0.5);
-                            drawnSprite = true;
                         } else {
                             localCtx.fillStyle = "#f97316";
                             localCtx.fillRect(px, py, cellSize + 0.5, cellSize + 0.5);
                         }
 
-                        // Shore autotiling: cooling obsidian crust meeting solid floor/wall
                         const shoreN = (y > 0 && !localColonyGrid[y-1][x].isLava && localColonyGrid[y-1][x].terrain !== "magma");
                         const shoreE = (x < LOCAL_MAP_SIZE - 1 && !localColonyGrid[y][x+1].isLava && localColonyGrid[y][x+1].terrain !== "magma");
                         const shoreS = (y < LOCAL_MAP_SIZE - 1 && !localColonyGrid[y+1][x].isLava && localColonyGrid[y+1][x].terrain !== "magma");
                         const shoreW = (x > 0 && !localColonyGrid[y][x-1].isLava && localColonyGrid[y][x-1].terrain !== "magma");
                         const shoreMask = (shoreN ? 1 : 0) | (shoreE ? 2 : 0) | (shoreS ? 4 : 0) | (shoreW ? 8 : 0);
-
                         if (shoreMask > 0) {
                             const shoreImg = TILE_SPRITE_CACHE[`liquid_magma_shore_${shoreMask}`];
                             if (shoreImg && shoreImg.complete && shoreImg.naturalWidth > 0) {
                                 localCtx.drawImage(shoreImg, px, py, cellSize + 0.5, cellSize + 0.5);
                             }
-                            // Thermal glow bleed radiating onto adjacent ground
                             localCtx.fillStyle = "rgba(255, 115, 0, 0.22)";
                             localCtx.fillRect(px, py, cellSize, cellSize);
                         }
-                    }
-                    else if (cell.isWater || cell.terrain === "river_water" || cell.terrain === "liquid_water") {
+                    } else if (cell.isWater || cell.terrain === "river_water" || cell.terrain === "liquid_water") {
                         const frame = Math.floor(localAnimationTick / 8) % 4;
                         const fluidImg = TILE_SPRITE_CACHE[`liquid_water_${frame}`];
                         if (fluidImg && fluidImg.complete && fluidImg.naturalWidth > 0) {
                             localCtx.drawImage(fluidImg, px, py, cellSize + 0.5, cellSize + 0.5);
-                            drawnSprite = true;
                         } else {
                             localCtx.fillStyle = "#0284c7";
                             localCtx.fillRect(px, py, cellSize + 0.5, cellSize + 0.5);
                         }
 
-                        // Shore autotiling: wet stone shoreline meeting solid ground
                         const shoreN = (y > 0 && !localColonyGrid[y-1][x].isWater && localColonyGrid[y-1][x].terrain !== "river_water");
                         const shoreE = (x < LOCAL_MAP_SIZE - 1 && !localColonyGrid[y][x+1].isWater && localColonyGrid[y][x+1].terrain !== "river_water");
                         const shoreS = (y < LOCAL_MAP_SIZE - 1 && !localColonyGrid[y+1][x].isWater && localColonyGrid[y+1][x].terrain !== "river_water");
                         const shoreW = (x > 0 && !localColonyGrid[y][x-1].isWater && localColonyGrid[y][x-1].terrain !== "river_water");
                         const shoreMask = (shoreN ? 1 : 0) | (shoreE ? 2 : 0) | (shoreS ? 4 : 0) | (shoreW ? 8 : 0);
-
                         if (shoreMask > 0) {
                             const shoreImg = TILE_SPRITE_CACHE[`liquid_water_shore_${shoreMask}`];
                             if (shoreImg && shoreImg.complete && shoreImg.naturalWidth > 0) {
                                 localCtx.drawImage(shoreImg, px, py, cellSize + 0.5, cellSize + 0.5);
                             }
                         }
-                    }
-
-                    // =========================================================
-                    // C. SUBTERRANEAN CAVERN FLOOR (WEAR BREAKUP VARIANTS & TALUS SKIRTING)
-                    // =========================================================
-                    else {
+                    } else {
+                        // Excavated Cavern Floor Tiles
                         const floorKey = cell.floorSpriteKey || "floor_basalt_v0";
                         const floorImg = TILE_SPRITE_CACHE[floorKey] || TILE_SPRITE_CACHE["floor_basalt"];
                         if (floorImg && floorImg.complete && floorImg.naturalWidth > 0) {
                             localCtx.drawImage(floorImg, px, py, cellSize + 0.5, cellSize + 0.5);
-                            drawnSprite = true;
                         } else {
                             localCtx.fillStyle = "#2d3039";
                             localCtx.fillRect(px, py, cellSize + 0.5, cellSize + 0.5);
                         }
 
-                        // Natural Talus / Scree Rubble Skirting: loose rocks spilling from cliff base
+                        // Loose talus / scree rubble debris spilling from cliff footing
                         const hasWallN = (y > 0 && localColonyGrid[y-1][x].isWall);
                         const hasWallW = (x > 0 && localColonyGrid[y][x-1].isWall);
                         if (hasWallN) {
@@ -4856,6 +4754,190 @@
                             localCtx.fillRect(px + 1, py + cellSize * 0.35, 2, 2);
                             localCtx.fillRect(px + 2, py + cellSize * 0.7, 1, 2);
                         }
+                    }
+
+                    // Tactical Floor Grid: STRICTLY on excavated floor, NEVER on rock!
+                    if (showLocalGrid) {
+                        localCtx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+                        localCtx.lineWidth = 0.5;
+                        localCtx.strokeRect(px, py, cellSize, cellSize);
+                    }
+                }
+            }
+
+            // PASS 2: Monolithic Geological Rock Mass (RimWorld / ONI Continuous Bedrock)
+            for (let y = 0; y < LOCAL_MAP_SIZE; y++) {
+                for (let x = 0; x < LOCAL_MAP_SIZE; x++) {
+                    const cell = localColonyGrid[y][x];
+                    if (!cell.isWall) continue;
+
+                    const px = x * cellSize - offsetX;
+                    const py = y * cellSize - offsetY;
+                    if (px + cellSize < 0 || px > cw || py + cellSize < 0 || py > ch) continue;
+
+                    const hasN = (y > 0 && localColonyGrid[y-1][x].isWall);
+                    const hasE = (x < LOCAL_MAP_SIZE - 1 && localColonyGrid[y][x+1].isWall);
+                    const hasS = (y < LOCAL_MAP_SIZE - 1 && localColonyGrid[y+1][x].isWall);
+                    const hasW = (x > 0 && localColonyGrid[y][x-1].isWall);
+
+                    // 1. Continuous Macro Geological Strata (World Coordinates = Zero Tile Seams)
+                    const strata = Math.sin(x * 0.32 + y * 0.14) * 3.5 + Math.cos(y * 0.25) * 2.5;
+                    let baseR = 17, baseG = 19, baseB = 25;
+                    if (cell.terrain.includes("obsidian") || cell.terrain.includes("magma")) {
+                        baseR = 14; baseG = 14; baseB = 16;
+                    } else if (cell.terrain.includes("cryo")) {
+                        baseR = 20; baseG = 26; baseB = 38;
+                    } else if (cell.terrain.includes("plasteel")) {
+                        baseR = 18; baseG = 28; baseB = 44;
+                    } else if (cell.terrain.includes("granite") || cell.terrain.includes("pumice")) {
+                        baseR = 26; baseG = 22; baseB = 20;
+                    }
+                    const r = Math.max(10, Math.min(45, Math.round(baseR + strata)));
+                    const g = Math.max(12, Math.min(48, Math.round(baseG + strata)));
+                    const b = Math.max(16, Math.min(60, Math.round(baseB + strata * 1.2)));
+                    const rockFill = `rgb(${r}, ${g}, ${b})`;
+
+                    // 2. 45-Degree Convex Corner Chamfers (Eliminates boxy 90-degree square stair-steps)
+                    const half = cellSize * 0.45;
+                    localCtx.fillStyle = rockFill;
+                    localCtx.beginPath();
+
+                    // Top-Left Corner
+                    if (!hasN && !hasW) {
+                        localCtx.moveTo(px, py + half);
+                        localCtx.lineTo(px + half, py);
+                    } else {
+                        localCtx.moveTo(px, py);
+                    }
+
+                    // Top-Right Corner
+                    if (!hasN && !hasE) {
+                        localCtx.lineTo(px + cellSize - half, py);
+                        localCtx.lineTo(px + cellSize, py + half);
+                    } else {
+                        localCtx.lineTo(px + cellSize, py);
+                    }
+
+                    // Bottom-Right Corner
+                    if (!hasS && !hasE) {
+                        localCtx.lineTo(px + cellSize, py + cellSize - half);
+                        localCtx.lineTo(px + cellSize - half, py + cellSize);
+                    } else {
+                        localCtx.lineTo(px + cellSize, py + cellSize);
+                    }
+
+                    // Bottom-Left Corner
+                    if (!hasS && !hasW) {
+                        localCtx.lineTo(px + half, py + cellSize);
+                        localCtx.lineTo(px, py + cellSize - half);
+                    } else {
+                        localCtx.lineTo(px, py + cellSize);
+                    }
+
+                    localCtx.closePath();
+                    localCtx.fill();
+
+                    // Continuous macro geological fissures across the rock formation
+                    if ((x * 11 + y * 23) % 7 === 0) {
+                        localCtx.strokeStyle = "rgba(10, 12, 16, 0.4)";
+                        localCtx.lineWidth = 1;
+                        localCtx.beginPath();
+                        localCtx.moveTo(px, py + cellSize * 0.4);
+                        localCtx.lineTo(px + cellSize, py + cellSize * 0.45);
+                        localCtx.stroke();
+                    }
+
+                    // Ore Vein Inclusions embedded into solid rock
+                    if (cell.oreType) {
+                        const veinImg = TILE_SPRITE_CACHE[`vein_${cell.oreType}`];
+                        if (veinImg && veinImg.complete && veinImg.naturalWidth > 0) {
+                            localCtx.drawImage(veinImg, px, py, cellSize + 0.5, cellSize + 0.5);
+                        }
+                    }
+
+                    // Deep Interior Bedrock: 100% seamless, zero borders
+                    if (hasN && hasE && hasS && hasW) {
+                        continue;
+                    }
+
+                    // 3. South Vertical Cliff Face & Drop Shadow (Facing open floor below)
+                    if (!hasS) {
+                        const cliffTop = py + cellSize * 0.60;
+                        const cliffBot = py + cellSize;
+                        localCtx.fillStyle = "#0a0c10";
+                        localCtx.fillRect(px, cliffTop, cellSize, cliffBot - cliffTop);
+
+                        // Vertical chisel cleavage striations
+                        localCtx.strokeStyle = "#13161f";
+                        localCtx.lineWidth = 1;
+                        for (let cx = px + 2; cx < px + cellSize; cx += 3) {
+                            localCtx.beginPath();
+                            localCtx.moveTo(cx, cliffTop + 1);
+                            localCtx.lineTo(cx, cliffBot - 1);
+                            localCtx.stroke();
+                        }
+                        localCtx.fillStyle = "#040507";
+                        localCtx.fillRect(px, cliffBot - 1, cellSize, 1);
+
+                        // Ambient occlusion drop shadow cast 5-6px onto floor below
+                        localCtx.fillStyle = "rgba(2, 3, 6, 0.72)";
+                        localCtx.beginPath();
+                        localCtx.moveTo(px, cliffBot);
+                        localCtx.lineTo(px + cellSize * 0.3, cliffBot + 5);
+                        localCtx.lineTo(px + cellSize * 0.7, cliffBot + 4);
+                        localCtx.lineTo(px + cellSize, cliffBot + 6);
+                        localCtx.lineTo(px + cellSize, cliffBot);
+                        localCtx.closePath();
+                        localCtx.fill();
+                    }
+
+                    // 4. North Illuminated Top Ridge (Direct overhead rim light)
+                    if (!hasN) {
+                        localCtx.fillStyle = "#526078";
+                        localCtx.fillRect(px, py, cellSize, Math.max(1, cellSize * 0.12));
+                        localCtx.fillStyle = "#879bb9";
+                        localCtx.fillRect(px + 2, py, cellSize - 4, 1);
+                    }
+
+                    // 5. West Rim Lighting & East Shadow Groove
+                    if (!hasW) {
+                        localCtx.fillStyle = "#2d3442";
+                        localCtx.fillRect(px, py, Math.max(1, cellSize * 0.08), cellSize);
+                    }
+                    if (!hasE) {
+                        localCtx.fillStyle = "#08090d";
+                        localCtx.fillRect(px + cellSize - Math.max(1, cellSize * 0.08), py, Math.max(1, cellSize * 0.08), cellSize);
+                    }
+
+                    // 6. Chamfer Diagonal Bevel Strokes
+                    localCtx.lineWidth = 1.5;
+                    if (!hasN && !hasW) {
+                        localCtx.strokeStyle = "#526078";
+                        localCtx.beginPath();
+                        localCtx.moveTo(px, py + half);
+                        localCtx.lineTo(px + half, py);
+                        localCtx.stroke();
+                    }
+                    if (!hasN && !hasE) {
+                        localCtx.strokeStyle = "#526078";
+                        localCtx.beginPath();
+                        localCtx.moveTo(px + cellSize - half, py);
+                        localCtx.lineTo(px + cellSize, py + half);
+                        localCtx.stroke();
+                    }
+                    if (!hasS && !hasW) {
+                        localCtx.strokeStyle = "#0a0c10";
+                        localCtx.beginPath();
+                        localCtx.moveTo(px, py + cellSize - half);
+                        localCtx.lineTo(px + half, py + cellSize);
+                        localCtx.stroke();
+                    }
+                    if (!hasS && !hasE) {
+                        localCtx.strokeStyle = "#0a0c10";
+                        localCtx.beginPath();
+                        localCtx.moveTo(px + cellSize - half, py + cellSize);
+                        localCtx.lineTo(px + cellSize, py + cellSize - half);
+                        localCtx.stroke();
                     }
                 }
             }
@@ -5083,29 +5165,7 @@
                 });
             }
 
-            // 3. Draw Grid Lines
-            if (showLocalGrid) {
-                localCtx.lineWidth = 0.5;
-                localCtx.strokeStyle = "rgba(255, 255, 255, 0.08)";
-                for (let x = 0; x <= LOCAL_MAP_SIZE; x++) {
-                    const px = x * cellSize - offsetX;
-                    if (px >= 0 && px <= cw) {
-                        localCtx.beginPath();
-                        localCtx.moveTo(px, 0);
-                        localCtx.lineTo(px, ch);
-                        localCtx.stroke();
-                    }
-                }
-                for (let y = 0; y <= LOCAL_MAP_SIZE; y++) {
-                    const py = y * cellSize - offsetY;
-                    if (py >= 0 && py <= ch) {
-                        localCtx.beginPath();
-                        localCtx.moveTo(0, py);
-                        localCtx.lineTo(cw, py);
-                        localCtx.stroke();
-                    }
-                }
-            }
+            // 3. Tactical Grid Lines applied strictly to excavated floor cells in Pass 1 to preserve monolithic rock mass
 
             // 4. Draw Pawns Deployed on the Local Grid
             if (showLocalPawns) {
@@ -5380,9 +5440,21 @@
                         if (bx + bw < 0 || bx > cw || by + bh < 0 || by > ch) return;
 
                         if (col.layer === CollisionLayer.Terrain) {
-                            localCtx.strokeStyle = "rgba(239, 68, 68, 0.45)";
-                            localCtx.lineWidth = 1;
-                            localCtx.strokeRect(bx + 1, by + 1, bw - 2, bh - 2);
+                            const gx = col.x;
+                            const gy = col.y;
+                            const hasN = (gy > 0 && localColonyGrid[gy-1][gx].isWall);
+                            const hasE = (gx < LOCAL_MAP_SIZE - 1 && localColonyGrid[gy][gx+1].isWall);
+                            const hasS = (gy < LOCAL_MAP_SIZE - 1 && localColonyGrid[gy+1][gx].isWall);
+                            const hasW = (gx > 0 && localColonyGrid[gy][gx-1].isWall);
+
+                            localCtx.strokeStyle = "rgba(239, 68, 68, 0.85)";
+                            localCtx.lineWidth = 1.5;
+                            localCtx.beginPath();
+                            if (!hasN) { localCtx.moveTo(bx, by); localCtx.lineTo(bx + bw, by); }
+                            if (!hasS) { localCtx.moveTo(bx, by + bh); localCtx.lineTo(bx + bw, by + bh); }
+                            if (!hasW) { localCtx.moveTo(bx, by); localCtx.lineTo(bx, by + bh); }
+                            if (!hasE) { localCtx.moveTo(bx + bw, by); localCtx.lineTo(bx + bw, by + bh); }
+                            localCtx.stroke();
                         } else if (col.layer === CollisionLayer.Hazard) {
                             localCtx.strokeStyle = "rgba(249, 115, 22, 0.7)";
                             localCtx.lineWidth = 1.5;
