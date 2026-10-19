@@ -1,61 +1,64 @@
 {
-  "batch_id": "BATCH-78",
+  "batch_id": "BATCH-79",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "Finalize the simulation loop by implementing deterministic state hashing for save/load integrity, optimizing the tick scheduler for zero-allocation execution, and integrating the final psychological state machine for colonist ascension. This batch closes the remaining coverage gaps in the core simulation loop, ensuring 100% deterministic reproducibility and minimal memory footprint for the endgame state.",
+  "overview": "This batch finalizes the simulation loop by implementing deterministic state hashing for save/load integrity and optimizing the Monte Carlo convergence logic for the endgame phase. These changes ensure that the 5,500-tick simulation remains reproducible across different hardware configurations and reduce memory footprint during the final ascension phase.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Implement Zero-Allocation Deterministic State Hasher",
+      "title": "Implement Deterministic State Hashing for Save/Load Integrity",
       "target_files": [
-        "src/engine/core/StateHasher.hpp",
-        "src/engine/core/StateHasher.cpp"
+        "Source/Runtime/Simulation/StateHash.h",
+        "Source/Runtime/Simulation/StateHash.cpp"
       ],
-      "architectural_spec": "struct StateHasher {\n    uint64_t hash = 0;\n    constexpr void update(uint64_t val) {\n        hash ^= val;\n        hash *= 0x9E3779B97F4A7C15ULL;\n    }\n    constexpr void update(const char* str, size_t len) {\n        for (size_t i = 0; i < len; ++i) {\n            update(static_cast<uint64_t>(str[i]));\n        }\n    }\n    constexpr uint64_t finalize() const { return hash; }\n};\n// Usage: Stack-allocated, no heap. Used in every tick for state verification.",
+      "architectural_spec": "1. Define a struct `DeterministicHash` using `std::array<uint64_t, 4>` for 256-bit output.\n2. Implement `ComputeStateHash(const SimulationState& state)` using a custom FNV-1a variant optimized for C++20 `constexpr` evaluation where possible.\n3. Ensure all floating-point values are normalized to fixed-point integers before hashing to avoid platform-specific FP rounding differences.\n4. Use `std::bit_cast` for type-punning in the hash loop to maintain strict aliasing compliance.\n5. Provide a `VerifyHash` function that compares the computed hash against the stored header hash.\n6. No dynamic allocation; use stack-based arrays for intermediate hash states.\n7. Include unit tests for hash collision resistance on known state vectors.",
       "acceptance_criteria": [
-        "Hasher produces identical uint64_t for identical state sequences across 1000 runs.",
-        "Zero heap allocations during hashing phase.",
-        "Compiled with -O2, no dynamic memory usage in profiler."
+        "Hash computation completes in < 10 microseconds for a full 5,500-tick state.",
+        "Identical simulation runs produce identical 256-bit hashes.",
+        "No heap allocations occur during hash computation.",
+        "Unit tests pass for 100 random state vectors."
       ],
-      "player_fun_impact": "Instant save/load verification, no lag on resume.",
+      "player_fun_impact": "Ensures save games are perfectly reproducible, allowing for reliable debugging and speedrun verification.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Optimize Tick Scheduler with Fixed-Size Ring Buffer",
+      "title": "Optimize Monte Carlo Convergence for Endgame Phase",
       "target_files": [
-        "src/sim/TickScheduler.hpp",
-        "src/sim/TickScheduler.cpp"
+        "Source/Runtime/Simulation/MonteCarlo.h",
+        "Source/Runtime/Simulation/MonteCarlo.cpp"
       ],
-      "architectural_spec": "template<size_t N>\nclass TickScheduler {\n    struct Event {\n        uint64_t tick;\n        void (*func)(void*);\n        void* data;\n    };\n    Event events[N];\n    size_t head = 0;\n    size_t tail = 0;\npublic:\n    constexpr void push(uint64_t tick, void (*f)(void*), void* d) {\n        if (head - tail < N) {\n            events[head % N] = {tick, f, d};\n            ++head;\n        }\n    }\n    constexpr void process(uint64_t currentTick) {\n        while (tail < head && events[tail % N].tick <= currentTick) {\n            events[tail % N].func(events[tail % N].data);\n            ++tail;\n        }\n    }\n};",
+      "architectural_spec": "1. Refactor `MonteCarloStep` to use a fixed-size ring buffer for the last 100 iterations.\n2. Implement a `ConvergenceCheck` that calculates the standard deviation of the last 10 results.\n3. If std_dev < 1e-6, mark the simulation as 'Converged' and skip further iterations.\n4. Use `std::accumulate` with `std::plus<>` for summing results to leverage C++20 template improvements.\n5. Store results in a `std::array<double, 100>` to avoid vector reallocations.\n6. Add a `GetConvergenceRate()` method returning the number of iterations saved due to early exit.\n7. Ensure thread-safety for the ring buffer using `std::atomic` for the write index.",
       "acceptance_criteria": [
-        "Scheduler handles 10,000 events per tick without reallocation.",
-        "No null pointer dereferences in stress test.",
-        "Deterministic order of execution preserved."
+        "Simulation terminates within 5% of the maximum iteration count for converged states.",
+        "Memory usage for Monte Carlo state remains constant regardless of iteration count.",
+        "Convergence detection accuracy is within 1e-6 of the reference value.",
+        "No data races detected in multi-threaded execution."
       ],
-      "player_fun_impact": "Smooth 60fps simulation even with complex physics interactions.",
+      "player_fun_impact": "Faster simulation ticks during the endgame, reducing load times and improving responsiveness.",
       "estimated_complexity": "Small"
     },
     {
       "task_id": "TASK-803",
       "priority": "P2 - Quality-of-Life",
       "domain": "Storyteller/AI",
-      "title": "Finalize Colonist Ascension State Machine",
+      "title": "Compact Footstep Log Serialization",
       "target_files": [
-        "src/ai/ColonistState.hpp",
-        "src/ai/ColonistState.cpp"
+        "Source/Runtime/Storyteller/FootstepLog.h",
+        "Source/Runtime/Storyteller/FootstepLog.cpp"
       ],
-      "architectural_spec": "enum class AscensionState : uint8_t {\n    Idle = 0,\n    Working = 1,\n    Resting = 2,\n    Ascended = 3\n};\nstruct Colonist {\n    AscensionState state;\n    uint16_t id;\n    constexpr void transition(AscensionState next) {\n        state = next;\n    }\n    constexpr bool isAscended() const {\n        return state == AscensionState::Ascended;\n    }\n};\n// Static array of Colonist structs, no heap.",
+      "architectural_spec": "1. Define a packed struct `FootstepEntry` with `uint16_t tick`, `uint8_t type`, and `uint8_t id`.\n2. Implement a `SerializeFootsteps` function that writes entries directly to a `std::span<uint8_t>`.\n3. Use bit-packing for the `type` and `id` fields if they fit within 8 bits each.\n4. Provide a `DeserializeFootsteps` function that reconstructs the vector from the span.\n5. Add a `GetLastNSteps(int n)` method that returns a view of the last N entries without copying.\n6. Ensure the serialization format is versioned with a 1-byte header.\n7. Include a checksum in the footer for integrity verification.",
       "acceptance_criteria": [
-        "All 16,500 footsteps logged correctly map to states.",
-        "Ascended state persists across save/load.",
-        "No undefined behavior in state transitions."
+        "Serialized size is reduced by at least 40% compared to the previous format.",
+        "Deserialization is O(N) and completes in < 1ms for 16,500 entries.",
+        "Checksum verification fails gracefully on corrupted data.",
+        "No memory leaks detected in serialization/deserialization cycles."
       ],
-      "player_fun_impact": "Clear visual feedback on colonist progress.",
+      "player_fun_impact": "Smaller save files and faster loading times for long-running simulations.",
       "estimated_complexity": "Atomic"
     }
   ]
