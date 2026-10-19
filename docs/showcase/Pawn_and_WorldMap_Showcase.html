@@ -4189,16 +4189,17 @@
                         }
                     }
 
-                    const floorVar = (x * 7 + y * 13 + currentSeed) % 4;
-                    let floorSpriteKey = "floor_basalt_v" + floorVar;
+                    let floorSpriteKey;
                     if (isAlloy || terrain.includes("alloy") || terrain.includes("plating")) {
-                        floorSpriteKey = "floor_plating_v" + floorVar;
+                        floorSpriteKey = `floor_plating_${getFloorVariantIndex(x, y, currentSeed, 4)}`;
                     } else if (terrain.includes("sulfur")) {
-                        floorSpriteKey = "floor_sulfur_v" + floorVar;
+                        floorSpriteKey = `floor_sulfur_${getFloorVariantIndex(x, y, currentSeed, 4)}`;
                     } else if (terrain.includes("spore") || terrain.includes("humus")) {
-                        floorSpriteKey = "floor_spore_v" + floorVar;
+                        floorSpriteKey = `floor_spore_${getFloorVariantIndex(x, y, currentSeed, 4)}`;
                     } else if (isIce || terrain.includes("cryo") || terrain.includes("ice")) {
-                        floorSpriteKey = "floor_cryo";
+                        floorSpriteKey = `floor_cryo_${getFloorVariantIndex(x, y, currentSeed, 4)}`;
+                    } else {
+                        floorSpriteKey = `floor_basalt_${getFloorVariantIndex(x, y, currentSeed, 8)}`;
                     }
 
                     localColonyGrid[y][x] = {
@@ -4645,6 +4646,7 @@
         // 8-variant authentic pixel art cavern floor tiles (0..7) and biome inner corner overlays
         for (let f = 0; f < 8; f++) {
             preloadTileSprite(`floor_basalt_${f}`, `Tiles/tile_floor_basalt_${f}.png`);
+            preloadTileSprite(`floor_basalt_v${f}`, `Tiles/tile_floor_basalt_${f}.png`);
         }
         ["basalt", "granite", "obsidian", "cryo", "plasteel"].forEach(b => {
             ["tl", "tr", "bl", "br"].forEach(c => {
@@ -4659,13 +4661,18 @@
             }
         });
 
-        // Floor Wear & Breakup Variants (v0..v3)
+        // Floor Isotropic Master Variants (v0..v3 and 0..3) across all subterranean materials
         for (let v = 0; v < 4; v++) {
-            preloadTileSprite(`floor_basalt_v${v}`, `Tiles/tile_floor_basalt_v${v}.png`);
-            preloadTileSprite(`floor_plating_v${v}`, `Tiles/tile_floor_metal_plating_v${v}.png`);
-            preloadTileSprite(`floor_sulfur_v${v}`, `Tiles/tile_floor_sulfur_v${v}.png`);
-            preloadTileSprite(`floor_spore_v${v}`, `Tiles/tile_floor_spore_turf_v${v}.png`);
-            preloadTileSprite(`floor_hazard_v${v}`, `Tiles/tile_floor_hazard_v${v}.png`);
+            preloadTileSprite(`floor_plating_${v}`, `Tiles/tile_floor_plating_${v}.png`);
+            preloadTileSprite(`floor_plating_v${v}`, `Tiles/tile_floor_plating_${v}.png`);
+            preloadTileSprite(`floor_cryo_${v}`, `Tiles/tile_floor_cryo_${v}.png`);
+            preloadTileSprite(`floor_cryo_v${v}`, `Tiles/tile_floor_cryo_${v}.png`);
+            preloadTileSprite(`floor_sulfur_${v}`, `Tiles/tile_floor_sulfur_${v}.png`);
+            preloadTileSprite(`floor_sulfur_v${v}`, `Tiles/tile_floor_sulfur_${v}.png`);
+            preloadTileSprite(`floor_spore_${v}`, `Tiles/tile_floor_spore_${v}.png`);
+            preloadTileSprite(`floor_spore_v${v}`, `Tiles/tile_floor_spore_${v}.png`);
+            preloadTileSprite(`floor_hazard_${v}`, `Tiles/tile_floor_hazard_${v}.png`);
+            preloadTileSprite(`floor_hazard_v${v}`, `Tiles/tile_floor_hazard_${v}.png`);
         }
 
         // Colony Furniture & Room Decor
@@ -4826,12 +4833,16 @@
             cell.isWater = !!def.isWater;
             cell.isIce = !!def.isIce;
             cell.isAlloy = !!def.isAlloy;
-            const floorVar = (gx * 7 + gy * 13 + currentSeed) % 4;
             if (def.floorPrefix) {
-                if (def.floorPrefix === "floor_grate") cell.floorSpriteKey = "floor_grate";
-                else cell.floorSpriteKey = def.floorPrefix + "_v" + floorVar;
+                if (def.floorPrefix === "floor_grate") {
+                    cell.floorSpriteKey = "floor_grate";
+                } else if (def.floorPrefix === "floor_basalt") {
+                    cell.floorSpriteKey = `floor_basalt_${getFloorVariantIndex(gx, gy, currentSeed, 8)}`;
+                } else {
+                    cell.floorSpriteKey = `${def.floorPrefix}_${getFloorVariantIndex(gx, gy, currentSeed, 4)}`;
+                }
             } else if (!def.isWall) {
-                cell.floorSpriteKey = "floor_basalt_v" + floorVar;
+                cell.floorSpriteKey = `floor_basalt_${getFloorVariantIndex(gx, gy, currentSeed, 8)}`;
             }
             if (def.autoPrefix) {
                 cell.isAuto = true;
@@ -5032,12 +5043,14 @@
                             localCtx.fillRect(px, py, cellSize + 0.5, cellSize + 0.5);
                         }
                     } else {
-                        // Excavated Cavern Floor Tiles: Authentic 16-Bit Seamless Pixel Art
-                        const floorSpriteKey = cell.floorSpriteKey || `floor_basalt_v${(x * 7 + y * 13 + currentSeed) % 4}`;
+                        // Excavated Cavern Floor Tiles: Authentic 16-Bit Isotropic Pixel Art
+                        const fallbackIdx = getFloorVariantIndex(x, y, currentSeed, 8);
+                        const floorSpriteKey = cell.floorSpriteKey || `floor_basalt_${fallbackIdx}`;
                         const floorImg = TILE_SPRITE_CACHE[floorSpriteKey] ||
                                          TILE_SPRITE_CACHE[floorSpriteKey.replace("_v", "_")] ||
                                          TILE_SPRITE_CACHE[cell.terrain] ||
-                                         TILE_SPRITE_CACHE[`floor_basalt_${(x * 7 + y * 13 + currentSeed) % 8}`] ||
+                                         TILE_SPRITE_CACHE[`floor_basalt_${fallbackIdx}`] ||
+                                         TILE_SPRITE_CACHE["floor_basalt_0"] ||
                                          TILE_SPRITE_CACHE["floor_basalt"];
                         if (floorImg && floorImg.complete && floorImg.naturalWidth > 0) {
                             localCtx.drawImage(floorImg, px, py, cellSize + 0.5, cellSize + 0.5);
@@ -5046,13 +5059,16 @@
                             localCtx.fillRect(px, py, cellSize + 0.5, cellSize + 0.5);
                         }
 
-                        // Bioluminescent Fungal Canopy Mycelium Glow Pulse on Spore Turf
+                        // Bioluminescent Fungal Canopy Mycelium Glow Pulse on Spore Turf (Organic Scattered Clusters)
                         if (cell.terrain.includes("spore") || cell.terrain.includes("humus") || (cell.floorSpriteKey && cell.floorSpriteKey.includes("spore"))) {
-                            const glowPulse = Math.sin((localAnimationTick * 0.08) + x * 0.6 + y * 0.4) * 0.3 + 0.7;
-                            localCtx.fillStyle = `rgba(168, 85, 247, ${glowPulse * 0.75})`;
-                            localCtx.fillRect(px + 4, py + 5, 2, 2);
-                            localCtx.fillStyle = `rgba(52, 211, 153, ${glowPulse * 0.85})`;
-                            localCtx.fillRect(px + cellSize - 6, py + cellSize - 6, 2, 2);
+                            const sh = hash2D(x, y, 7771);
+                            if ((sh % 10) < 4) {
+                                const glowPulse = Math.sin((localAnimationTick * 0.08) + (sh % 20)) * 0.3 + 0.7;
+                                const dotX = 4 + (sh % 20);
+                                const dotY = 4 + ((sh >>> 5) % 20);
+                                localCtx.fillStyle = ((sh >>> 10) & 1) ? `rgba(168, 85, 247, ${glowPulse * 0.75})` : `rgba(52, 211, 153, ${glowPulse * 0.85})`;
+                                localCtx.fillRect(px + dotX, py + dotY, 2, 2);
+                            }
                         }
 
                         // Inner Concave Corner Overlays (Seamlessly softens 90-degree room corners)
@@ -5140,10 +5156,12 @@
 
                     // Underneath boundary walls, composite seamless floor first so transparent 45-deg cuts show floor
                     if (!hasN || !hasS || !hasE || !hasW) {
-                        const floorSpriteKey = cell.floorSpriteKey || `floor_basalt_v${(x * 7 + y * 13 + currentSeed) % 4}`;
+                        const fallbackIdx = getFloorVariantIndex(x, y, currentSeed, 8);
+                        const floorSpriteKey = cell.floorSpriteKey || `floor_basalt_${fallbackIdx}`;
                         const floorImg = TILE_SPRITE_CACHE[floorSpriteKey] ||
                                          TILE_SPRITE_CACHE[floorSpriteKey.replace("_v", "_")] ||
-                                         TILE_SPRITE_CACHE[`floor_basalt_${(x * 7 + y * 13 + currentSeed) % 8}`] ||
+                                         TILE_SPRITE_CACHE[`floor_basalt_${fallbackIdx}`] ||
+                                         TILE_SPRITE_CACHE["floor_basalt_0"] ||
                                          TILE_SPRITE_CACHE["floor_basalt"];
                         if (floorImg && floorImg.complete && floorImg.naturalWidth > 0) {
                             localCtx.drawImage(floorImg, px, py, cellSize + 0.5, cellSize + 0.5);
