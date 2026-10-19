@@ -1,64 +1,64 @@
 {
-  "batch_id": "BATCH-69",
+  "batch_id": "BATCH-70",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "This batch focuses on finalizing the ultra-endgame simulation loop by implementing deterministic state compression for long-running sessions and optimizing the Monte Carlo survival rate calculation. These atomic tasks ensure memory stability and precise statistical reporting for the 5,500+ tick campaign, closing the final gaps in simulation fidelity and resource management.",
+  "overview": "This batch finalizes the simulation loop by implementing deterministic state hashing for save/load integrity, optimizing the tick-based physics solver for 100% Monte Carlo survival, and introducing a lightweight psychological state machine for colonist morale. These atomic tasks close the final coverage gaps in simulation determinism and entity behavior.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Implement Zero-Heap Deterministic State Compressor",
+      "title": "Deterministic State Hashing for Save/Load Integrity",
       "target_files": [
-        "src/engine/core/StateCompressor.h",
-        "src/engine/core/StateCompressor.cpp"
+        "Source/Engine/Core/StateHash.h",
+        "Source/Engine/Core/StateHash.cpp"
       ],
-      "architectural_spec": "struct StateCompressor {\n    static constexpr size_t MAX_TICKS = 8192;\n    uint64_t m_hashChain[MAX_TICKS];\n    uint32_t m_currentIndex = 0;\n\n    void PushState(const uint64_t hash) {\n        m_hashChain[m_currentIndex] = hash;\n        m_currentIndex = (m_currentIndex + 1) % MAX_TICKS;\n    }\n\n    uint64_t GetDeterministicHash() const {\n        uint64_t h = 0;\n        for (uint32_t i = 0; i < MAX_TICKS; ++i) {\n            h ^= m_hashChain[i];\n            h = (h << 1) | (h >> 63);\n        }\n        return h;\n    }\n};",
+      "architectural_spec": "Implement a zero-heap, constexpr-friendly FNV-1a hash for the core simulation state struct. Use std::array for fixed-size state buffers. Ensure no dynamic allocation during hash computation. The hash must be stable across compiler versions and optimization levels. Integrate into the main loop as a post-tick validation step.",
       "acceptance_criteria": [
-        "StateCompressor uses zero heap allocations.",
-        "Hash chain updates in O(1) time.",
-        "Deterministic hash remains stable across identical tick sequences.",
-        "Memory footprint is exactly 64KB (8192 * 8 bytes)."
+        "Hash computation completes in < 1 microsecond for 10,000 entities.",
+        "Identical simulation runs produce identical hash values.",
+        "No heap allocations occur during hashing.",
+        "Unit tests verify hash stability across 1000 random seeds."
       ],
-      "player_fun_impact": "Ensures save/load consistency and reduces memory fragmentation during long campaigns.",
+      "player_fun_impact": "Guarantees 100% reproducible saves, eliminating 'desync' errors in long campaigns.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Optimize Monte Carlo Survival Rate Calculator",
+      "title": "Optimized Tick-Based Collision Solver",
       "target_files": [
-        "src/simulation/MonteCarloCalculator.h",
-        "src/simulation/MonteCarloCalculator.cpp"
+        "Source/Simulation/Physics/CollisionSolver.h",
+        "Source/Simulation/Physics/CollisionSolver.cpp"
       ],
-      "architectural_spec": "struct MonteCarloCalculator {\n    static constexpr uint32_t SAMPLE_COUNT = 1000;\n    float m_survivalRates[SAMPLE_COUNT];\n    uint32_t m_sampleIndex = 0;\n\n    void RecordSurvival(const bool survived) {\n        m_survivalRates[m_sampleIndex] = survived ? 1.0f : 0.0f;\n        m_sampleIndex = (m_sampleIndex + 1) % SAMPLE_COUNT;\n    }\n\n    float GetAverageSurvivalRate() const {\n        float sum = 0.0f;\n        for (uint32_t i = 0; i < SAMPLE_COUNT; ++i) {\n            sum += m_survivalRates[i];\n        }\n        return sum / static_cast<float>(SAMPLE_COUNT);\n    }\n};",
+      "architectural_spec": "Refactor the collision solver to use a flat array of AABBs with a sweep-and-prune algorithm. Limit to 60 lines of core logic. Use std::span for data access. Remove recursive calls in favor of iterative processing. Ensure cache-friendly memory layout for entity positions and velocities.",
       "acceptance_criteria": [
-        "Calculator maintains a fixed-size circular buffer of 1000 samples.",
-        "Average survival rate is computed in O(N) with N=1000.",
-        "No dynamic memory allocation during calculation.",
-        "Accuracy within 0.1% of reference implementation."
+        "Collision detection for 5,000 entities completes in < 2ms.",
+        "Zero deadlocks in 10,000 simulation ticks.",
+        "Memory footprint reduced by 40% compared to previous batch.",
+        "All 16,500 logged footsteps match expected trajectories."
       ],
-      "player_fun_impact": "Provides immediate, accurate feedback on colony viability without performance hitches.",
+      "player_fun_impact": "Smoother frame rates and more accurate physics interactions in dense scenes.",
       "estimated_complexity": "Small"
     },
     {
       "task_id": "TASK-803",
       "priority": "P2 - Quality-of-Life",
       "domain": "Storyteller/AI",
-      "title": "Add Tick-Count Metadata to Save Files",
+      "title": "Lightweight Colonist Morale State Machine",
       "target_files": [
-        "src/engine/save/SaveSerializer.h",
-        "src/engine/save/SaveSerializer.cpp"
+        "Source/AI/Colonist/MoraleState.h",
+        "Source/AI/Colonist/MoraleState.cpp"
       ],
-      "architectural_spec": "struct SaveMetadata {\n    uint64_t m_tickCount;\n    uint64_t m_timestamp;\n    uint32_t m_version;\n\n    void Serialize(std::vector<uint8_t>& buffer) const {\n        buffer.insert(buffer.end(), \n            reinterpret_cast<const uint8_t*>(&m_tickCount),\n            reinterpret_cast<const uint8_t*>(&m_tickCount) + sizeof(m_tickCount));\n        buffer.insert(buffer.end(), \n            reinterpret_cast<const uint8_t*>(&m_timestamp),\n            reinterpret_cast<const uint8_t*>(&m_timestamp) + sizeof(m_timestamp));\n        buffer.insert(buffer.end(), \n            reinterpret_cast<const uint8_t*>(&m_version),\n            reinterpret_cast<const uint8_t*>(&m_version) + sizeof(m_version));\n    }\n};",
+      "architectural_spec": "Implement a 3-state finite state machine (Idle, Working, Panicked) for colonist morale. Use enum class for states. Transitions are driven by simple integer counters (e.g., food level, noise level). No dynamic memory allocation. State changes trigger immediate visual feedback via a callback interface.",
       "acceptance_criteria": [
-        "Metadata is serialized at the start of the save file.",
-        "Deserialization correctly restores tick count and timestamp.",
-        "Backward compatibility with v1.1.0 saves is maintained via version check.",
-        "Serialization overhead is < 1ms."
+        "State transitions occur within 1 tick of condition change.",
+        "No memory leaks detected in 5,500 tick run.",
+        "Visual feedback matches internal state 100%.",
+        "Code size under 60 lines per file."
       ],
-      "player_fun_impact": "Allows players to track precise campaign duration and compare runs efficiently.",
+      "player_fun_impact": "Clearer visual cues for colonist status, aiding strategic decision-making.",
       "estimated_complexity": "Atomic"
     }
   ]
