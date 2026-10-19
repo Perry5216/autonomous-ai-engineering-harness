@@ -1,36 +1,50 @@
 {
-  "batch_id": "BATCH-31",
+  "batch_id": "BATCH-32",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "Finalize simulation coverage by implementing deterministic state compression for long-running sessions and optimizing the Monte Carlo convergence logic for the endgame phase. This batch ensures memory stability and logical consistency for 5,500+ tick simulations.",
+  "overview": "This batch finalizes the simulation core by implementing deterministic state hashing for save/load integrity, optimizing the tick-loop for cache locality, and establishing the final ascension logic for the endgame. These steps ensure 100% coverage of the simulation lifecycle with minimal overhead.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Implement Zero-Heap Deterministic State Compressor",
+      "title": "Implement Deterministic State Hashing for Save/Load Integrity",
       "target_files": [
-        "src/engine/core/StateCompressor.h",
-        "src/engine/core/StateCompressor.cpp"
+        "src/engine/core/StateHasher.h",
+        "src/engine/core/StateHasher.cpp"
       ],
-      "architectural_spec": "Use std::array for fixed-size buffers. Implement a bitwise packing scheme for tick states. No dynamic allocations. Use constexpr for table generation. Ensure strict little-endian serialization.",
-      "acceptance_criteria": "1. Compress 5,500 ticks into <1KB. 2. Decompression yields identical state. 3. Zero heap allocations during compression cycle.",
-      "player_fun_impact": "Faster load times and stable memory usage for long campaigns.",
+      "architectural_spec": "1. Define a struct `StateHasher` with a static method `ComputeHash`.\n2. Use a fixed-size array `std::array<uint64_t, 4>` for intermediate state.\n3. Implement a non-allocating FNV-1a variant for speed.\n4. Process all active entities in a single linear pass.\n5. Return a single `uint64_t` hash value.\n6. Ensure no dynamic memory allocation occurs during hashing.\n7. Handle null pointers gracefully by skipping them.\n8. Integrate with the existing `TickSystem`.\n9. Add unit tests for hash stability across multiple runs.\n10. Verify collision resistance for small state changes.",
+      "acceptance_criteria": "Hash value remains consistent across identical simulation states; no heap allocations during hashing; unit tests pass.",
+      "player_fun_impact": "Ensures reliable save/load functionality, preventing data loss and ensuring consistent gameplay experiences.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Optimize Monte Carlo Convergence for Endgame",
+      "title": "Optimize Tick-Loop for Cache Locality",
       "target_files": [
-        "src/sim/physics/MonteCarloSolver.h",
-        "src/sim/physics/MonteCarloSolver.cpp"
+        "src/simulation/TickLoop.h",
+        "src/simulation/TickLoop.cpp"
       ],
-      "architectural_spec": "Implement early-exit criteria for variance < 1e-6. Use SIMD-friendly struct layout for particle states. Cache intermediate sums in registers.",
-      "acceptance_criteria": "1. Convergence achieved in <100 iterations for stable states. 2. No deadlocks in 16,500 step logs. 3. 100% survival rate maintained.",
-      "player_fun_impact": "Smoother physics interactions in dense endgame scenarios.",
+      "architectural_spec": "1. Restructure entity storage to use contiguous arrays.\n2. Implement a `PackedEntity` struct with minimal padding.\n3. Use `std::span` for iterating over entities.\n4. Minimize branch mispredictions by sorting entities by type.\n5. Pre-fetch next entity data using `__builtin_prefetch`.\n6. Remove virtual function calls in the hot path.\n7. Use `constexpr` for all static configuration values.\n8. Profile the loop to ensure cache misses are minimized.\n9. Validate performance improvements against baseline.\n10. Document the new memory layout for future reference.",
+      "acceptance_criteria": "Tick-loop execution time reduced by at least 15%; cache miss rate decreased; no regression in simulation accuracy.",
+      "player_fun_impact": "Faster simulation ticks lead to smoother gameplay and reduced loading times.",
       "estimated_complexity": "Small"
+    },
+    {
+      "task_id": "TASK-803",
+      "priority": "P2 - Quality-of-Life",
+      "domain": "Storyteller/AI",
+      "title": "Finalize Endgame Ascension Logic",
+      "target_files": [
+        "src/storyteller/AscensionLogic.h",
+        "src/storyteller/AscensionLogic.cpp"
+      ],
+      "architectural_spec": "1. Define `AscensionState` enum with `Active`, `Completed`, `Failed`.\n2. Implement `CheckAscensionConditions` function.\n3. Use a state machine pattern for transition logic.\n4. Store ascension progress in a fixed-size array.\n5. Provide a `GetAscensionSummary` function for UI display.\n6. Ensure all transitions are deterministic.\n7. Add logging for each state transition.\n8. Validate against the 5,500-tick benchmark.\n9. Ensure no memory leaks in the state machine.\n10. Integrate with the main game loop.",
+      "acceptance_criteria": "Ascension logic correctly transitions states based on simulation data; summary output is accurate; no memory leaks.",
+      "player_fun_impact": "Provides clear and concise endgame feedback, enhancing the player's understanding of their achievement.",
+      "estimated_complexity": "Atomic"
     }
   ]
 }
