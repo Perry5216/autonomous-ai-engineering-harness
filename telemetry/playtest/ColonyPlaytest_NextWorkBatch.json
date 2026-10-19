@@ -1,49 +1,49 @@
 {
-  "batch_id": "BATCH-66",
+  "batch_id": "BATCH-67",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "Finalize simulation coverage by implementing deterministic state compression for long-running campaigns and optimizing the endgame ascension logic. This batch focuses on reducing memory footprint for 5,500+ tick simulations and ensuring zero-latency state restoration for Monte Carlo verification.",
+  "overview": "Finalize simulation coverage by implementing deterministic state compression for endgame snapshots, optimizing Monte Carlo convergence checks, and locking in colonist psychological state transitions with zero-heap overhead. This batch closes all remaining gaps in the 5,500-tick campaign model.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Implement Deterministic Bit-Packed State Serializer",
+      "title": "Deterministic Bit-Packed State Snapshotter",
       "target_files": [
-        "Source/Engine/Core/StateSerializer.h",
-        "Source/Engine/Core/StateSerializer.cpp"
+        "src/engine/core/StateSnapshot.hpp",
+        "src/engine/core/StateSnapshot.cpp"
       ],
-      "architectural_spec": "1. Define struct PackedState with fixed-size uint64_t arrays for core entities.\n2. Implement constexpr bit-packing for enum states (4 bits) and IDs (12 bits).\n3. Use std::span for zero-copy serialization into pre-allocated buffers.\n4. Ensure no dynamic allocation during serialization/deserialization.\n5. Validate checksum using CRC32 inline.\n6. Handle endianness via std::endian::native checks.\n7. Support versioning via 8-bit header prefix.\n8. Integrate with existing ez::World state container.\n9. Provide static_assert for struct sizes.\n10. Ensure compatibility with C++20 concepts for trivially copyable types.",
-      "acceptance_criteria": "1. Serialization of 5,500 ticks completes in <1ms.\n2. Memory usage reduced by >60% compared to JSON/XML.\n3. Zero heap allocations during serialize/deserialize.\n4. Checksum validation passes for all test cases.",
-      "player_fun_impact": "Faster load times and smoother frame rates in large-scale colony simulations.",
+      "architectural_spec": "Implement a constexpr-friendly, zero-heap state snapshotter using std::bit_cast and manual bit-packing. Structure: struct Snapshot { uint64_t tick; uint32_t flags; uint16_t colonist_ids[4]; }. Use static_assert for size checks. No dynamic allocation. Serialize to fixed-size byte array via memcpy. Deserialize via bitwise shifts. Ensure endianness consistency with std::endian::native. All operations must be noexcept. Include unit tests for round-trip fidelity on 16,500 logged footsteps.",
+      "acceptance_criteria": "1. Snapshot size <= 32 bytes. 2. Round-trip serialization/deserialization is bit-exact. 3. Zero heap allocations during snapshot creation. 4. Compilation passes with -std=c++20 -Wall -Wextra.",
+      "player_fun_impact": "Faster save/load times and smaller save files, improving responsiveness in long campaigns.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Optimize Monte Carlo Survival Rate Calculation",
+      "title": "Monte Carlo Convergence Validator",
       "target_files": [
-        "Source/Simulation/MonteCarlo.h",
-        "Source/Simulation/MonteCarlo.cpp"
+        "src/simulation/MonteCarlo.hpp",
+        "src/simulation/MonteCarlo.cpp"
       ],
-      "architectural_spec": "1. Replace std::vector with fixed-size std::array for 16,500 footsteps.\n2. Implement incremental mean/variance calculation (Welford's algorithm).\n3. Use constexpr lookup tables for common probability distributions.\n4. Parallelize independent simulation branches using std::jthread.\n5. Cache intermediate states to avoid recomputation.\n6. Ensure deterministic ordering of thread results.\n7. Minimize cache misses via struct-of-arrays layout.\n8. Provide progress callback for UI integration.\n9. Handle edge cases for empty simulation sets.\n10. Validate against known analytical solutions.",
-      "acceptance_criteria": "1. Calculation time reduced by 40%.\n2. Deterministic output matches previous batch exactly.\n3. No race conditions in parallel execution.\n4. Memory footprint remains constant regardless of tick count.",
-      "player_fun_impact": "Immediate feedback on simulation outcomes without stuttering.",
+      "architectural_spec": "Implement a fixed-iteration Monte Carlo validator for survival rates. Use a static array of 1024 samples. Compute mean and variance using Kahan summation for numerical stability. Define a convergence threshold epsilon = 1e-6. If variance < epsilon, mark as converged. Return a struct { bool converged; float mean; float variance; }. No dynamic memory. Use std::array. Ensure deterministic ordering of samples. Validate against the known 100% survival rate baseline.",
+      "acceptance_criteria": "1. Convergence detected within 1024 iterations for 100% survival cases. 2. Numerical stability verified via Kahan summation. 3. No heap allocations. 4. Deterministic output for identical seeds.",
+      "player_fun_impact": "Provides immediate, reliable feedback on simulation stability without long wait times.",
       "estimated_complexity": "Small"
     },
     {
       "task_id": "TASK-803",
       "priority": "P2 - Quality-of-Life",
       "domain": "Storyteller/AI",
-      "title": "Endgame Ascension Event Queue Compression",
+      "title": "Colonist Psychological State Lattice",
       "target_files": [
-        "Source/Storyteller/EventQueue.h",
-        "Source/Storyteller/EventQueue.cpp"
+        "src/ai/ColonistPsychology.hpp",
+        "src/ai/ColonistPsychology.cpp"
       ],
-      "architectural_spec": "1. Implement ring buffer for event queue with fixed capacity 1024.\n2. Use 16-bit indices for event references.\n3. Deduplicate consecutive identical events via hash comparison.\n4. Store event payloads in a shared pool with reference counting.\n5. Implement lazy evaluation for event triggers.\n6. Ensure thread-safe push/pop operations.\n7. Provide iterator interface for UI rendering.\n8. Handle overflow by dropping oldest non-critical events.\n9. Validate event ordering constraints.\n10. Integrate with StateSerializer for persistence.",
-      "acceptance_criteria": "1. Queue operations are O(1).\n2. Memory usage capped at 16KB.\n3. No event loss for critical path events.\n4. Seamless integration with existing UI systems.",
-      "player_fun_impact": "Responsive UI updates and consistent narrative flow in endgame scenarios.",
+      "architectural_spec": "Define a finite state machine for colonist psychology using enum class and constexpr transitions. States: IDLE, WORKING, STRESSED, ASCENDED. Transitions are stored in a static constexpr array of pairs. Implement a step function that takes current state and event ID, returns next state. No heap. Use std::array for transition table. Ensure all states are reachable from IDLE. Add a debug string converter for each state. Validate against the 5,500-tick log.",
+      "acceptance_criteria": "1. All 4 states are reachable. 2. No undefined transitions. 3. Zero heap allocations. 4. Debug strings match expected values.",
+      "player_fun_impact": "Clearer, more predictable colonist behavior and easier debugging of AI logic.",
       "estimated_complexity": "Atomic"
     }
   ]
