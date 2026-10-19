@@ -1,108 +1,84 @@
-# Project Deep-Mantle :: Engineering Work Batch: BATCH-16
+# Project Deep-Mantle :: Engineering Work Batch: BATCH-17
 
 ## Ultra-Endgame Ascension & Deterministic State Compression (Target: `v1.2.0`)
 
 - **Architect**: `DGX Spark Cluster Lead Systems Engineer`
 - **QA Verifier**: `RTX 5090 Blackwell Reflex QA Director`
-- **Date**: `2026-10-19 12:07:54`
+- **Date**: `2026-10-19 12:14:45`
 
 ### Batch Overview
-Finalize simulation coverage by implementing deterministic state hashing for save/load integrity, optimizing colonist psychology state transitions for zero-allocation performance, and establishing a fixed-point physics accumulator for endgame stability.
+This batch finalizes the simulation core by implementing deterministic state serialization for ultra-endgame scenarios and optimizing the Monte Carlo convergence logic. The focus is on reducing memory footprint during long-running simulations (5,500+ ticks) and ensuring strict determinism in the final state snapshot, closing the last gaps in the 'Deep-Mantle' architecture.
 
 ---
 
 ### Prioritized Engineering Tasks
 
-#### [TASK-801] Implement Deterministic State Hashing for Save/Load Integrity (`P0 - Critical`)
+#### [TASK-801] Implement Zero-Copy Deterministic State Snapshot (`P0 - Critical`)
 
 - **Domain**: `Engine/C++20`
 - **Estimated Complexity**: `Atomic`
 - **Target Files**:
-  - `Source/Engine/Core/StateHash.h`
-  - `Source/Engine/Core/StateHash.cpp`
+  - `src/engine/core/StateSnapshot.h`
+  - `src/engine/core/StateSnapshot.cpp`
 - **Architectural Specification**:
-  struct StateHash {
-    uint64_t hash;
-    static constexpr uint64_t FNV_OFFSET = 14695981039346656037ULL;
-    static constexpr uint64_t FNV_PRIME = 1099511628211ULL;
-    
-    constexpr StateHash() : hash(FNV_OFFSET) {}
-    
-    constexpr void update(uint64_t value) {
-        hash ^= value;
-        hash *= FNV_PRIME;
-    }
-    
-    constexpr void update(const char* str) {
-        while (*str) {
-            hash ^= static_cast<uint64_t>(*str++);
-            hash *= FNV_PRIME;
-        }
-    }
-    
-    constexpr uint64_t get() const { return hash; }
-};
+  1. Define struct `SnapshotHeader` with `uint64_t tick`, `uint32_t checksum`, `uint32_t version`.
+2. Implement `class StateSnapshot` using `std::span<const uint8_t>` for zero-copy access.
+3. Add `static_assert` for trivially copyable types in header.
+4. Implement `Serialize()` returning `std::span<const uint8_t>`.
+5. Implement `Deserialize()` using `memcpy` into pre-allocated buffers.
+6. Ensure no dynamic allocation in hot path; use `std::array` for fixed-size fields.
+7. Add `constexpr` constructors for header initialization.
+8. Verify alignment with `alignas(8)`.
+9. Include `#pragma once` and C++20 `import` compatible headers.
+10. Ensure `noexcept` on all serialization methods.
 - **Acceptance Criteria**:
-  ['StateHash produces identical uint64_t values across 1000 Monte Carlo runs.', 'Zero heap allocations during hash computation.', 'Compile-time evaluation supported for static constants.']
+  ['Snapshot serialization completes in < 100ns for 1KB data.', 'Zero heap allocations during snapshot creation.', 'Checksum matches FNV-1a 64-bit standard.', 'All tests pass with `-fsanitize=address` clean.']
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Guarantees 100% reproducible saves, eliminating desync errors in long-term campaigns.
+  Faster save/load times and reduced memory usage for long campaigns.
 
-#### [TASK-802] Fixed-Point Physics Accumulator for Endgame Stability (`P1 - High`)
+#### [TASK-802] Optimize Monte Carlo Convergence for 5k+ Ticks (`P1 - High`)
 
 - **Domain**: `Simulation/Physics`
-- **Estimated Complexity**: `Atomic`
+- **Estimated Complexity**: `Small`
 - **Target Files**:
-  - `Source/Simulation/Physics/FixedAccumulator.h`
+  - `src/simulation/mc/ConvergenceOptimizer.h`
+  - `src/simulation/mc/ConvergenceOptimizer.cpp`
 - **Architectural Specification**:
-  struct FixedAccumulator {
-    int64_t time;
-    static constexpr int64_t TICK_RATE = 1000000; // 1 MHz
-    
-    constexpr FixedAccumulator() : time(0) {}
-    
-    constexpr void tick(int64_t delta) {
-        time += delta;
-    }
-    
-    constexpr int64_t get_time() const {
-        return time;
-    }
-    
-    constexpr void reset() {
-        time = 0;
-    }
-};
+  1. Create `struct MCState` with `double mean`, `double variance`, `uint32_t count`.
+2. Implement Welford's online algorithm for variance calculation.
+3. Add `constexpr` update function `Update(MCState& state, double value)`.
+4. Implement `IsConverged(const MCState& state, double epsilon)`.
+5. Use `std::numbers::pi` for any geometric constants.
+6. Ensure all operations are `noexcept`.
+7. Add `static_assert` for epsilon precision (1e-9).
+8. Implement batch update for vector inputs using `std::span`.
+9. Cache last 10 states for trend analysis in `struct TrendCache`.
+10. Ensure thread-safe read-only access via `const` methods.
 - **Acceptance Criteria**:
-  ['No floating-point drift after 5,500 ticks.', 'Accumulator handles overflow via modulo arithmetic if needed.', 'Header-only implementation with no external dependencies.']
+  ['Convergence detected within 100 iterations for standard distributions.', 'Memory usage per MCState is exactly 24 bytes.', 'No floating-point drift after 10,000 updates.', 'Unit tests cover edge cases: NaN, Inf, zero variance.']
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Prevents physics jitter in late-game scenarios, ensuring smooth visual interpolation.
+  More accurate and faster simulation results for complex colony scenarios.
 
-#### [TASK-803] Zero-Alloc Colonist Psychology State Machine (`P2 - Quality-of-Life`)
+#### [TASK-803] Add Deterministic Event Log Compression (`P2 - Quality-of-Life`)
 
 - **Domain**: `Storyteller/AI`
 - **Estimated Complexity**: `Atomic`
 - **Target Files**:
-  - `Source/Simulation/AI/ColonistPsych.h`
+  - `src/storyteller/EventLog.h`
+  - `src/storyteller/EventLog.cpp`
 - **Architectural Specification**:
-  enum class PsychState : uint8_t { Idle, Working, Resting, Panicking };
-
-struct ColonistPsych {
-    PsychState state;
-    uint8_t priority;
-    
-    constexpr ColonistPsych() : state(PsychState::Idle), priority(0) {}
-    
-    constexpr void set_state(PsychState s, uint8_t p) {
-        state = s;
-        priority = p;
-    }
-    
-    constexpr bool is_active() const {
-        return state != PsychState::Idle;
-    }
-};
+  1. Define `enum class EventType : uint8_t` with 10 core types.
+2. Create `struct Event` with `uint32_t tick`, `EventType type`, `uint16_t payload`.
+3. Implement `class EventLog` with fixed-size `std::array<Event, 1024>`.
+4. Add `Push(Event)` with circular buffer logic.
+5. Implement `GetRecent(uint32_t count)` returning `std::span<const Event>`.
+6. Add `Checksum()` using XOR of all fields.
+7. Ensure `Event` is 8 bytes packed.
+8. Implement `Clear()` resetting index to 0.
+9. Add `constexpr` helpers for type-to-string mapping.
+10. Verify no virtual functions in `Event` or `EventLog`.
 - **Acceptance Criteria**:
-  ['State transitions occur in O(1) time.', 'Struct size is exactly 2 bytes (packed).', 'No virtual functions or heap allocations.']
+  ['Event log fits in 8KB cache line aligned memory.', 'Push operation is O(1) with no allocations.', 'Checksum is stable across runs.', 'All 10 event types are correctly serialized.']
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Faster AI decision loops, reducing frame time spikes during large colony events.
+  Smaller save files and faster log retrieval for UI display.
 
