@@ -1,6 +1,6 @@
 # Project Deep-Mantle :: Morning Standup Briefing
 
-**Briefing Timestamp:** 2026-10-19 08:00:38 AM (2026-10-19 07:00:38 UTC)  
+**Briefing Timestamp:** 2026-10-19 08:30:39 AM (2026-10-19 07:30:39 UTC)  
 **Target System:** ezEngine Subterranean Colony Simulation (C++20 / Vulkan)  
 **AI Cluster Core:** DGX Spark (:8877) · RTX 5090 Blackwell (:8080) · RTX 5070 Ti SLM (:8082)
 
@@ -14,109 +14,116 @@
 | **Flow-State Zone** | `MILD_BOREDOM_ZONE` | Csikszentmihalyi Flow | 🟢 PASS |
 | **24-Color GPL Asset Compliance** | `52 / 52` | 100.0% deep_mantle.gpl | 🟢 PASS |
 | **Active Engineering Batch** | `BATCH-08` | Continuous Advancement | 🟢 PASS |
-| **RTX 5090 VRAM State** | `31288 / 32607 MiB (40°C, 0% Util)` | Flushed / Unfragmented | 🟢 PASS |
+| **RTX 5090 VRAM State** | `31288 / 32607 MiB (39°C, 0% Util)` | Flushed / Unfragmented | 🟢 PASS |
 
 
 ## 2. Engineering Work Batch: BATCH-08 (Ultra-Endgame Ascension & Deterministic State Compression)
 
 **Target Engine Version:** `v1.2.0`  
 
-**Overview:** With the core simulation stable at 5,500 ticks, this batch focuses on the final layer of the Deep-Mantle architecture: ultra-endgame ascension mechanics and deterministic state compression. The goal is to finalize the simulation's lifecycle by implementing a compact, zero-heap state snapshot system for save/load efficiency and a deterministic 'Ascension' state machine for the final game phase. These tasks close the gap between raw simulation data and persistent, high-fidelity game state, ensuring 100% coverage of the simulation lifecycle without introducing cascading dependencies.
+**Overview:** Finalize the Deep-Mantle simulation by implementing deterministic state hashing for save/load integrity, optimizing the Monte Carlo survival tracker for O(1) lookups, and introducing a lightweight psychological state machine for colonist morale decay. These tasks close the final gaps in simulation determinism and performance without introducing new external dependencies.
 
 
 | Task ID | Priority | Domain | Title | Complexity |
 | :--- | :--- | :--- | :--- | :--- |
-| `TASK-801` | `P0 - Critical` | `Engine/C++20` | Implement Zero-Heap Deterministic State Snapshotter | `Atomic` |
-| `TASK-802` | `P1 - High` | `Simulation/Physics` | Finalize Ascension State Machine for Endgame | `Small` |
-| `TASK-803` | `P2 - Quality-of-Life` | `Storyteller/AI` | Compact Colonist Psychology Summary Generator | `Atomic` |
+| `TASK-801` | `P0 - Critical` | `Engine/C++20` | Deterministic State Hashing for Save/Load Integrity | `Atomic` |
+| `TASK-802` | `P1 - High` | `Simulation/Physics` | O(1) Monte Carlo Survival Tracker Optimization | `Small` |
+| `TASK-803` | `P2 - Quality-of-Life` | `Storyteller/AI` | Lightweight Morale Decay State Machine | `Atomic` |
 
 
 ## 3. Operator AI Cluster Visual & Gameplay Critique
 
-> Hello. As the Lead Visual Designer and Gameplay Architect for **Project Deep-Mantle**, I have reviewed the asset domains and the core simulation parameters. Below is my decisive analysis and architectural roadmap.
+> ### Project Deep-Mantle: Architectural & Gameplay Audit
 
-### 1. Visual & Spatial Evaluation: Does this make sense?
+As the Lead Visual Designer and Gameplay Architect for the DGX Spark & RTX 5090 cluster, I have analyzed the asset domains and core mechanics of Project Deep-Mantle. Below is the decisive evaluation of the visual coherence, gameplay clarity, technical optimization, and feature expansion.
 
-**Verdict:** Yes, the structure is logically sound, but it requires strict **orthographic discipline** to avoid visual clutter.
+---
 
-*   **Top-Down Orthographic Perspective:** This is the correct choice for a dense, grid-based simulation. It minimizes parallax errors and allows for precise 16-bit pixel alignment.
-    *   *Consistency Check:* All assets must share a **2:1 isometric ratio** (or strict 1:1 top-down if using a flat grid). The "Lithophone" and "Terminal Desk" must have identical pixel heights to the "Storage Shelf" to maintain a cohesive horizon line.
+### 1. Visual Coherence & Spatial Consistency
+**Does this make sense?**
+
+**Yes, but with strict constraints.** The current asset list suggests a hybrid of **Factorio’s industrial clarity** and **RimWorld’s organic density**. To ensure this "makes sense" on the DGX Spark/RTX 5090 cluster, we must enforce a rigid **2.5D Orthographic Projection** with **16-bit pixel art scaling**.
+
+*   **Perspective Alignment:**
+    *   **Standard:** 2:1 isometric or strict top-down orthographic.
+    *   **Issue:** Mixed perspectives (e.g., Lithophone vs. Conveyor) cause parallax errors.
+    *   **Fix:** All assets must share a **single Z-axis depth layer**.
+        *   *Layer 0:* Ground/Conveyors (Flat).
+        *   *Layer 1:* Furniture/Machinery (1-tile height).
+        *   *Layer 2:* Flora/Drones (2-tile height, with transparent backgrounds).
+    *   **Consistency Check:** The **Muffalo** (Fauna) and **Pultrusion Mill** (Machinery) must have identical pixel-per-unit scaling. If the Muffalo is 32x32px, the Mill must fit within a 32x32px grid cell without overlapping adjacent tiles visually.
+
 *   **16-bit Pixel Scaling:**
-    *   **Constraint:** Use a fixed grid of **16x16** or **32x32** pixels per tile.
-    *   **Palette:** Limit to a **16-color palette** per asset group to ensure readability. For example, all "Industrial Machinery" should share a cool-toned palette (blues/greys), while "Subterranean Flora" uses warm/earthy tones. This creates immediate visual grouping for the player.
+    *   Use **nearest-neighbor interpolation** for crisp edges.
+    *   **Palette Limit:** 16 colors per asset group to reduce VRAM load on the RTX 5090.
+    *   **Lighting:** Use baked lightmaps for static assets (Furniture, Flora) and dynamic point lights for active machinery (Turbine, Smelter).
+
 *   **Spatial Consistency:**
-    *   **Layering:** Define Z-indexes clearly.
-        *   Layer 0: Floor Grid.
-        *   Layer 1: Static Furniture (Tables, Shelves).
-        *   Layer 2: Dynamic Entities (Drones, Pawns, Fauna).
-        *   Layer 3: UI Overlays.
-    *   **Issue:** The "Rogue Subversion Loop" in Domain 1 is abstract. It must be visually represented as a **glowing, pulsing node** distinct from static machinery to indicate active state changes.
+    *   **Conveyors (N/E/S/W):** Must align perfectly with grid intersections. No half-tile offsets.
+    *   **Drones:** Must follow the same grid path as Conveyors to avoid collision logic errors.
 
-### 2. Gameplay Loop Clarity: Factorio + RimWorld Hybrid
+---
 
-**Verdict:** The loop is clear but risks cognitive overload. We must enforce a **3-Tier Feedback System**.
+### 2. Gameplay Loop Clarity
+**Is it clear? Will the player understand?**
 
-**The Core Loop:**
-1.  **Harvest/Produce** (Flora/Fauna/Machinery) →
-2.  **Process/Assemble** (Industrial Machinery) →
-3.  **Sustain/Expand** (Habitation & Logistics) →
-4.  **Defend/Adapt** (Drones & Subversion)
+**Yes, if structured as a 3-Tier Nested Loop.** The combination of Factorio-grade automation and RimWorld-grade survival requires a **hierarchical feedback system**.
 
-**Clarity Enhancements:**
-*   **Factorio-Grade Automation:**
-    *   **Visual Cues:** Conveyors must have **animated directional arrows** (N/E/S/W). Inserters should have a "grab/release" animation frame.
-    *   **Bottleneck Indicator:** If a conveyor is full, it should **pulse red**. If empty, **pulse blue**. This allows instant diagnosis without hovering.
-*   **RimWorld-Grade Pawn Survival:**
-    *   **Status Icons:** Each pawn/drone needs a **3-pixel status icon** above their head:
-        *   ⚡ = Working
-        *   💤 = Resting
-        *   ❓ = Idle/Blocked
-    *   **Priority System:** Players must see a **numbered priority badge** (1–5) on key machinery. This clarifies which tasks are urgent.
+#### **The Core Loop:**
+1.  **Input:** Player places a **Terminal Desk** (Hub) and **Conveyors**.
+2.  **Process:** **Drones** (Agronomy/Sanitation) move items from **Flora** (Spore Tree) to **Machinery** (Pultrusion Mill).
+3.  **Output:** Finished goods are stored in **Storage Shelves** or used to upgrade **Habitation**.
 
-**Will the player understand?**
-Yes, if we use **color-coded zones**:
-*   **Green Zone:** Flora & Fauna (Biological)
-*   **Blue Zone:** Machinery & Logistics (Industrial)
-*   **Yellow Zone:** Habitation (Living)
-*   **Red Zone:** Drones & Defenses (Active)
+#### **Clarity Enhancements:**
+*   **Visual Feedback:**
+    *   **Active State:** Machinery glows (e.g., Smelter emits orange particles).
+    *   **Idle State:** Drones hover with a subtle pulse.
+    *   **Error State:** Red exclamation mark above blocked Conveyors.
+*   **Pawn Survival Integration:**
+    *   **Muffalo/Deer** are not just decorative; they are **resource nodes**.
+    *   *Example:* Muffalo produces "Wool" (used for Insulation in Habitation). Deer produce "Venison" (Food for Pawns).
+    *   **Wolf** is a **threat event** (4-frame walk cycle indicates movement speed).
+*   **Player Understanding:**
+    *   Use **color-coded UI**:
+        *   **Blue:** Logistics (Conveyors, Inserters).
+        *   **Green:** Production (Machinery, Flora).
+        *   **Yellow:** Survival (Pawns, Food).
+        *   **Red:** Threats (Wolves, Rogue Subversion).
 
-### 3. AI Artifacts & Technical Replacements
+---
 
-**Identified Issues & Fixes:**
+### 3. Technical Optimization & Asset Replacement
+**Where does it look AI-generated? What needs replacement?**
 
-| Asset Domain | AI Artifact Issue | Replacement/Quantization Strategy |
-| :--- | :--- | :--- |
-| **1. Drones** | Blurry edges, inconsistent pixel density. | **Quantize to 16x16 grid.** Use **nearest-neighbor** scaling. Ensure all 4-frame walk cycles have identical pivot points. |
-| **2. Furniture** | Misaligned shadows, varying line weights. | **Unify line weight to 1px.** Use **hard-edged shadows** (no gradients). Align all table legs to the same Y-coordinate. |
-| **3. Flora** | Overly detailed leaves, non-uniform spacing. | **Simplify to 3–5 pixel clusters** per leaf. Use **dithering** for depth instead of gradients. |
-| **4. Fauna** | Inconsistent frame timing, jittery movement. | **Lock animation to 8 FPS.** Ensure all 4-frame cycles are **perfectly looped** (frame 4 connects seamlessly to frame 1). |
-| **5. Machinery** | Complex, unreadable details. | **Reduce to 3–4 distinct shapes** per machine. Use **bold outlines** (2px) for primary structures. |
-| **6. Logistics** | Conveyor belts look static. | **Add 2px animated stripes** moving at 1px/frame. Ensure **N/E/S/W** orientations are **90° rotated** versions of the same base sprite. |
+AI-generated assets often suffer from **inconsistent line weights**, **floating shadows**, and **non-uniform grid alignment**. Here’s the audit:
 
-**Perspective Alignment:**
-*   All assets must be **centered** on their grid tile.
-*   Use **pixel-perfect snapping** in the editor. No sub-pixel rendering.
+| Asset Domain | Issue | Solution |
+|--------------|-------|----------|
+| **1. Drones** | Inconsistent hover heights; blurry edges. | **Replace with:** Crisp 16px sprites. Use **sprite sheets** for 4-frame animations. Ensure all drones share the same anchor point (bottom-center). |
+| **2. Furniture** | Lithophone/Lamp have complex curves that break pixel grid. | **Quantize:** Snap all vertices to the 1px grid. Use **dithering** for gradients instead of smooth blends. |
+| **3. Flora** | Spore Tree/Crystal Pine have overlapping leaves causing z-fighting. | **Layer Separation:** Split into 3 layers: Trunk (Layer 1), Canopy (Layer 2), Ground Shadow (Layer 0). |
+| **4. Fauna** | Muffalo/Deer walk cycles have inconsistent stride lengths. | **Standardize:** All 4-frame cycles must have identical frame durations (e.g., 100ms per frame). Use **keyframe interpolation** for smooth movement. |
+| **5. Machinery** | Turbine/Smelter have too many details for 16-bit. | **Simplify:** Reduce to 3–5 distinct color blocks per asset. Remove micro-details (e.g., individual bolts). |
+| **6. Logistics** | Conveyors N/E/S/W have misaligned joints. | **Tile-Based:** Use **autotiling** logic. Ensure all 4 directions share the same 16x16px base tile with rotated overlays. |
 
-### 4. New Depth & Fun Features for Engagement
+**Perspective Alignment Fix:**
+*   All assets must be rendered from a **single camera angle** (e.g., 45° isometric).
+*   **No perspective distortion:** Parallel lines must remain parallel.
 
-To maximize engagement, we introduce **Layered Complexity** without breaking the 16-bit aesthetic.
+---
 
-#### A. **Dynamic Lighting & Shadow Casting (Low-Cost, High-Impact)**
-*   **Feature:** Each light source (Lamp, Lithophone) casts a **2-tile radius glow** with a **1-tile shadow** behind objects.
-*   **Why:** Creates depth in a top-down view. Players can "see" the layout of the colony instantly.
+### 4. New Depth & Fun Features
+**Maximizing Player Engagement**
 
-#### B. **Modular Assembly System (Factorio-Style)**
-*   **Feature:** Machinery can be **stacked vertically** (e.g., Turbine on top of Smelter).
-*   **Visual:** Use **offset sprites** to show stacking. A "3-layer" stack is visually distinct from a "1-layer" unit.
-*   **Gameplay:** Stacking reduces footprint but increases maintenance cost.
+To elevate the loop beyond basic automation, introduce **systemic interactions** that leverage the DGX Spark’s parallel processing capabilities.
 
-#### C. **Rogue Subversion Loop: "The Pulse"**
-*   **Feature:** The "Rogue Subversion Loop" is not just a state; it’s a **mini-game**.
-*   **Mechanic:** When a drone is idle, it enters a **3-second "Pulse" window**. The player must click **exactly** when the drone’s light turns **brightest** to gain a **10% efficiency boost**.
-*   **Why:** Adds tactile feedback and micro-management depth.
-
-#### D. **Fauna Behavior Trees (RimWorld-Style)**
-*   **Feature:** Fauna (Muffalo, Deer, etc.) have **simple AI
+#### **A. Dynamic Ecosystem (Fauna + Flora)**
+*   **Symbiotic Growth:**
+    *   **Healroot** accelerates nearby **Spore Tree** growth if within 2 tiles.
+    *   **Muffalo** grazing reduces **Berry Bush** yield but increases **Soil Fertility** (affects all nearby plants).
+*   **Predator-Prey Logic:**
+    *   **Wolves** hunt **Deer**. If a Wolf is near a Deer, the Deer’s animation speeds up (4-frame cycle becomes 2-frame).
+    *   **Sentry Rover
 
 
 ## 4. Subterranean Threat & Flow-State Balancing
