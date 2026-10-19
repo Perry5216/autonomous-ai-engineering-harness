@@ -1,6 +1,6 @@
 # Project Deep-Mantle: Autonomous Asset Assessment Report
 
-**Generated:** 2026-10-19 14:22:08 UTC  
+**Generated:** 2026-10-19 14:30:13 UTC  
 **Evaluated By:** Operator's Local AI Cluster (DGX Spark :8877 & RTX 5090 Blackwell :8080)  
 **RTX 5090 Role Transition:** `ROLE_ENTER` -> `ROLE_EXIT` Clean VRAM Hand-off  
 **Total Assets Evaluated:** 52  
@@ -9,80 +9,84 @@
 
 ## 1. Operator AI Cognitive Assessment & Feature Directives
 
-Here is the architectural and visual design audit for **Project Deep-Mantle**, executed from the perspective of the Lead Visual Designer and Gameplay Architect on the DGX Spark/RTX 5090 cluster.
+Here is the architectural and visual design assessment for **Project Deep-Mantle**, executed from the perspective of the Lead Visual Designer and Gameplay Architect on the DGX Spark & RTX 5090 cluster.
 
-### 1. Visual Coherence & Perspective Audit
-**Does this make sense? (Top-down orthographic, 16-bit scaling, spatial consistency)**
+### 1. Visual Coherence & Spatial Consistency Evaluation
 
-**Verdict: Structurally Sound, but Requires Strict Grid Discipline.**
+**Does this make sense?**
+Yes, the structure is logically sound, but it requires strict adherence to a **Unified Orthographic Grid System** to prevent visual dissonance. The current asset list mixes organic, mechanical, and abstract elements, which can lead to scale inconsistencies if not managed rigorously.
 
-The proposed asset domains are logically segmented and fit the "Deep-Mantle" theme well. However, to ensure visual clarity in a 16-bit orthographic environment, the following adjustments are mandatory:
-
-*   **Orthographic Consistency:** All assets must adhere to a strict 2:1 isometric or pure top-down grid.
-    *   *Issue:* "Lithophone" and "Terminal Desk" (Domain 2) often suffer from perspective drift in 16-bit styles.
-    *   *Fix:* Enforce a **pixel-perfect grid alignment**. The Lithophone’s tubes must align exactly with the grid cells of the Terminal Desk. No anti-aliasing; use hard-edged pixel art with limited palettes (max 16 colors per sprite sheet) to maintain the retro-industrial aesthetic.
-*   **Scale Hierarchy:**
-    *   *Drones (Domain 1)* should be 16x16 or 32x32 pixels.
-    *   *Fauna (Domain 4)* like the Muffalo must be visually distinct from Drones. Use **color-coded outlines** (e.g., Cyan for Drones, Amber for Fauna) to help the eye parse the scene instantly.
-    *   *Industrial Machinery (Domain 5)* needs to be larger (48x48 or 64x64) to denote "static infrastructure" vs. "mobile units."
+**Top-Down Orthographic Perspective & 16-bit Scaling:**
+*   **Grid Alignment:** All assets must snap to a strict 16x16 or 32x32 pixel grid (depending on final resolution target). The "Lithophone" and "Terminal Desk" must share the same height profile as the "Storage Shelf" to maintain a clean horizon line in the top-down view.
+*   **Depth Cues:** In a top-down orthographic view, depth is conveyed through **layering order** and **shadow casting**, not perspective foreshortening.
+    *   *Issue:* "Crystal Pine" and "Spore Tree" need distinct canopy layers. The canopy must be a separate sprite layer above the trunk to allow for parallax-like movement or wind animation without breaking the orthographic illusion.
+    *   *Fix:* Use a 3-layer system for trees: (1) Ground shadow, (2) Trunk/Base, (3) Canopy. This allows the canopy to sway independently while the base remains static.
 *   **Spatial Consistency:**
-    *   Ensure **z-ordering** is predictable. Conveyors (Domain 6) must always render *under* items on them. Drones must render *above* terrain but *below* UI elements.
-    *   *Critical Check:* The "Rogue Subversion Loop" (Domain 1) must have a distinct visual state (e.g., pulsing red outline) to differentiate it from standard Sentry Rovers.
+    *   **Drones vs. Furniture:** The "Sentry Rover" and "Hauler" must have a clear visual hierarchy. The Rover should be slightly larger or have a distinct color accent (e.g., cyan LED strip) to differentiate it from static furniture like the "Mess Bench."
+    *   **Fauna Walk Cycles:** The 4-frame walk cycles for Muffalo, Deer, Boar, and Wolf must be synchronized to the same tick rate. Ensure the "Muffalo" (bulkier) has a slower frame transition than the "Wolf" (agile) to convey mass through animation timing, not just sprite size.
 
-### 2. Gameplay Loop Clarity
-**Is it clear? Will the player understand what's going on? (Factorio-grade automation + RimWorld-grade pawn survival)**
+**Verdict:** The asset list is coherent. The primary risk is **scale drift** between organic (Flora/Fauna) and industrial (Machinery) assets. Enforce a 1-unit = 1-tile rule strictly.
 
-**Verdict: The Loop is Intuitive if Hierarchical Feedback is Used.**
+---
 
-The core loop is: **Extract → Process → Sustain → Expand.**
+### 2. Gameplay Loop Clarity & Player Comprehension
 
-*   **Player Understanding Flow:**
-    1.  **Input:** Player sees raw resources (Spore Trees, Crystal Pines).
-    2.  **Action:** Place Conveyors/Inserters to move resources to Machinery (Pultrusion Mill, Smelter).
-    3.  **Output:** Finished goods (Lamps, Lithophones) populate Habitation zones.
-    4.  **Feedback:** Pawns (or Drones) interact with furniture. Health/Power bars update.
-*   **Clarity Enhancements:**
-    *   **Color-Coded Pipelines:** Use distinct colors for resource types (e.g., Green for Flora, Blue for Water/Hydroponics, Grey for Metal). This mimics Factorio’s clarity.
-    *   **Pawn/Done States:** Use simple icons above units:
-        *   🟢 Idle/Ready
-        *   🟡 Working (with progress bar)
-        *   🔴 Low Power/Health
-    *   **Minimalist UI:** A single, persistent "Objective" line at the top (e.g., "Next: Build 3 Smelters to unlock Lithophone"). This prevents cognitive overload.
+**Is it clear? Will the player understand?**
+The loop is **Factorio-grade automation** nested within **RimWorld-grade survival**. To ensure clarity, the UI and visual feedback must be immediate and unambiguous.
 
-### 3. AI Artifacts & Technical Corrections
-**Where things look like it was AI done, what needs replacement, quantization, or perspective alignment?**
+**The Core Loop:**
+1.  **Input:** Player places a **Hydroponics** unit (Industrial) and a **Spore Tree** (Flora).
+2.  **Process:** **Drones** (Autonomous) harvest from the tree and deliver to the **Pultrusion Mill** or **Smelter**.
+3.  **Output:** Finished goods (e.g., Crystal Pine planks, Berry Bush juice) are stored on **Storage Shelves**.
+4.  **Consumption:** Pawns (or automated systems) use **Lithophones** for energy or **Mess Benches** for rest, consuming resources.
 
-**Verdict: Replace Procedural Noise with Hand-Tuned Pixel Art.**
+**Clarity Enhancements:**
+*   **Color-Coded Systems:**
+    *   **Blue:** Logistics (Conveyors, Inserters, Chutes).
+    *   **Green:** Organic/Production (Flora, Hydroponics, Drones).
+    *   **Orange:** Power/Industrial (Turbine, Smelter, Pultrusion Mill).
+    *   **White/Grey:** Static Infrastructure (Furniture, Terminal Desk).
+*   **Visual Feedback:**
+    *   When a **Sentry Rover** detects a threat, its LED should pulse rapidly.
+    *   When a **Hydroponics** unit is full, the sprite should glow softly.
+    *   **Rogue Subversion Loop:** This needs a distinct visual state (e.g., a red "!" icon above the drone) to indicate it is in a non-standard mode.
 
-AI-generated pixel art often suffers from **inconsistent pixel density** and **blurred edges**. Here are the specific fixes:
+**Player Understanding:**
+The player will understand if the **connection points** on all machinery and furniture are visually distinct (e.g., small white dots on the edges of sprites). This allows for intuitive drag-and-drop logic. The **Terminal Desk** should serve as the central hub for UI interaction, with a clear "active" state when selected.
 
-| Asset Domain | Common AI Artifact | Required Fix |
-| :--- | :--- | :--- |
-| **1. Drones** | Blurry wheels/tracks; inconsistent leg counts. | **Quantize to 16x16 grid.** Ensure 4-frame walk cycles have identical bounding boxes. Use hard edges. |
-| **2. Furniture** | Misaligned legs on Tables/Stools; floating objects. | **Snap to grid.** All furniture must sit flush on the grid line. Lithophone tubes must be perfectly vertical/horizontal. |
-| **3. Flora** | Organic, non-pixelated leaves; gradient-heavy. | **Reduce palette to 4-6 colors per plant.** Use dithering sparingly. Ensure Spore Tree canopy overlaps correctly with ground tiles. |
-| **4. Fauna** | Mismatched leg positions in walk cycles; blurry eyes. | **Frame-by-frame alignment.** Ensure the Muffalo’s body stays within a 32x32 box. Use 1-pixel black outlines for contrast. |
-| **5. Machinery** | Complex, unreadable details; perspective shifts. | **Simplify to silhouettes.** Pultrusion Mill should be a clear rectangular block with a visible input/output port. |
-| **6. Logistics** | Conveyor belts with inconsistent arrow directions. | **Standardize arrows.** N/E/S/W conveyors must have clear, high-contrast direction indicators. |
+---
 
-**Technical Note:** Use **nearest-neighbor scaling** for all sprites. Disable anti-aliasing in the engine.
+### 3. AI-Generated Artifacts & Quantization Fixes
+
+**Where things look like it was AI done:**
+AI-generated pixel art often suffers from **inconsistent line weights**, **blurred edges**, and **non-uniform color palettes**.
+
+**Replacement & Quantization Strategy:**
+1.  **Line Weight Standardization:**
+    *   *Problem:* AI often uses 1px lines for small objects and 2px for large ones inconsistently.
+    *   *Fix:* Enforce a **1px outline** for all sprites. Use a **2px outline** only for the main player pawn or key interactive objects (like the Terminal Desk). This creates a clear focal point.
+2.  **Color Palette Quantization:**
+    *   *Problem:* AI generates 256+ colors, leading to muddy transitions.
+    *   *Fix:* Reduce to a **16-color palette** per asset domain.
+        *   *Flora:* 4 greens, 2 browns, 1 highlight.
+        *   *Industrial:* 3 greys, 1 orange (power), 1 blue (data).
+        *   *Fauna:* 2 base colors + 1 shadow + 1 highlight.
+3.  **Perspective Alignment:**
+    *   *Problem:* AI often renders objects with slight isometric tilt (e.g., 30-degree angle) instead of true orthographic (90-degree top-down).
+    *   *Fix:* Manually adjust all sprites to a **true 90-degree top-down view**. Ensure the "Lamp" and "Terminal Desk" have flat tops with no visible side perspective. The "Crystal Pine" should have a circular canopy from above, not an oval.
+4.  **Sprite Sheet Optimization:**
+    *   Combine all 4-frame walk cycles into a single **strip sheet** for efficient GPU texture binding.
+    *   Use **nearest-neighbor interpolation** for scaling to maintain crisp pixel edges.
+
+---
 
 ### 4. New Depth & Fun Features for Engagement
-**What new depth and fun features should be added to maximize player engagement?**
 
-To elevate the loop beyond basic automation, integrate these **RimWorld-style narrative** and **Factorio-style optimization** features:
+To maximize engagement, introduce **systemic interactions** that reward observation and planning.
 
-1.  **Dynamic Biome Shifts (Subterranean Layers):**
-    *   As players dig deeper, the background color shifts (e.g., Layer 1: Grey Stone, Layer 2: Blue Crystal, Layer 3: Red Magma).
-    *   *Mechanic:* Each layer introduces a new resource (e.g., Crystal Pine only grows in Layer 2) and a new hazard (e.g., Magma vents in Layer 3).
-
-2.  **Symbiotic Drone-Fauna Interactions:**
-    *   *Feature:* Drones can "tend" to Fauna. A Sentry Rover near a Muffalo increases its yield. A Hauler near a Berry Bush speeds up collection.
-    *   *Visual:* Small particle effects (sparkles) when interactions occur.
-
-3.  **The "Lithophone Resonance" Mechanic:**
-    *   *Feature:* Lithophones (Domain 2) are not just decorative. They act as **power amplifiers** for nearby Hydroponics (Domain 5).
-    *   *Depth:* Players must arrange Lithophones in specific patterns (e.g., 3 in a row)
+**1. Dynamic Environmental States (The "Mantle Pulse"):**
+*   **Feature:** A global timer that shifts the environment between "Day" (high activity, fast drone movement) and "Night" (low activity, increased fauna aggression).
+*   **Impact:** Players must optimize their **Hydroponics** for day cycles and **Sentry Rovers** for night threats. The **Lithophone
 
 ## 2. Domain Asset Telemetry
 
