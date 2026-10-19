@@ -1,13 +1,13 @@
-# Project Deep-Mantle :: Engineering Work Batch: BATCH-56
+# Project Deep-Mantle :: Engineering Work Batch: BATCH-57
 
 ## Ultra-Endgame Ascension & Deterministic State Finalization (Target: `v1.2.0`)
 
 - **Architect**: `DGX Spark Cluster Lead Systems Engineer`
 - **QA Verifier**: `RTX 5090 Blackwell Reflex QA Director`
-- **Date**: `2026-10-19 17:16:38`
+- **Date**: `2026-10-19 17:28:04`
 
 ### Batch Overview
-This batch finalizes the simulation loop by implementing deterministic state hashing for save/load integrity, optimizing the Monte Carlo convergence check for the 5,500-tick milestone, and establishing the final ascension state machine. These tasks close the last gaps in simulation coverage, ensuring zero deadlocks and perfect reproducibility for the endgame.
+This batch finalizes the simulation loop by implementing deterministic state hashing for save/load integrity, optimizing the tick-based physics resolution for zero-allocation stability, and compressing the storyteller narrative state into a fixed-size ring buffer. These steps ensure 100% coverage of the endgame phase with minimal memory footprint and maximal determinism.
 
 ---
 
@@ -18,76 +18,76 @@ This batch finalizes the simulation loop by implementing deterministic state has
 - **Domain**: `Engine/C++20`
 - **Estimated Complexity**: `Atomic`
 - **Target Files**:
-  - `Source/Engine/Core/StateHasher.h`
-  - `Source/Engine/Core/StateHasher.cpp`
+  - `Source/Runtime/Core/StateHash.h`
+  - `Source/Runtime/Core/StateHash.cpp`
 - **Architectural Specification**:
-  1. Define `struct StateHasher` with `static constexpr uint64_t ComputeHash(const std::span<const uint8_t>& data)`.
-2. Use FNV-1a algorithm for speed and determinism.
-3. Implement `static_assert` for compile-time hash of static config.
-4. Ensure no heap allocations; use `std::array` for intermediate buffers.
-5. Integrate with `SaveGame` system to verify checksums on load.
-6. Handle endianness explicitly using `std::endian::native`.
-7. Return `uint64_t` directly; no wrapper structs.
-8. Add `constexpr` support for all static data.
-9. Validate against known test vectors in unit tests.
-10. Ensure zero dependencies on STL containers beyond `std::span`.
+  1. Define struct StateHashContext with fixed-size uint64_t accumulator.
+2. Implement constexpr functions for hashing primitives (int, float, bool).
+3. Use FNV-1a algorithm for string hashing to ensure determinism.
+4. Provide template specializations for std::array and std::tuple.
+5. Ensure no dynamic allocation in hash computation.
+6. Add static_assert for struct sizes to verify layout.
+7. Implement operator== for StateHashContext.
+8. Provide debug string conversion for hash values.
+9. Integrate with existing serialization framework.
+10. Verify hash stability across compiler versions.
 - **Acceptance Criteria**:
-  1. Hash computation completes in <1µs for 1KB data.
-2. Unit tests pass for 100 random seeds.
-3. No heap allocations in hot path.
-4. Save/Load cycle preserves exact state hash.
+  1. Hash values are identical across 1000 runs.
+2. No heap allocations during hashing.
+3. Compile time < 50ms for header inclusion.
+4. Unit tests cover all primitive types.
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Guarantees 100% reproducible simulations, eliminating 'ghost' bugs in long-running campaigns.
+  Ensures save games load perfectly every time, preventing corruption.
 
-#### [TASK-802] Optimize Monte Carlo Convergence Check for 5,500-Tick Milestone (`P1 - High`)
+#### [TASK-802] Optimize Tick-Based Physics Resolution with Zero-Allocation (`P1 - High`)
 
 - **Domain**: `Simulation/Physics`
 - **Estimated Complexity**: `Small`
 - **Target Files**:
-  - `Source/Simulation/MonteCarlo.h`
-  - `Source/Simulation/MonteCarlo.cpp`
+  - `Source/Runtime/Simulation/PhysicsResolver.h`
+  - `Source/Runtime/Simulation/PhysicsResolver.cpp`
 - **Architectural Specification**:
-  1. Create `struct MonteCarloConvergence` with `bool IsConverged(uint64_t tick)`.
-2. Use fixed-point arithmetic for variance calculation.
-3. Pre-compute convergence thresholds for ticks 1-5500.
-4. Store thresholds in `static constexpr std::array<float, 5500>`.
-5. Implement binary search for threshold lookup.
-6. Cache last 3 variance values in `std::array<float, 3>`.
-7. Return `true` if variance < threshold for 3 consecutive ticks.
-8. Zero heap allocations; all data static.
-9. Integrate with `SimulationLoop::Update()`.
-10. Ensure thread-safe read-only access via `const` methods.
+  1. Replace std::vector with fixed-size array for collision pairs.
+2. Implement iterative solver with max 10 iterations.
+3. Use float32 for all calculations to match hardware.
+4. Precompute inverse masses in initialization phase.
+5. Remove virtual functions from core solver structs.
+6. Implement spatial hash grid with fixed bucket size.
+7. Use bitwise operations for fast comparison.
+8. Cache last frame's results for warm-starting.
+9. Ensure deterministic order of operations.
+10. Profile memory usage to confirm < 1KB per entity.
 - **Acceptance Criteria**:
-  1. Convergence detected exactly at tick 5,500.
-2. Lookup time <10ns per tick.
-3. No false positives in 10,000 test runs.
-4. Memory footprint <10KB.
+  1. Physics simulation runs at 1000+ ticks/sec.
+2. Memory usage is constant regardless of entity count.
+3. No jitter in resting objects.
+4. Deterministic results for identical inputs.
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Faster simulation termination, reducing wait times for endgame results.
+  Smoother animations and faster loading times.
 
-#### [TASK-803] Finalize Ascension State Machine with Zero-Cascade Dependencies (`P2 - Quality-of-Life`)
+#### [TASK-803] Compress Storyteller Narrative State into Fixed-Size Ring Buffer (`P2 - Quality-of-Life`)
 
 - **Domain**: `Storyteller/AI`
 - **Estimated Complexity**: `Atomic`
 - **Target Files**:
-  - `Source/Storyteller/AscensionState.h`
-  - `Source/Storyteller/AscensionState.cpp`
+  - `Source/Runtime/AI/Storyteller.h`
+  - `Source/Runtime/AI/Storyteller.cpp`
 - **Architectural Specification**:
-  1. Define `enum class AscensionPhase { Init, Running, Converged, Finalized }`.
-2. Implement `class AscensionStateMachine` with `void Update(uint64_t tick)`.
-3. Use `std::variant` for phase-specific data.
-4. Store state in `static constexpr` arrays.
-5. Implement `GetPhase()` as `constexpr`.
-6. No virtual functions; use switch-case dispatch.
-7. Integrate with `MonteCarloConvergence` result.
-8. Log phase transitions to `std::array<char, 256>`.
-9. Ensure no dynamic memory allocation.
-10. Provide `ToString()` for debugging.
+  1. Define struct NarrativeEvent with 32-bit ID and timestamp.
+2. Implement circular buffer of size 64 for recent events.
+3. Use bitwise AND for index wrapping.
+4. Store event data in separate contiguous array.
+5. Implement linear search for event retrieval.
+6. Add compression flag for repeated events.
+7. Provide iterator interface for traversal.
+8. Ensure no dynamic allocation in buffer operations.
+9. Integrate with existing UI display system.
+10. Test with 10,000 events to verify overflow handling.
 - **Acceptance Criteria**:
-  1. State transitions occur exactly at defined ticks.
-2. No memory leaks in 1000 cycles.
-3. Debug output matches expected sequence.
-4. Compile time <100ms.
+  1. Buffer handles overflow gracefully.
+2. Memory usage is exactly 256 bytes.
+3. Retrieval time is O(1) for recent events.
+4. No fragmentation in memory pool.
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Clear, deterministic endgame narrative progression with no lag.
+  Faster UI updates and lower memory usage for long games.
 
