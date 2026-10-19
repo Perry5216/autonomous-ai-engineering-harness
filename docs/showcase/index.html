@@ -774,7 +774,7 @@
             width: 24px;
             height: 24px;
             border: 1px solid var(--panel-border);
-            background-color: #030509;
+            background-color: #1e252d;
             background-size: cover;
             background-position: center;
             image-rendering: pixelated;
@@ -4372,12 +4372,21 @@
             preloadTileSprite(`liquid_water_shore_${m}`, `Tiles/liquid_water_shore_${m}.png`);
         }
 
-        // 8-variant authentic pixel art cavern floor tiles (0..7) and inner corner overlays
+        // 8-variant authentic pixel art cavern floor tiles (0..7) and biome inner corner overlays
         for (let f = 0; f < 8; f++) {
             preloadTileSprite(`floor_basalt_${f}`, `Tiles/tile_floor_basalt_${f}.png`);
         }
-        ["tl", "tr", "bl", "br"].forEach(c => {
-            preloadTileSprite(`wall_basalt_corner_${c}`, `Tiles/tile_wall_basalt_corner_${c}.png`);
+        ["basalt", "granite", "obsidian", "cryo", "plasteel"].forEach(b => {
+            ["tl", "tr", "bl", "br"].forEach(c => {
+                preloadTileSprite(`wall_${b}_corner_${c}`, `Tiles/tile_wall_${b}_corner_${c}.png`);
+            });
+        });
+
+        // 4 organic transparent vein variants per mineral type
+        ["iron", "titanium", "copper", "gold", "coal", "uranium", "precursor"].forEach(ore => {
+            for (let v = 0; v < 4; v++) {
+                preloadTileSprite(`vein_${ore}_${v}`, `Tiles/tile_vein_${ore}_${v}.png`);
+            }
         });
 
         // Floor Wear & Breakup Variants (v0..v3)
@@ -4815,20 +4824,26 @@
                         const hasRockW = (x > 0 && localColonyGrid[y][x-1].isWall);
                         const hasRockE = (x < LOCAL_MAP_SIZE - 1 && localColonyGrid[y][x+1].isWall);
 
+                        let cornerPrefix = "wall_basalt";
+                        if (currentSectorBiome.includes("Vault")) cornerPrefix = "wall_plasteel";
+                        else if (currentSectorBiome.includes("Magma")) cornerPrefix = "wall_obsidian";
+                        else if (currentSectorBiome.includes("Cryo")) cornerPrefix = "wall_cryo";
+                        else if (currentSectorBiome.includes("Sulfur")) cornerPrefix = "wall_granite";
+
                         if (hasRockN && hasRockW) {
-                            const cImg = TILE_SPRITE_CACHE["wall_basalt_corner_tl"];
+                            const cImg = TILE_SPRITE_CACHE[`${cornerPrefix}_corner_tl`] || TILE_SPRITE_CACHE["wall_basalt_corner_tl"];
                             if (cImg && cImg.complete && cImg.naturalWidth > 0) localCtx.drawImage(cImg, px, py, cellSize + 0.5, cellSize + 0.5);
                         }
                         if (hasRockN && hasRockE) {
-                            const cImg = TILE_SPRITE_CACHE["wall_basalt_corner_tr"];
+                            const cImg = TILE_SPRITE_CACHE[`${cornerPrefix}_corner_tr`] || TILE_SPRITE_CACHE["wall_basalt_corner_tr"];
                             if (cImg && cImg.complete && cImg.naturalWidth > 0) localCtx.drawImage(cImg, px, py, cellSize + 0.5, cellSize + 0.5);
                         }
                         if (hasRockS && hasRockW) {
-                            const cImg = TILE_SPRITE_CACHE["wall_basalt_corner_bl"];
+                            const cImg = TILE_SPRITE_CACHE[`${cornerPrefix}_corner_bl`] || TILE_SPRITE_CACHE["wall_basalt_corner_bl"];
                             if (cImg && cImg.complete && cImg.naturalWidth > 0) localCtx.drawImage(cImg, px, py, cellSize + 0.5, cellSize + 0.5);
                         }
                         if (hasRockS && hasRockE) {
-                            const cImg = TILE_SPRITE_CACHE["wall_basalt_corner_br"];
+                            const cImg = TILE_SPRITE_CACHE[`${cornerPrefix}_corner_br`] || TILE_SPRITE_CACHE["wall_basalt_corner_br"];
                             if (cImg && cImg.complete && cImg.naturalWidth > 0) localCtx.drawImage(cImg, px, py, cellSize + 0.5, cellSize + 0.5);
                         }
 
@@ -4901,9 +4916,10 @@
                         localCtx.fillRect(px, py, cellSize + 0.5, cellSize + 0.5);
                     }
 
-                    // Ore Vein Inclusions embedded into solid rock
+                    // Ore Vein Inclusions embedded into solid rock (4 organic transparent variants)
                     if (cell.oreType) {
-                        const veinImg = TILE_SPRITE_CACHE[`vein_${cell.oreType}`];
+                        const varIdx = (x * 3 + y * 7) % 4;
+                        const veinImg = TILE_SPRITE_CACHE[`vein_${cell.oreType}_${varIdx}`] || TILE_SPRITE_CACHE[`vein_${cell.oreType}`];
                         if (veinImg && veinImg.complete && veinImg.naturalWidth > 0) {
                             localCtx.drawImage(veinImg, px, py, cellSize + 0.5, cellSize + 0.5);
                         }
