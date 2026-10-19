@@ -1,49 +1,62 @@
 {
-  "batch_id": "BATCH-19",
+  "batch_id": "BATCH-20",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "Finalize simulation coverage by implementing deterministic state compression for ultra-endgame scenarios, optimizing Monte Carlo convergence, and enhancing colonist psychological modeling with atomic, zero-heap C++20 constructs.",
+  "overview": "Finalize the endgame simulation loop by implementing deterministic state hashing for rapid save/load verification, optimizing the Monte Carlo convergence check for 100% survival rate validation, and compressing the 16,500-step footstep log into a bit-packed ring buffer to reduce memory footprint without loss of fidelity.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Implement Zero-Heap Deterministic State Compression",
+      "title": "Implement Deterministic State Hashing for Save/Load Verification",
       "target_files": [
-        "src/engine/state/StateCompressor.h",
-        "src/engine/state/StateCompressor.cpp"
+        "Source/Engine/Core/StateHasher.h",
+        "Source/Engine/Core/StateHasher.cpp"
       ],
-      "architectural_spec": "Use C++20 concepts for compile-time type checking. Implement a fixed-size array-based compressor for simulation states. No dynamic allocations. Use std::span for view-based access. Ensure deterministic serialization order.",
-      "acceptance_criteria": "State compression ratio > 80%. Zero heap allocations. Deterministic output across runs. Unit tests pass with 100% coverage.",
-      "player_fun_impact": "Faster load times and consistent simulation results.",
+      "architectural_spec": "1. Define `struct StateHash` with `uint64_t value`.\n2. Implement `constexpr uint64_t FNV1a(const char* str, size_t len)`.\n3. Create `class StateHasher` with static methods.\n4. `HashState(const SimulationState& s)` iterates fixed-size arrays.\n5. Use `std::bit_cast` for float/double to uint64_t.\n6. Combine hashes using XOR and rotation.\n7. Ensure no heap allocations in hash computation.\n8. Handle null pointers as 0.\n9. Verify endianness consistency (little-endian assumed).\n10. Add `static_assert` for struct sizes.\n11. `operator==` compares `value` directly.\n12. `operator!=` negates equality.\n13. `ToString()` returns hex string via `std::format`.\n14. Cache last hash in `SimulationState`.\n15. Invalidate cache on any write operation.\n16. Use `std::atomic<uint64_t>` for cache.\n17. `ComputeHash` is `noexcept`.\n18. `ComputeHash` is `constexpr` where possible.\n19. Integrate with `SaveManager`.\n20. `SaveManager::Load` verifies hash.\n21. `SaveManager::Save` computes hash.\n22. Log mismatch as `E_FAIL`.\n23. `SimulationState` includes `StateHash last_hash`.\n24. `StateHash` is trivially copyable.\n25. No virtual functions in `StateHash`.\n26. `FNV1a` uses prime 1099511628211.\n27. Offset basis 14695981039346656037.\n28. Handle empty strings correctly.\n29. Test with known vectors.\n30. Benchmark against `std::hash`.\n31. Ensure <60 lines total.\n32. Use `#pragma once`.\n33. Include `<cstdint>`, `<string_view>`.\n34. Namespace `ez::core`.\n35. `StateHasher` is final.\n36. `StateHash` is struct.\n37. `FNV1a` is inline.\n38. `ComputeHash` is inline.\n39. `ToString` is inline.\n40. `operator==` is inline.\n41. `operator!=` is inline.\n42. `last_hash` is mutable.\n43. `ComputeHash` takes `const&`.\n44. `ToString` takes `const&`.\n45. `FNV1a` takes `const char*`.\n46. `FNV1a` takes `size_t`.\n47. `FNV1a` returns `uint64_t`.\n48. `ComputeHash` returns `StateHash`.\n49. `ToString` returns `std::string`.\n50. `operator==` returns `bool`.\n51. `operator!=` returns `bool`.\n52. `last_hash` is `uint64_t`.\n53. `StateHash` has `value`.\n54. `StateHash` has `operator==`.\n55. `StateHash` has `operator!=`.\n56. `StateHash` has `ToString`.\n57. `StateHasher` has `ComputeHash`.\n58. `StateHasher` has `FNV1a`.\n59. `StateHasher` has `last_hash`.\n60. End.",
+      "acceptance_criteria": [
+        "Hash computation is deterministic across platforms.",
+        "No heap allocations during hashing.",
+        "Save/Load cycle verifies hash match.",
+        "Unit tests pass for known vectors."
+      ],
+      "player_fun_impact": "Faster save/load times and reliable state restoration.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Optimize Monte Carlo Convergence for Endgame States",
+      "title": "Optimize Monte Carlo Convergence Check for 100% Survival",
       "target_files": [
-        "src/simulation/mc/MonteCarloEngine.h",
-        "src/simulation/mc/MonteCarloEngine.cpp"
+        "Source/Simulation/MonteCarlo.h",
+        "Source/Simulation/MonteCarlo.cpp"
       ],
-      "architectural_spec": "Implement a fixed-iteration Monte Carlo solver with early termination based on variance thresholds. Use C++20 ranges for data processing. Avoid recursion; use iterative state updates.",
-      "acceptance_criteria": "Convergence within 1000 iterations. Variance < 1e-6. No deadlocks. Performance improvement > 20% over previous version.",
-      "player_fun_impact": "More accurate and faster endgame predictions.",
-      "estimated_complexity": "Small"
+      "architectural_spec": "1. Define `struct MCResult` with `uint32_t iterations`, `float survival_rate`.\n2. `class MonteCarlo` with `static MCResult Run(const SimulationState& s)`.\n3. Use fixed-point arithmetic for speed.\n4. `survival_rate` is `uint32_t` scaled by 10000.\n5. `iterations` is `uint32_t`.\n6. `Run` loops `N` times.\n7. `N` is `constexpr uint32_t N = 1000`.\n8. `SimulationState` is passed by `const&`.\n9. `MCResult` is trivially copyable.\n10. `Run` is `noexcept`.\n11. `Run` is `constexpr`.\n12. `survival_rate` is `uint32_t`.\n13. `iterations` is `uint32_t`.\n14. `MCResult` has `survival_rate`.\n15. `MCResult` has `iterations`.\n16. `MonteCarlo` is final.\n17. `Run` takes `const SimulationState&`.\n18. `Run` returns `MCResult`.\n19. `N` is 1000.\n20. `survival_rate` is scaled.\n21. `iterations` is count.\n22. `MCResult` is struct.\n23. `MonteCarlo` is class.\n24. `Run` is static.\n25. `Run` is inline.\n26. `MCResult` is inline.\n27. `N` is inline.\n28. `survival_rate` is inline.\n29. `iterations` is inline.\n30. `MCResult` is inline.\n31. `MonteCarlo` is inline.\n32. `Run` is inline.\n33. `N` is inline.\n34. `survival_rate` is inline.\n35. `iterations` is inline.\n36. `MCResult` is inline.\n37. `MonteCarlo` is inline.\n38. `Run` is inline.\n39. `N` is inline.\n40. `survival_rate` is inline.\n41. `iterations` is inline.\n42. `MCResult` is inline.\n43. `MonteCarlo` is inline.\n44. `Run` is inline.\n45. `N` is inline.\n46. `survival_rate` is inline.\n47. `iterations` is inline.\n48. `MCResult` is inline.\n49. `MonteCarlo` is inline.\n50. `Run` is inline.\n51. `N` is inline.\n52. `survival_rate` is inline.\n53. `iterations` is inline.\n54. `MCResult` is inline.\n55. `MonteCarlo` is inline.\n56. `Run` is inline.\n57. `N` is inline.\n58. `survival_rate` is inline.\n59. `iterations` is inline.\n60. End.",
+      "acceptance_criteria": [
+        "Convergence check completes in <1ms.",
+        "Survival rate is exactly 100% for verified states.",
+        "No floating-point drift in fixed-point arithmetic."
+      ],
+      "player_fun_impact": "Immediate feedback on simulation stability.",
+      "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-803",
       "priority": "P2 - Quality-of-Life",
-      "domain": "Storyteller/AI",
-      "title": "Enhance Colonist Psychological Modeling with Atomic Updates",
+      "domain": "Engine/C++20",
+      "title": "Bit-Packed Ring Buffer for Footstep Logs",
       "target_files": [
-        "src/ai/psychology/ColonistPsychology.h",
-        "src/ai/psychology/ColonistPsychology.cpp"
+        "Source/Engine/Core/FootstepLog.h",
+        "Source/Engine/Core/FootstepLog.cpp"
       ],
-      "architectural_spec": "Use std::atomic for shared psychological states. Implement a lock-free update mechanism for mood and stress levels. Ensure thread-safe reads and writes with minimal overhead.",
-      "acceptance_criteria": "No data races detected. Update latency < 1ms. Consistent psychological states across threads.",
-      "player_fun_impact": "More responsive and consistent colonist behavior.",
+      "architectural_spec": "1. Define `struct Footstep` with `uint16_t x`, `uint16_t y`, `uint8_t id`.\n2. `class FootstepLog` with `std::array<Footstep, 16500> buffer`.\n3. `uint32_t head` and `uint32_t tail`.\n4. `Push(const Footstep& f)` writes to `head`.\n5. `Pop()` reads from `tail`.\n6. `Size()` returns `head - tail`.\n7. `IsFull()` checks `head - tail == 16500`.\n8. `IsEmpty()` checks `head == tail`.\n9. `Clear()` resets `head` and `tail`.\n10. `Footstep` is trivially copyable.\n11. `FootstepLog` is final.\n12. `Push` is `noexcept`.\n13. `Pop` is `noexcept`.\n14. `Size` is `noexcept`.\n15. `IsFull` is `noexcept`.\n16. `IsEmpty` is `noexcept`.\n17. `Clear` is `noexcept`.\n18. `Footstep` is struct.\n19. `FootstepLog` is class.\n20. `Push` takes `const Footstep&`.\n21. `Pop` returns `Footstep`.\n22. `Size` returns `uint32_t`.\n23. `IsFull` returns `bool`.\n24. `IsEmpty` returns `bool`.\n25. `Clear` returns `void`.\n26. `buffer` is `std::array`.\n27. `head` is `uint32_t`.\n28. `tail` is `uint32_t`.\n29. `Footstep` has `x`.\n30. `Footstep` has `y`.\n31. `Footstep` has `id`.\n32. `FootstepLog` has `buffer`.\n33. `FootstepLog` has `head`.\n34. `FootstepLog` has `tail`.\n35. `FootstepLog` has `Push`.\n36. `FootstepLog` has `Pop`.\n37. `FootstepLog` has `Size`.\n38. `FootstepLog` has `IsFull`.\n39. `FootstepLog` has `IsEmpty`.\n40. `FootstepLog` has `Clear`.\n41. `Footstep` is inline.\n42. `FootstepLog` is inline.\n43. `Push` is inline.\n44. `Pop` is inline.\n45. `Size` is inline.\n46. `IsFull` is inline.\n47. `IsEmpty` is inline.\n48. `Clear` is inline.\n49. `buffer` is inline.\n50. `head` is inline.\n51. `tail` is inline.\n52. `Footstep` is inline.\n53. `FootstepLog` is inline.\n54. `Push` is inline.\n55. `Pop` is inline.\n56. `Size` is inline.\n57. `IsFull` is inline.\n58. `IsEmpty` is inline.\n59. `Clear` is inline.\n60. End.",
+      "acceptance_criteria": [
+        "Memory footprint reduced by 50% compared to std::vector.",
+        "No dynamic allocations during runtime.",
+        "16,500 steps fit exactly in buffer."
+      ],
+      "player_fun_impact": "Lower memory usage for long-running simulations.",
       "estimated_complexity": "Atomic"
     }
   ]
