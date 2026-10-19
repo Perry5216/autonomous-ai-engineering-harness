@@ -1,87 +1,109 @@
-# Project Deep-Mantle :: Engineering Work Batch: BATCH-77
+# Project Deep-Mantle :: Engineering Work Batch: BATCH-78
 
 ## Ultra-Endgame Ascension & Deterministic State Compression (Target: `v1.2.0`)
 
 - **Architect**: `DGX Spark Cluster Lead Systems Engineer`
 - **QA Verifier**: `RTX 5090 Blackwell Reflex QA Director`
-- **Date**: `2026-10-19 21:19:15`
+- **Date**: `2026-10-19 21:30:26`
 
 ### Batch Overview
-Finalize the simulation loop by implementing deterministic state hashing for rapid save/load verification and optimizing the Monte Carlo convergence check for the 5,500-tick milestone. This batch ensures the engine achieves 100% coverage with zero deadlocks and minimal memory overhead.
+Finalize the simulation loop by implementing deterministic state hashing for save/load integrity, optimizing the tick scheduler for zero-allocation execution, and integrating the final psychological state machine for colonist ascension. This batch closes the remaining coverage gaps in the core simulation loop, ensuring 100% deterministic reproducibility and minimal memory footprint for the endgame state.
 
 ---
 
 ### Prioritized Engineering Tasks
 
-#### [TASK-801] Implement Deterministic State Hashing for Save/Load Verification (`P0 - Critical`)
+#### [TASK-801] Implement Zero-Allocation Deterministic State Hasher (`P0 - Critical`)
 
 - **Domain**: `Engine/C++20`
 - **Estimated Complexity**: `Atomic`
 - **Target Files**:
-  - `Source/Runtime/Core/StateHash.h`
-  - `Source/Runtime/Core/StateHash.cpp`
+  - `src/engine/core/StateHasher.hpp`
+  - `src/engine/core/StateHasher.cpp`
 - **Architectural Specification**:
-  1. Define struct StateHashContext with fixed-size arrays for tick, entity count, and checksum.
-2. Implement constexpr hash function using FNV-1a algorithm for speed.
-3. Integrate with ez::World::SaveState to append hash to binary stream.
-4. Verify hash on load to detect corruption or non-deterministic drift.
-5. Ensure zero heap allocations during hashing phase.
-6. Use std::span for contiguous memory access.
-7. Add static_assert for struct size alignment.
-8. Provide inline comparison operator for fast equality checks.
+  struct StateHasher {
+    uint64_t hash = 0;
+    constexpr void update(uint64_t val) {
+        hash ^= val;
+        hash *= 0x9E3779B97F4A7C15ULL;
+    }
+    constexpr void update(const char* str, size_t len) {
+        for (size_t i = 0; i < len; ++i) {
+            update(static_cast<uint64_t>(str[i]));
+        }
+    }
+    constexpr uint64_t finalize() const { return hash; }
+};
+// Usage: Stack-allocated, no heap. Used in every tick for state verification.
 - **Acceptance Criteria**:
-  1. Hash generation completes in <1ms for 5,500 ticks.
-2. Load verification fails gracefully on mismatch.
-3. No heap allocations in hashing path.
-4. Unit tests cover edge cases (empty state, max entities).
+  ['Hasher produces identical uint64_t for identical state sequences across 1000 runs.', 'Zero heap allocations during hashing phase.', 'Compiled with -O2, no dynamic memory usage in profiler.']
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Instant save/load verification ensures no lost progress due to silent corruption.
+  Instant save/load verification, no lag on resume.
 
-#### [TASK-802] Optimize Monte Carlo Convergence Check for 5,500 Ticks (`P1 - High`)
+#### [TASK-802] Optimize Tick Scheduler with Fixed-Size Ring Buffer (`P1 - High`)
 
 - **Domain**: `Simulation/Physics`
 - **Estimated Complexity**: `Small`
 - **Target Files**:
-  - `Source/Runtime/Simulation/MonteCarlo.h`
-  - `Source/Runtime/Simulation/MonteCarlo.cpp`
+  - `src/sim/TickScheduler.hpp`
+  - `src/sim/TickScheduler.cpp`
 - **Architectural Specification**:
-  1. Refactor MonteCarloRunner to use fixed-size ring buffer for last 100 samples.
-2. Implement incremental mean/variance calculation (Welford's algorithm).
-3. Add early exit condition if variance < 1e-6 for 10 consecutive samples.
-4. Remove dynamic vector resizing in hot loop.
-5. Use std::array for sample storage.
-6. Profile with 5,500 ticks to ensure <5ms total execution.
-7. Ensure thread-safe atomic updates for shared counters.
-8. Add debug output for convergence step count.
+  template<size_t N>
+class TickScheduler {
+    struct Event {
+        uint64_t tick;
+        void (*func)(void*);
+        void* data;
+    };
+    Event events[N];
+    size_t head = 0;
+    size_t tail = 0;
+public:
+    constexpr void push(uint64_t tick, void (*f)(void*), void* d) {
+        if (head - tail < N) {
+            events[head % N] = {tick, f, d};
+            ++head;
+        }
+    }
+    constexpr void process(uint64_t currentTick) {
+        while (tail < head && events[tail % N].tick <= currentTick) {
+            events[tail % N].func(events[tail % N].data);
+            ++tail;
+        }
+    }
+};
 - **Acceptance Criteria**:
-  1. Convergence detected within 100 samples for stable systems.
-2. Execution time <5ms for 5,500 ticks.
-3. No dynamic allocations in simulation loop.
-4. Variance calculation matches reference implementation.
+  ['Scheduler handles 10,000 events per tick without reallocation.', 'No null pointer dereferences in stress test.', 'Deterministic order of execution preserved.']
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Faster simulation steps lead to smoother gameplay and quicker load times.
+  Smooth 60fps simulation even with complex physics interactions.
 
-#### [TASK-803] Add Tick-Count Metadata to Save Files (`P2 - Quality-of-Life`)
+#### [TASK-803] Finalize Colonist Ascension State Machine (`P2 - Quality-of-Life`)
 
 - **Domain**: `Storyteller/AI`
 - **Estimated Complexity**: `Atomic`
 - **Target Files**:
-  - `Source/Runtime/Core/SaveSystem.h`
-  - `Source/Runtime/Core/SaveSystem.cpp`
+  - `src/ai/ColonistState.hpp`
+  - `src/ai/ColonistState.cpp`
 - **Architectural Specification**:
-  1. Extend SaveHeader struct with uint32_t tickCount field.
-2. Populate tickCount from World::GetTick() during save.
-3. Display tick count in UI debug overlay.
-4. Ensure backward compatibility with old save formats (default 0).
-5. Add version check for header size.
-6. Use std::optional for optional fields.
-7. Serialize as little-endian uint32.
-8. Add unit test for header parsing.
+  enum class AscensionState : uint8_t {
+    Idle = 0,
+    Working = 1,
+    Resting = 2,
+    Ascended = 3
+};
+struct Colonist {
+    AscensionState state;
+    uint16_t id;
+    constexpr void transition(AscensionState next) {
+        state = next;
+    }
+    constexpr bool isAscended() const {
+        return state == AscensionState::Ascended;
+    }
+};
+// Static array of Colonist structs, no heap.
 - **Acceptance Criteria**:
-  1. Tick count visible in debug overlay.
-2. Old saves load without error (tick=0).
-3. New saves include correct tick count.
-4. No performance regression in save/load.
+  ['All 16,500 footsteps logged correctly map to states.', 'Ascended state persists across save/load.', 'No undefined behavior in state transitions.']
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Helps players track progress and identify long-running sessions.
+  Clear visual feedback on colonist progress.
 

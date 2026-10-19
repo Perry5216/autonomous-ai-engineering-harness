@@ -2,7 +2,7 @@
 
 - **Author**: DGX Spark Lead Systems & Game Designer
 - **Reviewed by**: RTX 5090 Blackwell Commercial QA Director
-- **Date**: `2026-10-19 21:19:15`
+- **Date**: `2026-10-19 21:30:26`
 
 ---
 
@@ -10,199 +10,203 @@
 
 ## 1. Executive Design Thesis: Depth vs. The Spreadsheet Trap
 
-**Thesis:** Depth in *Project Deep-Mantle* is not defined by the quantity of data points (the "Spreadsheet"), but by the **density of causal interactions** between systems. A system is "deep" if changing one variable creates non-linear, emergent consequences across multiple other systems.
+The current telemetry indicates a mature, high-throughput simulation (Era 4, 56 modules, stable power/O2). However, the metric **"Boredom Events: 15"** against **"0 deadlocks"** suggests a critical design tension: the system is *efficient* but potentially *flat*.
 
-**The Anti-Spreadsheet Check:**
-*   **Spreadsheet:** "I have 2580 Silver. I need 3000. I will mine 420 more." (Linear, tedious, low cognitive reward).
-*   **Depth:** "I have 2580 Silver. The aquifer pressure is rising (Era 2). If I don't reinforce the ceiling, the water will short-circuit the fusion reactor (Era 3), causing a cascade failure in the O2 scrubbers. I must prioritize structural integrity over silver extraction." (Non-linear, urgent, tactile).
+In subterranean sims, depth is not just "more numbers"; it is **causal density**. A spreadsheet has many numbers but low causal density (linear progression). A good simulation has high causal density (non-linear, emergent interactions).
 
-**Current Telemetry Analysis:**
-*   **Boredom Events: 15** indicates a slight lag in feedback loops. The player is likely waiting for ticks rather than reacting to emergent states.
-*   **0 Deadlocks** is excellent; the logistics engine is stable.
-*   **Era 4 Apex** suggests we are ready to test the limits of "Transcendence" mechanics.
+**Core Thesis:** To add depth without inducing spreadsheet fatigue, we must shift from *linear accumulation* (more steel = better) to *systemic interdependence* (steel quality affects thermal conductivity, which affects fusion efficiency, which affects O2 generation rate). Depth comes from the *relationships* between variables, not the count of variables.
 
 ---
 
 ## 2. Systematic Era-by-Era Depth Evaluation
 
 ### Era 0: Primitive Cavern Dwellers
-*   **Core Mechanics:** Flint tools, torchlight, spore forage, rough dugouts, rockfall fear.
-*   **1. CAN I ADD MORE DEPTH?**
-    *   *Yes.* Introduce **Acoustic Propagation** and **Thermal Inertia**.
-    *   *Mechanic:* Sound travels differently through basalt vs. sandstone. Torchlight creates hard shadows that hide "micro-fauna" (spiders, worms) which provide food but cause "Startle" mood debuffs.
-*   **2. IF SO, WHY?**
-    *   *Causality:* Acoustic depth forces players to map the cave by *sound* (pinging walls), not just visual scanning. Thermal inertia means digging deeper takes longer to warm up, creating a "cold start" penalty for deep shafts.
-    *   *Emergence:* A pawn drops a torch. The shadow length changes. A spider is revealed. The pawn is startled. The startle causes a stumble. The stumble knocks over a water bucket. The water extinguishes the next torch. Chain reaction.
-*   **3. IS IT FUN?**
-    *   *Yes.* It is tactile. The "click" of a flint tool, the flicker of a torch, the immediate visual change in shadow. It feels like exploring a real cave. Low cognitive load, high sensory reward.
+*Current State:* Flint tools, torchlight, spore forage.
+
+**1. CAN I ADD MORE DEPTH?**
+Yes. Introduce **Light Decay & Thermal Stratification**.
+*   *Mechanic:* Torchlight radius shrinks as fuel burns (non-linear decay). Temperature drops faster in deeper, narrower shafts.
+*   *Psychological:* "Darkness Anxiety" – pawns move slower and make more errors in low-light zones.
+
+**2. IF SO, WHY?**
+*   *Causality:* Light is not just a visual filter; it’s a resource constraint. Thermal stratification forces players to choose between warm, cramped upper levels (low light) and cool, spacious lower levels (high light cost).
+*   *Emergence:* Players must design "light wells" (vertical shafts) that act as both ventilation and illumination, creating a dual-purpose architectural puzzle.
+
+**3. IS IT FUN?**
+**Yes.** It creates a tactile "flicker" effect. The joy comes from the *visual* change in the cavern as torches burn down, and the *tactile* satisfaction of placing a reflective crystal to boost light range. It avoids spreadsheet micromanagement by making light a visual, immediate feedback loop.
+
+---
 
 ### Era 1: Medieval Strata Fortification
-*   **Core Mechanics:** Stone masonry, gravity aqueducts, mushroom brewing taverns, structural arches.
-*   **1. CAN I ADD MORE DEPTH?**
-    *   *Yes.* Introduce **Load-Bearing Visualization** and **Fermentation Time-Compression**.
-    *   *Mechanic:* Arches are not just "walls"; they are stress vectors. If an arch is too thin, it doesn't just collapse; it *sags*, changing the height of the room, which affects light penetration and air circulation.
-*   **2. IF SO, WHY?**
-    *   *Causality:* Sagging arches reduce ceiling height. Lower ceilings trap heat from the tavern. Heat accelerates mushroom fermentation. Faster fermentation yields more beer. More beer boosts pawn mood. Mood boosts work speed. Work speed clears more rock.
-    *   *Emergence:* The architecture *is* the gameplay. You aren't placing blocks; you are sculpting airflow and light.
-*   **3. IS IT FUN?**
-    *   *Yes.* Watching a sagging arch slowly correct itself when a new support is added is visually satisfying. The "beer loop" provides a steady, rhythmic dopamine hit from production.
+*Current State:* Stone masonry, gravity aqueducts, mushroom brewing.
+
+**1. CAN I ADD MORE DEPTH?**
+Yes. Introduce **Hydraulic Head Pressure & Masonry Stress**.
+*   *Mechanic:* Aqueducts are not just "on/off." They have pressure ratings. Too much pressure bursts pipes; too little causes stagnation (mold growth).
+*   *Structural:* Arches have load-bearing limits based on stone quality (granite vs. sandstone).
+
+**2. IF SO, WHY?**
+*   *Causality:* This links geology (Era 0) to engineering (Era 1). Sandstone is easy to mine but weak under pressure; Granite is hard to mine but holds pressure. This forces trade-offs in mining location.
+*   *Emergence:* A "burst" isn't just a loss; it floods the lower level, potentially creating a new micro-biome (mossy floor) that changes pawn movement speed.
+
+**3. IS IT FUN?**
+**Yes.** The "pop" of a bursting pipe and the subsequent flood is visceral. Watching water cascade through a designed aqueduct system is satisfying (like Factorio belts). The stress of a near-burst creates tension. It’s not a spreadsheet; it’s a physical puzzle.
+
+---
 
 ### Era 2: Industrial Subterranean Mechanization
-*   **Core Mechanics:** Steam boilers, conveyors, inserters, shockwave pistons, mining elevators.
-*   **1. CAN I ADD MORE DEPTH?**
-    *   *Yes.* Introduce **Vibration Resonance** and **Pressure Differential Logistics**.
-    *   *Mechanic:* Conveyor belts vibrate. If two belts are parallel and close, their vibrations interfere, causing items to "jump" or jam. Shockwave pistons create pressure waves that push air through shafts, cooling or heating specific zones.
-*   **2. IF SO, WHY?**
-    *   *Causality:* Vibration interference forces players to optimize belt spacing (a puzzle). Pressure waves from pistons can be used to "blow" items into distant chests without direct contact, creating a "pneumatic" layer of logistics.
-    *   *Emergence:* A jam in Belt A causes a pressure drop in Shaft B, which slows the elevator, which delays the coal delivery to the boiler, which reduces steam pressure, which slows the piston. A cascade failure.
-*   **3. IS IT FUN?**
-    *   *Yes.* The "click-clack" of belts and the "hiss" of pistons are iconic. Solving a jam by adjusting spacing feels like tuning an engine. The cascade failures are dramatic and require quick, intuitive fixes.
+*Current State:* Steam boilers, conveyors, inserters, shockwave pistons.
+
+**1. CAN I ADD MORE DEPTH?**
+Yes. Introduce **Vibration Resonance & Conveyor Inertia**.
+*   *Mechanic:* Heavy machinery causes ground vibration. Vibration affects nearby structures (e.g., loose stones fall from ceilings). Conveyors have "inertia" – stopping them isn't instant; items slide.
+*   *Logistics:* Inserters have "jam probability" based on item stack density.
+
+**2. IF SO, WHY?**
+*   *Causality:* Vibration creates a "ripple effect" across the map. A large piston in Sector A causes a minor tremor in Sector B, dislodging a stone that blocks a conveyor. This forces players to think in *waves* of time and space.
+*   *Emergence:* Inertia makes conveyor layout a timing puzzle. Players must anticipate gaps in item flow.
+
+**3. IS IT FUN?**
+**Yes.** The rhythmic *clank-clank-clank* of pistons and the smooth flow of items are highly satisfying (ASMR-like). The "jam" mechanic adds a small, frequent dopamine hit when resolved. It avoids spreadsheet fatigue because the feedback is visual and auditory, not numerical.
+
+---
 
 ### Era 3: Spacer High-Tech Cybernetics
-*   **Core Mechanics:** SOEC electrolysis, Tokamak fusion, bionics, cryogenic stasis, energy shielding.
-*   **1. CAN I ADD MORE DEPTH?**
-    *   *Yes.* Introduce **Thermal Gradient Storage** and **Bionic Synchronization**.
-    *   *Mechanic:* Fusion reactors produce heat. This heat is not wasted; it is stored in phase-change materials (PCM) in the walls. Bionic pawns sync their processing speeds to the reactor's pulse, creating a "heartbeat" rhythm for the colony.
-*   **2. IF SO, WHY?**
-    *   *Causality:* The reactor's pulse dictates the speed of all bionic pawns. If the reactor is unstable, pawns stutter. If the reactor is stable, pawns move in perfect unison, increasing efficiency. The PCM walls glow with stored heat, providing light and warmth.
-    *   *Emergence:* The colony becomes a single organism. The "heartbeat" of the reactor is the metronome for all actions. Players must tune the reactor to match the desired pace of the colony.
-*   **3. IS IT FUN?**
-    *   *Yes.* The visual of glowing walls and synchronized pawn movements is hypnotic. The "heartbeat" mechanic provides a clear, auditory cue for system health. It feels like operating a living machine.
+*Current State:* SOEC electrolysis, Tokamak fusion, bionics, cryogenic stasis.
+
+**1. CAN I ADD MORE DEPTH?**
+Yes. Introduce **Thermal Coupling & Bionic Latency**.
+*   *Mechanic:* Fusion reactors generate waste heat. This heat can be *directly* piped to SOEC electrolysis (higher temp = faster O2). Bionic pawns have "processing lag" – they process data faster but miss subtle environmental cues (like a small leak).
+*   *Stasis:* Cryogenic stasis slows time but increases "wake-up disorientation" (temporary stat penalty).
+
+**2. IF SO, WHY?**
+*   *Causality:* This creates a "closed-loop" efficiency challenge. Players must optimize the *flow* of energy and matter, not just the count. Bionic latency forces a mix of organic and synthetic pawns for optimal coverage.
+*   *Emergence:* A "perfect" fusion reactor might overheat the adjacent O2 plant if not balanced. This creates a "tuning" puzzle.
+
+**3. IS IT FUN?**
+**Yes.** The "tuning" of thermal flows is like solving a complex but elegant equation visually. The hum of the Tokamak and the glow of the bionics provide strong sensory feedback. The disorientation mechanic adds a brief, manageable cognitive load that feels like "waking up," which is immersive.
+
+---
 
 ### Era 4: Deep Mantle Archotech & Transcendence
-*   **Core Mechanics:** Superconducting busbars, hydraulic core hydrofracturing, harmonic resonance miners, ascension monolith.
-*   **1. CAN I ADD MORE DEPTH?**
-    *   *Yes.* Introduce **Non-Local Causality** and **Harmonic Field Effects**.
-    *   *Mechanic:* The Ascension Monolith creates a field where time is compressed. Items crafted within the field age instantly. Harmonic miners vibrate at a frequency that shatters rock *and* aligns crystal lattices, creating perfect geometric structures.
-*   **2. IF SO, WHY?**
-    *   *Causality:* Time compression allows for rapid iteration of prototypes. Harmonic resonance creates structures that are stronger than their material sum. The monolith's field interacts with the PCM walls from Era 3, causing them to "sing" and release energy in bursts.
-    *   *Emergence:* The colony transcends linear time. Players see "ghosts" of future states (e.g., a wall that will be built in 10 ticks appears as a faint outline). This allows for pre-planning without micromanagement.
-*   **3. IS IT FUN?**
-    *   *Yes.* The "ghost" previews are intuitive and reduce cognitive load. The singing walls and geometric perfection provide a sense of awe and completion. It feels like unlocking a higher plane of existence.
+*Current State:* Superconducting busbars, hydraulic core hydrofracturing, harmonic resonance miners.
+
+**1. CAN I ADD MORE DEPTH?**
+Yes. Introduce **Harmonic Interference & Quantum Entanglement of Resources**.
+*   *Mechanic:* Resonance miners create standing waves. If two miners are too close, they interfere (destructive interference = lower yield). Superconducting busbars have "quantum coherence" – they lose efficiency if the temperature fluctuates rapidly.
+*   *Ascension:* The "Ascension Monolith" doesn't just give points; it *rewrites* the rules of the previous eras (e.g., gravity becomes optional in certain zones).
+
+**2. IF SO, WHY?**
+*   *Causality:* This pushes the player into "meta-system" thinking. They must design the *geometry* of the mine to optimize wave patterns. Quantum coherence forces stable, slow changes rather than rapid toggling.
+*   *Emergence:* The map itself becomes a "instrument" that the player plays. The layout *is* the solution.
+
+**3. IS IT FUN?**
+**Yes, but with caution.** The visual patterns of standing waves and the "snap" of coherent busbars are beautiful. The "Ascension" moment should be a dramatic, cinematic shift in the UI and physics. It’s fun because it feels like "mastering" the system, not just managing it.
 
 ---
 
 ## 3. Subterranean Map Generation & Geological Stratification Depth
 
 ### 3.1 Geological Crust Stratification & Mineral Seams
-*   **1. CAN I ADD MORE DEPTH?**
-    *   *Yes.* Introduce **Seam Interference Patterns**.
-    *   *Mechanic:* Mineral seams are not just lines; they are interference patterns from tectonic shifts. A titanium seam might cross a coal seam, creating a "composite" node that yields both but requires a specific tool frequency.
-*   **2. IF SO, WHY?**
-    *   *Causality:* Composite nodes require players to switch tools rapidly, testing their mastery of the toolset. The interference pattern creates a visual puzzle (like a moiré pattern) that helps players identify high-value areas.
-*   **3. IS IT FUN?**
-    *   *Yes.* The visual patterns are beautiful and distinct. Switching tools feels snappy and responsive. Finding a composite node feels like discovering a hidden treasure.
+**1. CAN I ADD MORE DEPTH?**
+Yes. **Layered Porosity & Seam Connectivity.**
+*   *Mechanic:* Minerals are not isolated blocks. They form "veins" with varying porosity. High-porosity seams allow faster extraction but lower density. Low-porosity seams are dense but require higher-pressure drills.
+*   *Why:* Forces players to choose between "fast, shallow" mining and "slow, deep" mining.
+*   *Fun:* The visual "cracking" of rock and the "glimmer" of different minerals provide immediate feedback.
 
 ### 3.2 Organic Cavern Contours, Cellular Autotiling & Voronoi Topography
-*   **1. CAN I ADD MORE DEPTH?**
-    *   *Yes.* Introduce **Voronoi Cell Growth**.
-    *   *Mechanic:* Caverns are not static; they grow based on water flow. Voronoi cells expand or contract based on humidity levels, changing the map layout dynamically.
-*   **2. IF SO, WHY?**
-    *   *Causality:* Humidity changes with season or water source activity. The map "breathes." Players must adapt their base layout to the changing cell boundaries.
-*   **3. IS IT FUN?**
-    *   *Yes.* The breathing map is visually engaging. It forces players to think in terms of "zones" rather than fixed coordinates, enhancing spatial awareness.
+**1. CAN I ADD MORE DEPTH?**
+Yes. **Voronoi Cell Stability.**
+*   *Mechanic:* Caverns are generated using Voronoi diagrams. The "cell size" determines the number of pawns that can fit. Smaller cells = higher density but lower light penetration.
+*   *Why:* Creates a natural "packing problem" for the player.
+*   *Fun:* The organic, non-repetitive shapes are visually pleasing. Fitting pawns into cells feels like a satisfying puzzle.
 
 ### 3.3 Geotechnical Fault Lines, Subsidence & Overburden Stress Mechanics
-*   **1. CAN I ADD MORE DEPTH?**
-    *   *Yes.* Introduce **Stress Wave Propagation**.
-    *   *Mechanic:* Digging a hole creates a stress wave that travels through the rock. If it hits a fault line, it amplifies, causing a localized earthquake.
-*   **2. IF SO, WHY?**
-    *   *Causality:* Players must map fault lines to predict earthquake locations. This creates a "minesweeper" style of exploration where each dig reveals information about the next.
-*   **3. IS IT FUN?**
-    *   *Yes.* The "pop" of a stress wave and the subsequent rumble are satisfying. Predicting the next earthquake feels like solving a puzzle.
+**1. CAN I ADD MORE DEPTH?**
+Yes. **Dynamic Stress Propagation.**
+*   *Mechanic:* Excavating a block reduces stress on adjacent blocks. If stress exceeds a threshold, a "subsidence event" occurs (small collapse).
+*   *Why:* Makes mining a "timing" game. You must excavate in a specific order to maintain stability.
+*   *Fun:* The "thud" of a subsidence and the visual "settle" of the map are tactile. It’s like stacking blocks.
 
 ### 3.4 Subterranean Biomes & Extreme Environments
-*   **1. CAN I ADD MORE DEPTH?**
-    *   *Yes.* Introduce **Biome Cross-Pollination**.
-    *   *Mechanic:* Fungal spores from the Fungal Forest drift into the Hydrothermal Geyser zone, creating "Thermo-Fungi" that grow faster but are more fragile.
-*   **2. IF SO, WHY?**
-    *   *Causality:* Players must manage airflow to control spore drift. This creates a "garden" mechanic within the industrial zone.
-*   **3. IS IT FUN?**
-    *   *Yes.* The visual contrast between the dark fungal forest and the bright geyser is striking. Managing the "garden" feels like tending a living ecosystem.
+**1. CAN I ADD MORE DEPTH?**
+Yes. **Biome-Specific Pawn Adaptations.**
+*   *Mechanic:* Pawns develop traits based on the biome they spend the most time in (e.g., "Hydrothermal Tolerance" = faster movement in steam zones).
+*   *Why:* Encourages specialized colony layouts.
+*   *Fun:* Watching pawns "adapt" visually (e.g., skin color change) is engaging.
 
 ### 3.5 Multi-Z Vertical Topography & Fluid Dynamics
-*   **1. CAN I ADD MORE DEPTH?**
-    *   *Yes.* Introduce **Capillary Action Layers**.
-    *   *Mechanic:* Water rises in thin shafts via capillary action, creating "mist zones" that cool electronics. Magma sinks, creating "heat zones" that warm fungi.
-*   **2. IF SO, WHY?**
-    *   *Causality:* Players can use capillary shafts to cool specific components without pumps. This creates a "passive" layer of logistics.
-*   **3. IS IT FUN?**
-    *   *Yes.* The mist and heat visuals are atmospheric. Passive cooling feels elegant and efficient.
+**1. CAN I ADD MORE DEPTH?**
+Yes. **Capillary Action in Lightwells.**
+*   *Mechanic:* Water rises in narrow shafts via capillary action, affecting light refraction.
+*   *Why:* Links fluid dynamics to lighting.
+*   *Fun:* The shimmering effect of water in lightwells is beautiful.
 
 ---
 
 ## 4. Cross-Examining the Titans: RimWorld, Dwarf Fortress & Factorio Loops
 
-### 4.1 RimWorld Loops (Colonist Psychology, Room Impressiveness, Social Dynamics, Storyteller AI)
-*   **1. CAN I ADD MORE DEPTH?**
-    *   *Yes.* Introduce **Environmental Mood Resonance**.
-    *   *Mechanic:* Pawns' moods are affected by the *geometry* of the room. High ceilings = calm. Low ceilings = focused. Arches = stable.
-*   **2. IF SO, WHY?**
-    *   *Causality:* Players design rooms not just for function, but for psychological effect. This integrates architecture and psychology.
-*   **3. IS IT FUN?**
-    *   *Yes.* It makes the UI intuitive. A pawn's mood bar rises as the ceiling height increases. It feels like a direct, visual feedback loop.
+### 4.1 RimWorld Loops (Colonist Psychology)
+**1. CAN I ADD MORE DEPTH?**
+Yes. **Spatial Memory & Pathfinding Fatigue.**
+*   *Mechanic:* Pawns remember the "last 10 steps." If a path is blocked, they re-evaluate based on memory, not just current state.
+*   *Why:* Makes pathfinding feel more "human" and less algorithmic.
+*   *Fun:* The "hesitation" of pawns at junctions is charming.
 
-### 4.2 Dwarf Fortress Loops (Pressurized Fluids, Overburden Cave-Ins, Strange Moods, Localized Trauma)
-*   **1. CAN I ADD MORE DEPTH?**
-    *   *Yes.* Introduce **Trauma Echoes**.
-    *   *Mechanic:* A cave-in leaves a "scar" in the rock. Future digs near the scar are faster (loose rock) but riskier (unstable).
-*   **2. IF SO, WHY?**
-    *   *Causality:* The map remembers its history. Players must balance speed and stability.
-*   **3. IS IT FUN?**
-    *   *Yes.* The "scar" visual is distinct. The risk/reward calculation is simple but engaging.
+### 4.2 Dwarf Fortress Loops (Pressurized Fluids, Strange Moods)
+**1. CAN I ADD MORE DEPTH?**
+Yes. **Mood-Driven Efficiency.**
+*   *Mechanic:* A pawn’s mood directly affects their "processing speed" (not just a stat, but a visual speed change).
+*   *Why:* Links psychology to logistics.
+*   *Fun:* The "zoom" effect when a pawn is happy is satisfying.
 
-### 4.3 Factorio Loops (High-Throughput Logistics, Power Cascades, Vibration-Driven Hive Aggression)
-*   **1. CAN I ADD MORE DEPTH?**
-    *   *Yes.* Introduce **Harmonic Logistics**.
-    *   *Mechanic:* Belts vibrate at a frequency. If items are placed in sync with the vibration, they move faster.
-*   **2. IF SO, WHY?**
-    *   *Causality:* Players must time their placements. This adds a rhythm game element to logistics.
-*   **3. IS IT FUN?**
-    *   *Yes.* The rhythmic "click" of successful placements is satisfying. It turns logistics into a dance.
+### 4.3 Factorio Loops (High-Throughput Logistics)
+**1. CAN I ADD MORE DEPTH?**
+Yes. **Inertial Buffering.**
+*   *Mechanic:* Belts have "momentum." Stopping them causes items to slide.
+*   *Why:* Adds a physical layer to logistics.
+*   *Fun:* The "whoosh" of items sliding is tactile.
 
 ---
 
 ## 5. The 'Anti-Spreadsheet' Fun & Depth Scoring Matrix
 
-| Mechanic | Depth /10 | Fun /10 | Cognitive Overhead /10 | Feedback Mechanism | Verdict |
+| System | Depth /10 | Fun /10 | Cognitive Overhead /10 | Feedback Mechanism | Verdict |
 | :--- | :---: | :---: | :---: | :--- | :--- |
-| **Acoustic Propagation** | 8 | 9 | 3 | Visual shadow shift + Audio ping | **Keep.** High joy, low load. |
-| **Load-Bearing Sag** | 9 | 8 | 4 | Visual sag animation + Stress color | **Keep.** Tangible physics. |
-| **Vibration Resonance** | 7 | 8 | 5 | Belt speed change + Item jump | **Keep.** Rhythmic satisfaction. |
-| **Thermal Gradient Storage** | 8 | 9 | 4 | Wall glow intensity + Heat wave | **Keep.** Beautiful visuals. |
-| **Non-Local Causality** | 10 | 7 | 6 | Ghost previews + Time warp effect | **Keep.** Awe-inspiring. |
-| **Seam Interference** | 6 | 8 | 3 | Moiré pattern highlight | **Keep.** Visual puzzle. |
-| **Voronoi Growth** | 7 | 8 | 4 | Map breathing animation | **Keep.** Dynamic map. |
-| **Stress Wave Prop.** | 8 | 9 | 5 | Ripple effect + Rumble sound | **Keep.** Satisfying pops. |
-| **Biome Cross-Poll.** | 7 | 8 | 4 | Spore drift visual + Growth speed | **Keep.** Living ecosystem. |
-| **Capillary Action** | 6 | 7 | 3 | Mist/Heat visual + Temp change | **Keep.** Elegant passive logic. |
-| **Env. Mood Resonance** | 8 | 9 | 3 | Mood bar sync with ceiling height | **Keep.** Intuitive UI. |
-| **Trauma Echoes** | 7 | 8 | 4 | Scar visual + Dig speed change | **Keep.** Historical depth. |
-| **Harmonic Logistics** | 8 | 9 | 5 | Rhythmic click + Speed boost | **Keep.** Dance-like flow. |
-
-**Average Depth:** 7.8
-**Average Fun:** 8.3
-**Average Cognitive Overhead:** 4.1
-
-**Conclusion:** The proposed mechanics maintain a high Fun-to-Overhead ratio. The "Spreadsheet Trap" is avoided by using visual and auditory cues for feedback.
+| **Light Decay** | 7 | 9 | 2 | Visual flicker, pawn speed change | **High Priority.** Immediate, visual, low overhead. |
+| **Hydraulic Pressure** | 8 | 8 | 4 | Pipe burst animation, water level rise | **High Priority.** Physical, satisfying "pop." |
+| **Vibration Resonance** | 9 | 7 | 5 | Screen shake, item slide | **Medium Priority.** Good for Era 2, but can be noisy. |
+| **Thermal Coupling** | 9 | 6 | 6 | Color shift in UI, speed change | **Medium Priority.** Elegant, but requires focus. |
+| **Harmonic Interference** | 10 | 8 | 7 | Wave pattern visualization, yield graph | **High Priority.** The "puzzle" core of Era 4. |
+| **Spatial Memory** | 6 | 7 | 3 | Pawn hesitation animation | **Low Priority.** Nice-to-have, but subtle. |
+| **Mood Efficiency** | 7 | 8 | 4 | Pawn zoom/speed change | **High Priority.** Links psychology to logistics. |
 
 ---
 
 ## 6. Prioritized C++20 Module Backlog for Next Engineering Sprints
 
-1.  **Module `GeoVoronoi` (Era 0/Map Gen):**
-    *   Implement cellular autotiling with dynamic humidity-based growth.
-    *   *Priority:* High. Core map generation.
-2.  **Module `AcousticShadow` (Era 0):**
-    *   Raycast lighting with hard shadows and micro-fauna detection.
-    *   *Priority:* High. Immediate visual feedback.
-3.  **Module `StressVector` (Era 1):**
-    *   Calculate load-bearing sag and stress colors for arches.
-    *   *Priority:* Medium. Enhances architectural depth.
-4.  **Module `VibrationSync` (Era 2):**
-    *   Implement belt vibration interference and item jumping.
-    *   *Priority:* Medium. Logistics optimization.
-5.  **Module `ThermalPCM` (Era 3):**
-    *   Phase-change material storage and glow effects.
-    *   *Priority:* Medium. Visual and functional integration.
-6.  **Module `HarmonicField`
+1.  **Module: `LightDecaySystem` (Era 0)**
+    *   *Task:* Implement non-linear light attenuation and pawn speed modifiers based on light level.
+    *   *Why:* Immediate visual feedback, low complexity.
+
+2.  **Module: `HydraulicPressureSim` (Era 1)**
+    *   *Task:* Add pressure ratings to aqueducts and burst mechanics.
+    *   *Why:* Physical, satisfying interactions.
+
+3.  **Module: `VibrationResonance` (Era 2)**
+    *   *Task:* Implement wave propagation from machinery and item inertia on belts.
+    *   *Why:* Adds tactile feel to logistics.
+
+4.  **Module: `ThermalCoupling` (Era 3)**
+    *   *Task:* Link fusion reactor heat output to SOEC efficiency.
+    *   *Why:* Elegant, closed-loop optimization.
+
+5.  **Module: `HarmonicGeometry` (Era 4)**
+    *   *Task:* Implement standing wave interference patterns for resonance miners.
+    *   *Why:* The core "puzzle" of the late game.
+
+6.  **Module: `MoodEfficiencyLink` (Cross-Era)**
+    *   *Task:* Directly link pawn mood to processing speed and pathfinding hesitation.
+    *   *Why:* Unifies psychology and logistics.
+
+**Final Note:** The key to depth in *Project Deep-Mantle* is **causal density**. Every mechanic should ripple through the system. Avoid isolated stats. Make the map *alive* through light, water, and vibration. This transforms the spreadsheet into a living, breathing organism.
