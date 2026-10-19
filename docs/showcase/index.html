@@ -1732,6 +1732,7 @@
                 <button id="btn-overlay-pawns" class="btn-toggle active" onclick="toggleLocalPawnsOverlay()">PAWNS</button>
                 <button id="btn-overlay-hazards" class="btn-toggle" onclick="toggleLocalHazardsOverlay()">HAZARDS</button>
                 <button id="btn-overlay-ores" class="btn-toggle" onclick="toggleLocalOresOverlay()">MINERALS</button>
+                <button id="btn-overlay-collision" class="btn-toggle active" onclick="toggleLocalCollisionOverlay()">COLLISION</button>
             </div>
 
             <div class="control-group">
@@ -3813,7 +3814,157 @@
         }
 
         // =========================================================================
-        // PROCEDURAL LOCAL COLONY EMBARKATION ENGINE (WORLD-TO-LOCAL TRANSLATION)
+        // =========================================================================
+        // MODULAR ASSET COLLISION SYSTEM (MIRRORS C++ ezColonyCollisionModule)
+        // =========================================================================
+        const CollisionLayer = {
+            Terrain:   1 << 0, // 1: Impassable cavern walls & bedrock
+            Structure: 1 << 1, // 2: Reinforced doors, bulkheads, barriers
+            Machinery: 1 << 2, // 4: Industrial generators, smelters, turbines
+            Furniture: 1 << 3, // 8: Tables, workbenches, shelves
+            Hazard:    1 << 4, // 16: Molten lava, toxic gas, cryo breaches
+            Pawn:      1 << 5, // 32: Colonists & humanoids
+            Wildlife:  1 << 6  // 64: Subterranean wildlife & fauna
+        };
+
+        const CollisionResponse = {
+            Impassable: "IMPASSABLE", // Complete physical block
+            Hazardous:  "HAZARDOUS",  // Severe damage ticks on contact
+            Slow:       "SLOW",       // Movement penalty
+            Cover:      "COVER",      // Directional ballistic cover
+            Passable:   "PASSABLE"    // Sensor / line-of-sight clear
+        };
+
+        class ColonyCollisionSystem {
+            constructor() {
+                this.colliders = [];
+            }
+
+            clear() {
+                this.colliders = [];
+            }
+
+            addBox(id, name, x, y, w, h, layer, response) {
+                this.colliders.push({
+                    id, name, shape: 'BOX',
+                    x, y, w, h,
+                    minX: x, minY: y, maxX: x + w, maxY: y + h,
+                    layer, response
+                });
+            }
+
+            addCircle(id, name, cx, cy, radius, layer, response) {
+                this.colliders.push({
+                    id, name, shape: 'CIRCLE',
+                    cx, cy, radius,
+                    minX: cx - radius, minY: cy - radius, maxX: cx + radius, maxY: cy + radius,
+                    layer, response
+                });
+            }
+
+            // High-precision Bresenham spatial raycast
+            raycast(x0, y0, x1, y1, layerMask = 0xFFFF) {
+                const dx = x1 - x0;
+                const dy = y1 - y0;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist === 0) return null;
+
+                const steps = Math.ceil(dist * 6);
+                const stepX = dx / steps;
+                const stepY = dy / steps;
+
+                for (let i = 1; i <= steps; i++) {
+                    const rx = x0 + stepX * i;
+                    const ry = y0 + stepY * i;
+
+                    for (const col of this.colliders) {
+                        if (!(col.layer & layerMask)) continue;
+
+                        if (col.shape === 'BOX') {
+                            if (rx >= col.minX && rx <= col.maxX && ry >= col.minY && ry <= col.maxY) {
+                                return {
+                                    hit: true,
+                                    hitX: rx,
+                                    hitY: ry,
+                                    dist: (i / steps) * dist,
+                                    collider: col
+                                };
+                            }
+                        } else if (col.shape === 'CIRCLE') {
+                            const cdx = rx - col.cx;
+                            const cdy = ry - col.cy;
+                            if (cdx * cdx + cdy * cdy <= col.radius * col.radius) {
+                                return {
+                                    hit: true,
+                                    hitX: rx,
+                                    hitY: ry,
+                                    dist: (i / steps) * dist,
+                                    collider: col
+                                };
+                            }
+                        }
+                    }
+                }
+                return null;
+            }
+
+            queryCell(gx, gy) {
+                return this.colliders.filter(c => {
+                    if (c.shape === 'BOX') return (gx >= c.minX && gx < c.maxX && gy >= c.minY && gy < c.maxY);
+                    if (c.shape === 'CIRCLE') return (Math.abs(gx + 0.5 - c.cx) < c.radius && Math.abs(gy + 0.5 - c.cy) < c.radius);
+                    return false;
+                });
+            }
+
+            syncSceneColliders() {
+                this.clear();
+                if (!localColonyGrid || !localColonyGrid.length) return;
+
+                // 1. Terrain Walls & Hazards
+                for (let y = 0; y < LOCAL_MAP_SIZE; y++) {
+                    for (let x = 0; x < LOCAL_MAP_SIZE; x++) {
+                        const cell = localColonyGrid[y][x];
+                        if (cell.isWall) {
+                            this.addBox(`wall_${x}_${y}`, cell.terrain, x, y, 1, 1, CollisionLayer.Terrain, CollisionResponse.Impassable);
+                        } else if (cell.isLava) {
+                            this.addBox(`magma_${x}_${y}`, "Liquid Magma", x, y, 1, 1, CollisionLayer.Hazard, CollisionResponse.Hazardous);
+                        }
+                    }
+                }
+
+                // 2. Deployed Machinery / Industrial Buildings
+                DEPLOYED_BUILDINGS.forEach(bld => {
+                    this.addBox(`bld_${bld.key}`, bld.name, bld.x, bld.y, bld.w, bld.h, CollisionLayer.Machinery, CollisionResponse.Impassable);
+                });
+
+                // 3. Deployed Furniture
+                DEPLOYED_FURNITURE.forEach(furn => {
+                    this.addBox(`furn_${furn.key}`, furn.key, furn.x, furn.y, furn.w, furn.h, CollisionLayer.Furniture, CollisionResponse.Cover);
+                });
+
+                // 4. Colonists
+                DEPLOYED_COLONISTS.forEach((pawn, idx) => {
+                    this.addCircle(`pawn_${idx}`, pawn.name, pawn.x + 0.5, pawn.y + 0.5, 0.38, CollisionLayer.Pawn, CollisionResponse.Impassable);
+                });
+
+                // 5. Wildlife
+                DEPLOYED_WILDLIFE.forEach(animal => {
+                    this.addCircle(`animal_${animal.id}`, animal.name, animal.x + 0.5, animal.y + 0.5, 0.35, CollisionLayer.Wildlife, CollisionResponse.Slow);
+                });
+            }
+        }
+
+        const colonyCollisionSystem = new ColonyCollisionSystem();
+        let showLocalCollision = true;
+
+        function toggleLocalCollisionOverlay() {
+            showLocalCollision = !showLocalCollision;
+            const btn = document.getElementById("btn-overlay-collision");
+            if (btn) btn.classList.toggle("active", showLocalCollision);
+            renderLocalColony();
+        }
+
+        // // PROCEDURAL LOCAL COLONY EMBARKATION ENGINE (WORLD-TO-LOCAL TRANSLATION)
         // =========================================================================
 
         const localCanvas = document.getElementById("local-colony-canvas");
@@ -3955,10 +4106,41 @@
                         }
                     }
 
+// Determine autotile wall prefix and floor wear variant
+                    let autoPrefix = null;
+                    if (isWall) {
+                        if (biome === "Ancient Precursor Vault Ruins" || terrain.includes("plasteel")) {
+                            autoPrefix = "wall_plasteel";
+                        } else if (biome === "Molten Magma Chasm" || terrain.includes("obsidian")) {
+                            autoPrefix = "wall_obsidian";
+                        } else if (biome === "Cryo-Glacial Permafrost Shelf" || terrain.includes("cryo")) {
+                            autoPrefix = "wall_cryo";
+                        } else if (biome === "Geothermal Sulfur Fumaroles" || terrain.includes("granite") || terrain.includes("pumice") || terrain.includes("limestone")) {
+                            autoPrefix = "wall_granite";
+                        } else {
+                            autoPrefix = "wall_basalt";
+                        }
+                    }
+
+                    const floorVar = (x * 7 + y * 13 + currentSeed) % 4;
+                    let floorSpriteKey = "floor_basalt_v" + floorVar;
+                    if (isAlloy || terrain.includes("alloy") || terrain.includes("plating")) {
+                        floorSpriteKey = "floor_plating_v" + floorVar;
+                    } else if (terrain.includes("sulfur")) {
+                        floorSpriteKey = "floor_sulfur_v" + floorVar;
+                    } else if (terrain.includes("spore") || terrain.includes("humus")) {
+                        floorSpriteKey = "floor_spore_v" + floorVar;
+                    } else if (isIce || terrain.includes("cryo") || terrain.includes("ice")) {
+                        floorSpriteKey = "floor_cryo";
+                    }
+
                     localColonyGrid[y][x] = {
                         x, y,
                         terrain,
                         isWall,
+                        isAuto: isWall,
+                        autoPrefix: autoPrefix,
+                        floorSpriteKey: floorSpriteKey,
                         isLava,
                         isWater,
                         isIce,
@@ -3967,11 +4149,12 @@
                         hasFoliage,
                         elevation: Math.floor(elevation * 300),
                         temp: ((currentSectorHeat * 60 - 10) + (isLava ? 45 : isIce ? -15 : 0)).toFixed(1),
-                        walkSpeed: isWall ? 0 : isLava ? 20 : isWater ? 40 : isIce ? 70 : 100
+                        walkSpeed: isWall ? 0 : isLava ? 0 : isWater ? 35 : isIce ? 70 : 100
                     };
                 }
             }
 
+            colonyCollisionSystem.syncSceneColliders();
             renderLocalColony();
         }
 
@@ -4136,6 +4319,9 @@
         // =========================================================================
         // PRELOADED TACTILE TILESET SPRITES & 16-BIT AUTOTILER CACHE
         // =========================================================================
+        // =========================================================================
+        // PRELOADED TACTILE TILESET SPRITES & 16-BIT AUTOTILER CACHE
+        // =========================================================================
         const TILE_SPRITE_CACHE = {};
         function preloadTileSprite(key, src) {
             const img = new Image();
@@ -4173,12 +4359,26 @@
             preloadTileSprite(`liquid_sludge_${f}`, `Tiles/tile_liquid_sludge_${f}.png`);
         }
 
-        // 16-tile orthogonal autotile bitmasks
+        // 16-tile orthogonal autotile bitmasks (Walls, Pipes, Conduits, Shores)
         for (let m = 0; m < 16; m++) {
             preloadTileSprite(`wall_basalt_${m}`, `Tiles/tile_wall_basalt_${m}.png`);
             preloadTileSprite(`wall_plasteel_${m}`, `Tiles/tile_wall_plasteel_${m}.png`);
+            preloadTileSprite(`wall_obsidian_${m}`, `Tiles/tile_wall_obsidian_${m}.png`);
+            preloadTileSprite(`wall_cryo_${m}`, `Tiles/tile_wall_cryo_${m}.png`);
+            preloadTileSprite(`wall_granite_${m}`, `Tiles/tile_wall_granite_${m}.png`);
             preloadTileSprite(`pipe_steam_${m}`, `Tiles/tile_pipe_steam_${m}.png`);
             preloadTileSprite(`conduit_power_${m}`, `Tiles/tile_conduit_power_${m}.png`);
+            preloadTileSprite(`liquid_magma_shore_${m}`, `Tiles/liquid_magma_shore_${m}.png`);
+            preloadTileSprite(`liquid_water_shore_${m}`, `Tiles/liquid_water_shore_${m}.png`);
+        }
+
+        // Floor Wear & Breakup Variants (v0..v3)
+        for (let v = 0; v < 4; v++) {
+            preloadTileSprite(`floor_basalt_v${v}`, `Tiles/tile_floor_basalt_v${v}.png`);
+            preloadTileSprite(`floor_plating_v${v}`, `Tiles/tile_floor_metal_plating_v${v}.png`);
+            preloadTileSprite(`floor_sulfur_v${v}`, `Tiles/tile_floor_sulfur_v${v}.png`);
+            preloadTileSprite(`floor_spore_v${v}`, `Tiles/tile_floor_spore_turf_v${v}.png`);
+            preloadTileSprite(`floor_hazard_v${v}`, `Tiles/tile_floor_hazard_v${v}.png`);
         }
 
         // Colony Furniture & Room Decor
@@ -4391,6 +4591,16 @@
                 statusStr += ` · <span style="color: var(--accent-cyan); font-weight: bold;">[COLONIST: ${archName} (${tierNames[currentTier]})]</span>`;
             }
             const hitAnimal = DEPLOYED_WILDLIFE.find(a => Math.round(a.x) === gx && Math.round(a.y) === gy);
+                        // Real-time modular collision query
+            const cellCols = colonyCollisionSystem.queryCell(gx, gy);
+            if (cellCols.length > 0) {
+                const c = cellCols[0];
+                const colColor = (c.response === 'IMPASSABLE') ? 'var(--accent-red)' : (c.response === 'HAZARDOUS') ? 'var(--accent-amber)' : 'var(--accent-cyan)';
+                statusStr += ` • <span style="color: ${colColor}; font-weight: bold;">[COLLIDER: ${c.response} // ${c.name.toUpperCase()}]</span>`;
+            } else {
+                statusStr += ` • <span style="color: var(--accent-green);">[COLLIDER: PASSABLE]</span>`;
+            }
+
             if (hitAnimal) {
                 statusStr += ` · <span style="color: #d946ef; font-weight: bold;">[WILDLIFE: ${hitAnimal.name} (${hitAnimal.state})]</span>`;
             }
@@ -4460,7 +4670,7 @@
                 soil: "#3f3f46"
             };
 
-            // 1. Draw Terrain Layer
+            // 1. Draw Terrain Layer (Pixel-Art Autotiles, Fluid Shores, 3D Cliff Facades & Drop Shadows)
             for (let y = 0; y < LOCAL_MAP_SIZE; y++) {
                 for (let x = 0; x < LOCAL_MAP_SIZE; x++) {
                     const cell = localColonyGrid[y][x];
@@ -4469,147 +4679,188 @@
 
                     if (px + cellSize < 0 || px > cw || py + cellSize < 0 || py > ch) continue;
 
-                    let fill = terrainColors[cell.terrain] || "#2d3039";
-
-                    // Dynamic animation for fluid surfaces
-                    if (cell.isLava) {
-                        const pulse = Math.sin(localAnimationTick * 0.1 + (x + y) * 0.6) * 25;
-                        fill = `rgb(${235 + pulse * 0.8}, ${100 + pulse}, 24)`;
-                    } else if (cell.isWater) {
-                        const wave = Math.sin(localAnimationTick * 0.08 + x * 0.5) * 20;
-                        fill = `rgb(2, ${132 + wave}, ${205 + wave * 0.5})`;
-                    } else if (cell.isAlloy) {
-                        const pulse = (Math.sin(localAnimationTick * 0.05 + (x * y) * 0.15) > 0.65) ? 35 : 0;
-                        fill = `rgb(${25 + pulse * 0.2}, ${35 + pulse * 0.8}, ${55 + pulse})`;
-                    }
-
-                    // 1. Try to render real Deep-Mantle pixel-art sprite
                     let drawnSprite = false;
 
-                    // A. 16-Tile Orthogonal Autotile Networks (Walls, Pipes, Conduits)
-                    if (cell.isAuto && cell.autoPrefix) {
-                        const hasN = (y > 0 && localColonyGrid[y-1][x].autoPrefix === cell.autoPrefix);
-                        const hasE = (x < LOCAL_MAP_SIZE - 1 && localColonyGrid[y][x+1].autoPrefix === cell.autoPrefix);
-                        const hasS = (y < LOCAL_MAP_SIZE - 1 && localColonyGrid[y+1][x].autoPrefix === cell.autoPrefix);
-                        const hasW = (x > 0 && localColonyGrid[y][x-1].autoPrefix === cell.autoPrefix);
+                    // =========================================================
+                    // A. SUBTERRANEAN ROCK WALLS (16-Tile Autotiles + 3D Cliff Facades)
+                    // =========================================================
+                    if (cell.isWall) {
+                        const hasN = (y > 0 && localColonyGrid[y-1][x].isWall);
+                        const hasE = (x < LOCAL_MAP_SIZE - 1 && localColonyGrid[y][x+1].isWall);
+                        const hasS = (y < LOCAL_MAP_SIZE - 1 && localColonyGrid[y+1][x].isWall);
+                        const hasW = (x > 0 && localColonyGrid[y][x-1].isWall);
                         const mask = (hasN ? 1 : 0) | (hasE ? 2 : 0) | (hasS ? 4 : 0) | (hasW ? 8 : 0);
-                        const autoImg = TILE_SPRITE_CACHE[`${cell.autoPrefix}_${mask}`];
+                        const prefix = cell.autoPrefix || "wall_basalt";
+                        const autoImg = TILE_SPRITE_CACHE[`${prefix}_${mask}`] || TILE_SPRITE_CACHE[`wall_basalt_${mask}`] || TILE_SPRITE_CACHE["wall_basalt"];
+
                         if (autoImg && autoImg.complete && autoImg.naturalWidth > 0) {
                             localCtx.drawImage(autoImg, px, py, cellSize + 0.5, cellSize + 0.5);
                             drawnSprite = true;
+                        } else {
+                            localCtx.fillStyle = "#18191f";
+                            localCtx.fillRect(px, py, cellSize + 0.5, cellSize + 0.5);
                         }
-                    } 
-                    // B. 4-Frame Animated Fluid Surfaces
-                    else if (cell.isLava || cell.terrain === "liquid_magma") {
+
+                        // Ore Vein Inclusions embedded in rock wall
+                        if (cell.oreType) {
+                            const veinImg = TILE_SPRITE_CACHE[`vein_${cell.oreType}`];
+                            if (veinImg && veinImg.complete && veinImg.naturalWidth > 0) {
+                                localCtx.drawImage(veinImg, px, py, cellSize + 0.5, cellSize + 0.5);
+                            }
+                        }
+
+                        // 1. South Rock Face Drop-Shadow & 3D Cliff Facade (casts shadow onto open floor below)
+                        if (!hasS) {
+                            localCtx.fillStyle = "rgba(5, 8, 14, 0.72)";
+                            localCtx.fillRect(px, py + cellSize * 0.72, cellSize, cellSize * 0.28);
+
+                            // Jagged cliff drop-shadow extending 5px down onto cavern floor
+                            localCtx.fillStyle = "rgba(0, 0, 0, 0.65)";
+                            localCtx.beginPath();
+                            localCtx.moveTo(px, py + cellSize);
+                            localCtx.lineTo(px + cellSize * 0.25, py + cellSize + 4);
+                            localCtx.lineTo(px + cellSize * 0.6, py + cellSize + 3);
+                            localCtx.lineTo(px + cellSize, py + cellSize + 5);
+                            localCtx.lineTo(px + cellSize, py + cellSize);
+                            localCtx.closePath();
+                            localCtx.fill();
+                        }
+
+                        // 2. North Chiseled Ridge Light Highlight
+                        if (!hasN) {
+                            localCtx.fillStyle = "rgba(255, 255, 255, 0.25)";
+                            localCtx.fillRect(px, py, cellSize, Math.max(1, cellSize * 0.12));
+                            localCtx.fillStyle = "rgba(255, 255, 255, 0.4)";
+                            localCtx.fillRect(px + cellSize * 0.2, py, cellSize * 0.25, 2);
+                            localCtx.fillRect(px + cellSize * 0.65, py, cellSize * 0.2, 2);
+                        }
+
+                        // 3. West Rim Highlight
+                        if (!hasW) {
+                            localCtx.fillStyle = "rgba(255, 255, 255, 0.15)";
+                            localCtx.fillRect(px, py, Math.max(1, cellSize * 0.08), cellSize);
+                        }
+
+                        // 4. East Drop Shadow
+                        if (!hasE) {
+                            localCtx.fillStyle = "rgba(0, 0, 0, 0.35)";
+                            localCtx.fillRect(px + cellSize - Math.max(1, cellSize * 0.1), py, Math.max(1, cellSize * 0.1), cellSize);
+                        }
+
+                        // 5. Outer Convex Corner Chamfers (Eliminates boxy 90-degree square corners)
+                        if (!hasN && !hasW) {
+                            localCtx.fillStyle = "rgba(5, 8, 14, 0.75)";
+                            localCtx.beginPath();
+                            localCtx.moveTo(px, py);
+                            localCtx.lineTo(px + 4, py);
+                            localCtx.lineTo(px, py + 4);
+                            localCtx.closePath();
+                            localCtx.fill();
+                        }
+                        if (!hasN && !hasE) {
+                            localCtx.fillStyle = "rgba(5, 8, 14, 0.75)";
+                            localCtx.beginPath();
+                            localCtx.moveTo(px + cellSize, py);
+                            localCtx.lineTo(px + cellSize - 4, py);
+                            localCtx.lineTo(px + cellSize, py + 4);
+                            localCtx.closePath();
+                            localCtx.fill();
+                        }
+                    }
+
+                    // =========================================================
+                    // B. FLUID SURFACES (MOLTEN MAGMA & AQUIFER WATER WITH 16-MASK SHORES)
+                    // =========================================================
+                    else if (cell.isLava || cell.terrain === "magma" || cell.terrain === "liquid_magma") {
                         const frame = Math.floor(localAnimationTick / 8) % 4;
                         const fluidImg = TILE_SPRITE_CACHE[`liquid_magma_${frame}`];
                         if (fluidImg && fluidImg.complete && fluidImg.naturalWidth > 0) {
                             localCtx.drawImage(fluidImg, px, py, cellSize + 0.5, cellSize + 0.5);
                             drawnSprite = true;
+                        } else {
+                            localCtx.fillStyle = "#f97316";
+                            localCtx.fillRect(px, py, cellSize + 0.5, cellSize + 0.5);
                         }
-                    } else if (cell.isWater || cell.terrain === "liquid_water") {
+
+                        // Shore autotiling: cooling obsidian crust meeting solid floor/wall
+                        const shoreN = (y > 0 && !localColonyGrid[y-1][x].isLava && localColonyGrid[y-1][x].terrain !== "magma");
+                        const shoreE = (x < LOCAL_MAP_SIZE - 1 && !localColonyGrid[y][x+1].isLava && localColonyGrid[y][x+1].terrain !== "magma");
+                        const shoreS = (y < LOCAL_MAP_SIZE - 1 && !localColonyGrid[y+1][x].isLava && localColonyGrid[y+1][x].terrain !== "magma");
+                        const shoreW = (x > 0 && !localColonyGrid[y][x-1].isLava && localColonyGrid[y][x-1].terrain !== "magma");
+                        const shoreMask = (shoreN ? 1 : 0) | (shoreE ? 2 : 0) | (shoreS ? 4 : 0) | (shoreW ? 8 : 0);
+
+                        if (shoreMask > 0) {
+                            const shoreImg = TILE_SPRITE_CACHE[`liquid_magma_shore_${shoreMask}`];
+                            if (shoreImg && shoreImg.complete && shoreImg.naturalWidth > 0) {
+                                localCtx.drawImage(shoreImg, px, py, cellSize + 0.5, cellSize + 0.5);
+                            }
+                            // Thermal glow bleed radiating onto adjacent ground
+                            localCtx.fillStyle = "rgba(255, 115, 0, 0.22)";
+                            localCtx.fillRect(px, py, cellSize, cellSize);
+                        }
+                    }
+                    else if (cell.isWater || cell.terrain === "river_water" || cell.terrain === "liquid_water") {
                         const frame = Math.floor(localAnimationTick / 8) % 4;
                         const fluidImg = TILE_SPRITE_CACHE[`liquid_water_${frame}`];
                         if (fluidImg && fluidImg.complete && fluidImg.naturalWidth > 0) {
                             localCtx.drawImage(fluidImg, px, py, cellSize + 0.5, cellSize + 0.5);
                             drawnSprite = true;
-                        }
-                    } else if (cell.terrain === "liquid_sludge" || cell.terrain === "acid_pool") {
-                        const frame = Math.floor(localAnimationTick / 8) % 4;
-                        const fluidImg = TILE_SPRITE_CACHE[`liquid_sludge_${frame}`];
-                        if (fluidImg && fluidImg.complete && fluidImg.naturalWidth > 0) {
-                            localCtx.drawImage(fluidImg, px, py, cellSize + 0.5, cellSize + 0.5);
-                            drawnSprite = true;
-                        }
-                    } 
-                    // C. Standard Floor, Wall & Ore Sprites
-                    else {
-                        const spriteKey = cell.terrain;
-                        const spriteImg = TILE_SPRITE_CACHE[spriteKey];
-                        if (spriteImg && spriteImg.complete && spriteImg.naturalWidth > 0) {
-                            localCtx.drawImage(spriteImg, px, py, cellSize + 0.5, cellSize + 0.5);
-                            drawnSprite = true;
-                        }
-                    }
-
-                    // Fallback to procedural vector shading if sprite not yet cached
-                    if (!drawnSprite) {
-                        localCtx.fillStyle = fill;
-                        localCtx.fillRect(px, py, cellSize + 0.5, cellSize + 0.5);
-
-                        // Floor cell sub-grid borders for authentic tactical grid feel
-                        if (!cell.isWall && !cell.isLava && !cell.isWater) {
-                            localCtx.strokeStyle = "rgba(255, 255, 255, 0.04)";
-                            localCtx.lineWidth = 0.5;
-                            localCtx.strokeRect(px, py, cellSize, cellSize);
-                        }
-
-                        // Wall 3D shading & bevels
-                        if (cell.isWall) {
-                            localCtx.fillStyle = "rgba(255, 255, 255, 0.18)";
-                            localCtx.fillRect(px, py, cellSize, cellSize * 0.22);
-                            localCtx.fillStyle = "rgba(0, 0, 0, 0.65)";
-                            localCtx.fillRect(px, py + cellSize * 0.75, cellSize, cellSize * 0.25);
-                            localCtx.strokeStyle = "rgba(0, 0, 0, 0.35)";
-                            localCtx.lineWidth = 1;
-                            localCtx.strokeRect(px, py, cellSize, cellSize);
-                        }
-                    }
-
-                    // Magma glowing bubbles
-                    if (cell.isLava && (x + y) % 3 === 0) {
-                        const bubble = Math.sin(localAnimationTick * 0.12 + x * 1.5) * (cellSize * 0.18);
-                        localCtx.fillStyle = "#fef08a";
-                        localCtx.beginPath();
-                        localCtx.arc(px + cellSize * 0.5, py + cellSize * 0.5, Math.max(1, cellSize * 0.2 + bubble), 0, Math.PI * 2);
-                        localCtx.fill();
-                    }
-
-                    // Precursor circuit runes
-                    if (cell.isAlloy && (x + y) % 3 === 0) {
-                        localCtx.fillStyle = "rgba(56, 189, 248, 0.6)";
-                        localCtx.fillRect(px + cellSize * 0.4, py, cellSize * 0.2, cellSize);
-                        localCtx.fillRect(px, py + cellSize * 0.4, cellSize, cellSize * 0.2);
-                    }
-
-                    // Flora
-                    if (cell.hasFoliage) {
-                        if (cell.hasFoliage.includes("purple")) {
-                            localCtx.fillStyle = "#c084fc";
-                            localCtx.beginPath();
-                            localCtx.arc(px + cellSize * 0.5, py + cellSize * 0.45, cellSize * 0.35, 0, Math.PI * 2);
-                            localCtx.fill();
-                            localCtx.fillStyle = "#e879f9";
-                            localCtx.fillRect(px + cellSize * 0.45, py + cellSize * 0.45, cellSize * 0.1, cellSize * 0.4);
                         } else {
-                            localCtx.fillStyle = "#34d399";
-                            localCtx.beginPath();
-                            localCtx.arc(px + cellSize * 0.5, py + cellSize * 0.45, cellSize * 0.3, 0, Math.PI * 2);
-                            localCtx.fill();
+                            localCtx.fillStyle = "#0284c7";
+                            localCtx.fillRect(px, py, cellSize + 0.5, cellSize + 0.5);
+                        }
+
+                        // Shore autotiling: wet stone shoreline meeting solid ground
+                        const shoreN = (y > 0 && !localColonyGrid[y-1][x].isWater && localColonyGrid[y-1][x].terrain !== "river_water");
+                        const shoreE = (x < LOCAL_MAP_SIZE - 1 && !localColonyGrid[y][x+1].isWater && localColonyGrid[y][x+1].terrain !== "river_water");
+                        const shoreS = (y < LOCAL_MAP_SIZE - 1 && !localColonyGrid[y+1][x].isWater && localColonyGrid[y+1][x].terrain !== "river_water");
+                        const shoreW = (x > 0 && !localColonyGrid[y][x-1].isWater && localColonyGrid[y][x-1].terrain !== "river_water");
+                        const shoreMask = (shoreN ? 1 : 0) | (shoreE ? 2 : 0) | (shoreS ? 4 : 0) | (shoreW ? 8 : 0);
+
+                        if (shoreMask > 0) {
+                            const shoreImg = TILE_SPRITE_CACHE[`liquid_water_shore_${shoreMask}`];
+                            if (shoreImg && shoreImg.complete && shoreImg.naturalWidth > 0) {
+                                localCtx.drawImage(shoreImg, px, py, cellSize + 0.5, cellSize + 0.5);
+                            }
                         }
                     }
 
-                    // Mineral Veins Overlay
-                    if (showLocalOres && cell.oreType) {
-                        const oreColors = { iron: "#f97316", titanium: "#e2e8f0", gold: "#fbbf24", plasteel: "#38bdf8", sulfur: "#eab308" };
-                        localCtx.fillStyle = oreColors[cell.oreType] || "#fff";
-                        localCtx.fillRect(px + cellSize * 0.25, py + cellSize * 0.25, cellSize * 0.5, cellSize * 0.5);
-                    }
+                    // =========================================================
+                    // C. SUBTERRANEAN CAVERN FLOOR (WEAR BREAKUP VARIANTS & TALUS SKIRTING)
+                    // =========================================================
+                    else {
+                        const floorKey = cell.floorSpriteKey || "floor_basalt_v0";
+                        const floorImg = TILE_SPRITE_CACHE[floorKey] || TILE_SPRITE_CACHE["floor_basalt"];
+                        if (floorImg && floorImg.complete && floorImg.naturalWidth > 0) {
+                            localCtx.drawImage(floorImg, px, py, cellSize + 0.5, cellSize + 0.5);
+                            drawnSprite = true;
+                        } else {
+                            localCtx.fillStyle = "#2d3039";
+                            localCtx.fillRect(px, py, cellSize + 0.5, cellSize + 0.5);
+                        }
 
-                    // Hazard Heatmap Overlay
-                    if (showLocalHazards) {
-                        if (cell.isLava || cell.temp > 50) {
-                            localCtx.fillStyle = "rgba(239, 68, 68, 0.4)";
-                            localCtx.fillRect(px, py, cellSize, cellSize);
-                        } else if (cell.isIce || cell.temp < 0) {
-                            localCtx.fillStyle = "rgba(56, 189, 248, 0.4)";
-                            localCtx.fillRect(px, py, cellSize, cellSize);
+                        // Natural Talus / Scree Rubble Skirting: loose rocks spilling from cliff base
+                        const hasWallN = (y > 0 && localColonyGrid[y-1][x].isWall);
+                        const hasWallW = (x > 0 && localColonyGrid[y][x-1].isWall);
+                        if (hasWallN) {
+                            const seedP = (x * 17 + y * 31) % 4;
+                            localCtx.fillStyle = "rgba(10, 15, 25, 0.55)";
+                            localCtx.fillRect(px + cellSize * 0.2 + seedP, py + 1, 2, 2);
+                            localCtx.fillRect(px + cellSize * 0.55, py + 2, 3, 2);
+                            localCtx.fillRect(px + cellSize * 0.8 - seedP, py + 1, 2, 1);
+                            localCtx.fillStyle = "rgba(255, 255, 255, 0.15)";
+                            localCtx.fillRect(px + cellSize * 0.55, py + 2, 1, 1);
+                        }
+                        if (hasWallW) {
+                            localCtx.fillStyle = "rgba(10, 15, 25, 0.45)";
+                            localCtx.fillRect(px + 1, py + cellSize * 0.35, 2, 2);
+                            localCtx.fillRect(px + 2, py + cellSize * 0.7, 1, 2);
                         }
                     }
                 }
             }
 
-            // 2. Draw Cleared Landing Zone Perimeter & Supply Crates
+                        // 2. Draw Cleared Landing Zone Perimeter & Supply Crates
             {
                 const lzX = 8 * cellSize - offsetX;
                 const lzY = 8 * cellSize - offsetY;
@@ -5113,7 +5364,108 @@
                 empShockwaveAlpha *= 0.94;
             }
 
-            // 5. Draw Hover Reticle on Local Grid
+
+// =========================================================================
+            // 4.5 DRAW MODULAR ASSET COLLISION HULLS & SPATIAL RAYCAST TRACERS
+            // =========================================================================
+            if (showLocalCollision) {
+                // A. Render Asset Collision Hulls
+                colonyCollisionSystem.colliders.forEach(col => {
+                    if (col.shape === 'BOX') {
+                        const bx = col.x * cellSize - offsetX;
+                        const by = col.y * cellSize - offsetY;
+                        const bw = col.w * cellSize;
+                        const bh = col.h * cellSize;
+
+                        if (bx + bw < 0 || bx > cw || by + bh < 0 || by > ch) return;
+
+                        if (col.layer === CollisionLayer.Terrain) {
+                            localCtx.strokeStyle = "rgba(239, 68, 68, 0.45)";
+                            localCtx.lineWidth = 1;
+                            localCtx.strokeRect(bx + 1, by + 1, bw - 2, bh - 2);
+                        } else if (col.layer === CollisionLayer.Hazard) {
+                            localCtx.strokeStyle = "rgba(249, 115, 22, 0.7)";
+                            localCtx.lineWidth = 1.5;
+                            localCtx.strokeRect(bx + 1, by + 1, bw - 2, bh - 2);
+                        } else if (col.layer === CollisionLayer.Machinery) {
+                            localCtx.fillStyle = "rgba(56, 189, 248, 0.15)";
+                            localCtx.fillRect(bx, by, bw, bh);
+                            localCtx.strokeStyle = "rgba(56, 189, 248, 0.9)";
+                            localCtx.lineWidth = 1.5;
+                            localCtx.strokeRect(bx, by, bw, bh);
+
+                            // Hull corner brackets
+                            localCtx.strokeStyle = "#38bdf8";
+                            localCtx.strokeRect(bx - 1, by - 1, 4, 4);
+                            localCtx.strokeRect(bx + bw - 3, by - 1, 4, 4);
+                            localCtx.strokeRect(bx - 1, by + bh - 3, 4, 4);
+                            localCtx.strokeRect(bx + bw - 3, by + bh - 3, 4, 4);
+                        } else if (col.layer === CollisionLayer.Furniture) {
+                            localCtx.strokeStyle = "rgba(168, 85, 247, 0.7)";
+                            localCtx.lineWidth = 1;
+                            localCtx.strokeRect(bx, by, bw, bh);
+                        }
+                    } else if (col.shape === 'CIRCLE') {
+                        const cx = col.cx * cellSize - offsetX;
+                        const cy = col.cy * cellSize - offsetY;
+                        const r = col.radius * cellSize;
+
+                        if (cx + r < 0 || cx - r > cw || cy + r < 0 || cy - r > ch) return;
+
+                        localCtx.beginPath();
+                        localCtx.arc(cx, cy, r, 0, Math.PI * 2);
+                        if (col.layer === CollisionLayer.Pawn) {
+                            localCtx.fillStyle = "rgba(34, 197, 94, 0.2)";
+                            localCtx.fill();
+                            localCtx.strokeStyle = "rgba(34, 197, 94, 0.9)";
+                            localCtx.lineWidth = 1.5;
+                            localCtx.stroke();
+                        } else if (col.layer === CollisionLayer.Wildlife) {
+                            localCtx.strokeStyle = "rgba(245, 158, 11, 0.8)";
+                            localCtx.lineWidth = 1;
+                            localCtx.stroke();
+                        }
+                    }
+                });
+
+                // B. Real-Time Spatial Line-Of-Sight Raycast Tracer from Lead Colonist to Hover Cell
+                if (DEPLOYED_COLONISTS.length > 0 && localHoverCell) {
+                    const lead = DEPLOYED_COLONISTS[0];
+                    const startX = lead.x + 0.5;
+                    const startY = lead.y + 0.5;
+                    const targetX = localHoverCell.x + 0.5;
+                    const targetY = localHoverCell.y + 0.5;
+
+                    const ray = colonyCollisionSystem.raycast(startX, startY, targetX, targetY, CollisionLayer.Terrain | CollisionLayer.Machinery);
+
+                    const sx = startX * cellSize - offsetX;
+                    const sy = startY * cellSize - offsetY;
+                    const endX = (ray ? ray.hitX : targetX) * cellSize - offsetX;
+                    const endY = (ray ? ray.hitY : targetY) * cellSize - offsetY;
+
+                    localCtx.beginPath();
+                    localCtx.moveTo(sx, sy);
+                    localCtx.lineTo(endX, endY);
+                    localCtx.lineWidth = 1.2;
+                    localCtx.setLineDash([3, 3]);
+                    localCtx.strokeStyle = ray ? "rgba(239, 68, 68, 0.85)" : "rgba(34, 197, 94, 0.75)";
+                    localCtx.stroke();
+                    localCtx.setLineDash([]);
+
+                    // Draw collision impact point marker
+                    if (ray) {
+                        localCtx.fillStyle = "#ef4444";
+                        localCtx.beginPath();
+                        localCtx.arc(endX, endY, 3.5, 0, Math.PI * 2);
+                        localCtx.fill();
+                        localCtx.strokeStyle = "#fff";
+                        localCtx.lineWidth = 1;
+                        localCtx.stroke();
+                    }
+                }
+            }
+
+                        // 5. Draw Hover Reticle on Local Grid
             if (localHoverCell) {
                 const px = localHoverCell.x * cellSize - offsetX;
                 const py = localHoverCell.y * cellSize - offsetY;
