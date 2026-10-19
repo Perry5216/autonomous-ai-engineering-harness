@@ -4294,6 +4294,30 @@
             return false;
         }
 
+        // Airborne drone collision test: blocked by solid bedrock and plasteel blast walls,
+        // but passes smoothly over low furniture (tables, chairs, desks, conveyors, crates)!
+        function isDroneBlockedByWall(x, y, radius = 0.35) {
+            if (x < 1.2 || x >= LOCAL_MAP_SIZE - 1.2 || y < 1.2 || y >= LOCAL_MAP_SIZE - 1.2) return true;
+            if (!localColonyGrid || !localColonyGrid.length) return false;
+
+            const minGX = Math.max(0, Math.floor(x - radius));
+            const maxGX = Math.min(LOCAL_MAP_SIZE - 1, Math.floor(x + radius));
+            const minGY = Math.max(0, Math.floor(y - radius));
+            const maxGY = Math.min(LOCAL_MAP_SIZE - 1, Math.floor(y + radius));
+
+            for (let gy = minGY; gy <= maxGY; gy++) {
+                for (let gx = minGX; gx <= maxGX; gx++) {
+                    const cell = localColonyGrid[gy][gx];
+                    // Solid rock walls and plasteel blast walls block drones!
+                    // Designated doorways (cell.isDoorway === true) allow drones to pass through!
+                    if (cell.isWall && !cell.isDoorway) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
         // // PROCEDURAL LOCAL COLONY EMBARKATION ENGINE (WORLD-TO-LOCAL TRANSLATION)
         // =========================================================================
 
@@ -4377,12 +4401,14 @@
         let DEPLOYED_FURNITURE = [];
         let DEPLOYED_CONVEYORS = [];
 
-        const DEPLOYED_DRONES = [
-            { key: "agronomy", spritePrefix: "drone_agronomy", name: "Aero-Harvest", x: 8.5, y: 13.5, baseX: 8.5, baseY: 13.5, state: "active", status: "SEEDING HYDRO", altitude: 1.2 },
-            { key: "sanitation", spritePrefix: "drone_sanitation", name: "Slag-Sweeper", x: 12.0, y: 10.5, baseX: 12.0, baseY: 10.5, state: "active", status: "SCRUBBING SLAG", altitude: 0.6 },
-            { key: "hauler", spritePrefix: "drone_hauler", name: "Sky-Skiff", x: 15.5, y: 10.0, baseX: 15.5, baseY: 10.0, state: "active", status: "HAULING STEEL", altitude: 1.6 },
-            { key: "sentry", spritePrefix: "drone_sentry_rover", name: "Tread-Warden", x: 18.0, y: 13.0, baseX: 18.0, baseY: 13.0, state: "active", status: "PERIMETER PATROL", altitude: 0 }
+        const BASE_DEPLOYED_DRONES = [
+            { key: "agronomy", spritePrefix: "drone_agronomy", name: "Aero-Harvest", x: 8.0, y: 14.5, baseX: 8.0, baseY: 14.5, vx: 0.018, vy: 0.012, state: "active", status: "SEEDING HYDRO", altitude: 1.2 },
+            { key: "sanitation", spritePrefix: "drone_sanitation", name: "Slag-Sweeper", x: 11.5, y: 10.0, baseX: 11.5, baseY: 10.0, vx: 0.020, vy: 0.015, state: "active", status: "SCRUBBING SLAG", altitude: 0.6 },
+            { key: "hauler", spritePrefix: "drone_hauler", name: "Sky-Skiff", x: 18.0, y: 11.0, baseX: 18.0, baseY: 11.0, vx: 0.024, vy: -0.016, state: "active", status: "HAULING STEEL", altitude: 1.6 },
+            { key: "sentry", spritePrefix: "drone_sentry_rover", name: "Tread-Warden", x: 17.5, y: 14.5, baseX: 17.5, baseY: 14.5, vx: 0.018, vy: 0.009, state: "active", status: "PERIMETER PATROL", altitude: 0 }
         ];
+
+        let DEPLOYED_DRONES = [];
 
         function rebuildColonyCompoundLayout() {
             const off = getCompoundOffset();
@@ -4390,14 +4416,15 @@
             DEPLOYED_BUILDINGS = BASE_DEPLOYED_BUILDINGS.map(b => ({ ...b, x: b.x + off.x, y: b.y + off.y }));
             DEPLOYED_FURNITURE = BASE_DEPLOYED_FURNITURE.map(f => ({ ...f, x: f.x + off.x, y: f.y + off.y }));
             DEPLOYED_CONVEYORS = BASE_DEPLOYED_CONVEYORS.map(cv => ({ ...cv, x: cv.x + off.x, y: cv.y + off.y }));
-            if (typeof DEPLOYED_DRONES !== 'undefined' && Array.isArray(DEPLOYED_DRONES)) {
-                DEPLOYED_DRONES.forEach(d => {
-                    if (d.key === "agronomy") { d.baseX = 8.5 + off.x; d.baseY = 13.5 + off.y; }
-                    else if (d.key === "sanitation") { d.baseX = 12.0 + off.x; d.baseY = 10.5 + off.y; }
-                    else if (d.key === "hauler") { d.baseX = 15.5 + off.x; d.baseY = 10.0 + off.y; }
-                    else if (d.key === "sentry") { d.baseX = 18.0 + off.x; d.baseY = 13.0 + off.y; }
-                });
-            }
+            DEPLOYED_DRONES = BASE_DEPLOYED_DRONES.map(d => ({
+                ...d,
+                x: d.x + off.x,
+                y: d.y + off.y,
+                baseX: d.baseX + off.x,
+                baseY: d.baseY + off.y,
+                vx: d.vx,
+                vy: d.vy
+            }));
         }
         rebuildColonyCompoundLayout();
 
@@ -6286,25 +6313,88 @@
                 });
             }
 
-            // 4.5 Draw Autonomous Drones & Mobile Defenses (Hovering, Work Tasks, Rogue Threat Lasers)
+            // 4.5 Draw Autonomous Drones & Mobile Defenses (Wall-Collision Aware & Flying Over Tables)
             const droneFrame = Math.floor(droneAnimTick) % 4;
-            DEPLOYED_DRONES.forEach((drone) => {
-                // Smooth hovering path motion
-                const hoverBob = (drone.altitude > 0) ? Math.sin((droneAnimTick * 3 + drone.baseX * 2)) * (cellSize * 0.08) : 0;
-                let curX = drone.baseX + Math.sin(localAnimationTick * 0.03 + drone.baseY) * 1.4;
-                let curY = drone.baseY + Math.cos(localAnimationTick * 0.025 + drone.baseX) * 0.9;
-                if (drone.key === 'sentry') {
-                    // Sentry rover patrols strictly along the open security perimeter corridor
-                    const off = getCompoundOffset();
-                    const t = (localAnimationTick * 0.015);
-                    curX = (17.5 + off.x) + Math.cos(t) * 1.8;
-                    curY = (14.5 + off.y) + Math.sin(t) * 0.7;
-                }
-                drone.x = curX;
-                drone.y = curY;
+            const isEmpActive = (droneNetworkState === 'EMP_REBOOTING');
 
-                const dx = curX * cellSize - offsetX;
-                const dy = curY * cellSize - offsetY;
+            DEPLOYED_DRONES.forEach((drone) => {
+                if (drone.x === undefined) drone.x = drone.baseX;
+                if (drone.y === undefined) drone.y = drone.baseY;
+                if (drone.vx === undefined) drone.vx = 0.018;
+                if (drone.vy === undefined) drone.vy = 0.014;
+
+                const hoverBob = (drone.altitude > 0 && !isEmpActive) 
+                    ? Math.sin((droneAnimTick * 3 + drone.x * 2)) * (cellSize * 0.08) 
+                    : 0;
+
+                // Physics update: only move if not disabled by EMP
+                if (!isEmpActive && drone.state !== 'idle') {
+                    const speedMultiplier = (drone.state === 'rogue' || droneNetworkState === 'ROGUE') ? 1.4 : 1.0;
+                    const stepVx = drone.vx * speedMultiplier;
+                    const stepVy = drone.vy * speedMultiplier;
+
+                    const droneRadius = (drone.altitude === 0) ? 0.42 : 0.35;
+                    const nextX = drone.x + stepVx;
+                    const nextY = drone.y + stepVy;
+
+                    // AIRBORNE DRONES (altitude > 0, Agronomy, Sanitation, Hauler):
+                    // - Fly freely OVER low furniture (tables, chairs, desks, conveyor belts, crates)
+                    // - CANNOT go through solid walls (cavern rock walls, plasteel blast walls)
+                    // - CAN pass through open doorway hatches (cell.isDoorway === true)
+                    //
+                    // GROUND VEHICLES (altitude === 0, Sentry Rover):
+                    // - Ground treads blocked by both walls AND solid furniture (tables, desks)
+                    const isBlockedFn = (drone.altitude > 0) ? isDroneBlockedByWall : isPositionBlocked;
+
+                    // X-axis collision test against walls
+                    if (!isBlockedFn(nextX, drone.y, droneRadius)) {
+                        drone.x = nextX;
+                    } else {
+                        drone.vx = -drone.vx + (Math.random() - 0.5) * 0.004;
+                        drone.vx = Math.max(-0.035, Math.min(0.035, drone.vx));
+                        if (Math.abs(drone.vx) < 0.008) drone.vx = (drone.vx < 0 ? -0.016 : 0.016);
+                    }
+
+                    // Y-axis collision test against walls
+                    if (!isBlockedFn(drone.x, nextY, droneRadius)) {
+                        drone.y = nextY;
+                    } else {
+                        drone.vy = -drone.vy + (Math.random() - 0.5) * 0.004;
+                        drone.vy = Math.max(-0.035, Math.min(0.035, drone.vy));
+                        if (Math.abs(drone.vy) < 0.008) drone.vy = (drone.vy < 0 ? -0.016 : 0.016);
+                    }
+
+                    // Strict map boundary clamp
+                    drone.x = Math.max(1.8, Math.min(LOCAL_MAP_SIZE - 2.8, drone.x));
+                    drone.y = Math.max(1.8, Math.min(LOCAL_MAP_SIZE - 2.8, drone.y));
+
+                    // Contextual telemetry updates when hovering over functional furniture
+                    const off = getCompoundOffset();
+                    if (drone.key === 'sanitation') {
+                        const distToTable = Math.hypot(drone.x - (11.5 + off.x), drone.y - (10.0 + off.y));
+                        if (distToTable < 1.3) {
+                            drone.status = "SCRUBBING DINING TABLE";
+                        } else {
+                            drone.status = "CLEANING MESS HALL";
+                        }
+                    } else if (drone.key === 'agronomy') {
+                        const distToHydro = Math.hypot(drone.x - (7.5 + off.x), drone.y - (14.5 + off.y));
+                        if (distToHydro < 1.4) {
+                            drone.status = "MISTING HYDROPONICS";
+                        } else {
+                            drone.status = "MONITORING BIOLAB";
+                        }
+                    } else if (drone.key === 'hauler') {
+                        if (drone.x > 19 + off.x) {
+                            drone.status = "LOADING CONVEYOR";
+                        } else {
+                            drone.status = "HAULING STEEL";
+                        }
+                    }
+                }
+
+                const dx = drone.x * cellSize - offsetX;
+                const dy = drone.y * cellSize - offsetY;
 
                 if (dx + cellSize * 2 < 0 || dx > cw || dy + cellSize * 2 < 0 || dy > ch) return;
 
