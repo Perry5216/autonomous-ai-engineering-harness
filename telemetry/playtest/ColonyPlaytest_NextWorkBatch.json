@@ -1,8 +1,8 @@
 {
-  "batch_id": "BATCH-68",
+  "batch_id": "BATCH-69",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "Finalize simulation coverage by implementing deterministic state compression for endgame snapshots and optimizing Monte Carlo convergence logic. This batch closes the last gaps in long-term stability and memory efficiency for 5,500+ tick simulations.",
+  "overview": "This batch focuses on finalizing the ultra-endgame simulation loop by implementing deterministic state compression for long-running sessions and optimizing the Monte Carlo survival rate calculation. These atomic tasks ensure memory stability and precise statistical reporting for the 5,500+ tick campaign, closing the final gaps in simulation fidelity and resource management.",
   "tasks": [
     {
       "task_id": "TASK-801",
@@ -13,24 +13,53 @@
         "src/engine/core/StateCompressor.h",
         "src/engine/core/StateCompressor.cpp"
       ],
-      "architectural_spec": "Use std::array for fixed-size buffers. Implement a static compression function using bitwise packing for 16-bit integer states. No dynamic allocation. Ensure deterministic output order via index-based iteration.",
-      "acceptance_criteria": "Compression ratio > 4:1 for standard state vectors. Zero heap allocations during compression. Deterministic output verified across 100 runs.",
-      "player_fun_impact": "Faster save/load times and reduced memory footprint for long campaigns.",
+      "architectural_spec": "struct StateCompressor {\n    static constexpr size_t MAX_TICKS = 8192;\n    uint64_t m_hashChain[MAX_TICKS];\n    uint32_t m_currentIndex = 0;\n\n    void PushState(const uint64_t hash) {\n        m_hashChain[m_currentIndex] = hash;\n        m_currentIndex = (m_currentIndex + 1) % MAX_TICKS;\n    }\n\n    uint64_t GetDeterministicHash() const {\n        uint64_t h = 0;\n        for (uint32_t i = 0; i < MAX_TICKS; ++i) {\n            h ^= m_hashChain[i];\n            h = (h << 1) | (h >> 63);\n        }\n        return h;\n    }\n};",
+      "acceptance_criteria": [
+        "StateCompressor uses zero heap allocations.",
+        "Hash chain updates in O(1) time.",
+        "Deterministic hash remains stable across identical tick sequences.",
+        "Memory footprint is exactly 64KB (8192 * 8 bytes)."
+      ],
+      "player_fun_impact": "Ensures save/load consistency and reduces memory fragmentation during long campaigns.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Optimize Monte Carlo Convergence Check",
+      "title": "Optimize Monte Carlo Survival Rate Calculator",
       "target_files": [
-        "src/simulation/MonteCarlo.h",
-        "src/simulation/MonteCarlo.cpp"
+        "src/simulation/MonteCarloCalculator.h",
+        "src/simulation/MonteCarloCalculator.cpp"
       ],
-      "architectural_spec": "Replace iterative convergence checks with a closed-form variance estimator. Use constexpr for tolerance thresholds. Minimize branch mispredictions by unrolling the final 4 iterations.",
-      "acceptance_criteria": "Convergence detected within 1% error margin. Execution time reduced by 30% compared to BATCH-67 baseline. No deadlocks.",
-      "player_fun_impact": "Smoother simulation ticks and faster resolution of stochastic events.",
+      "architectural_spec": "struct MonteCarloCalculator {\n    static constexpr uint32_t SAMPLE_COUNT = 1000;\n    float m_survivalRates[SAMPLE_COUNT];\n    uint32_t m_sampleIndex = 0;\n\n    void RecordSurvival(const bool survived) {\n        m_survivalRates[m_sampleIndex] = survived ? 1.0f : 0.0f;\n        m_sampleIndex = (m_sampleIndex + 1) % SAMPLE_COUNT;\n    }\n\n    float GetAverageSurvivalRate() const {\n        float sum = 0.0f;\n        for (uint32_t i = 0; i < SAMPLE_COUNT; ++i) {\n            sum += m_survivalRates[i];\n        }\n        return sum / static_cast<float>(SAMPLE_COUNT);\n    }\n};",
+      "acceptance_criteria": [
+        "Calculator maintains a fixed-size circular buffer of 1000 samples.",
+        "Average survival rate is computed in O(N) with N=1000.",
+        "No dynamic memory allocation during calculation.",
+        "Accuracy within 0.1% of reference implementation."
+      ],
+      "player_fun_impact": "Provides immediate, accurate feedback on colony viability without performance hitches.",
       "estimated_complexity": "Small"
+    },
+    {
+      "task_id": "TASK-803",
+      "priority": "P2 - Quality-of-Life",
+      "domain": "Storyteller/AI",
+      "title": "Add Tick-Count Metadata to Save Files",
+      "target_files": [
+        "src/engine/save/SaveSerializer.h",
+        "src/engine/save/SaveSerializer.cpp"
+      ],
+      "architectural_spec": "struct SaveMetadata {\n    uint64_t m_tickCount;\n    uint64_t m_timestamp;\n    uint32_t m_version;\n\n    void Serialize(std::vector<uint8_t>& buffer) const {\n        buffer.insert(buffer.end(), \n            reinterpret_cast<const uint8_t*>(&m_tickCount),\n            reinterpret_cast<const uint8_t*>(&m_tickCount) + sizeof(m_tickCount));\n        buffer.insert(buffer.end(), \n            reinterpret_cast<const uint8_t*>(&m_timestamp),\n            reinterpret_cast<const uint8_t*>(&m_timestamp) + sizeof(m_timestamp));\n        buffer.insert(buffer.end(), \n            reinterpret_cast<const uint8_t*>(&m_version),\n            reinterpret_cast<const uint8_t*>(&m_version) + sizeof(m_version));\n    }\n};",
+      "acceptance_criteria": [
+        "Metadata is serialized at the start of the save file.",
+        "Deserialization correctly restores tick count and timestamp.",
+        "Backward compatibility with v1.1.0 saves is maintained via version check.",
+        "Serialization overhead is < 1ms."
+      ],
+      "player_fun_impact": "Allows players to track precise campaign duration and compare runs efficiently.",
+      "estimated_complexity": "Atomic"
     }
   ]
 }
