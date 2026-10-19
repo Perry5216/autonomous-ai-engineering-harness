@@ -296,6 +296,123 @@
     }
 
     footer a:hover { color: var(--accent-cyan); }
+
+    /* Mobile-First Responsive Breakpoints */
+    @media (max-width: 768px) {
+      .container {
+        padding: 1.25rem 1rem;
+      }
+
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1.25rem;
+        padding-bottom: 1.5rem;
+        margin-bottom: 1.75rem;
+      }
+
+      header .header-actions {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+      }
+
+      h1 {
+        font-size: 1.35rem;
+        line-height: 1.25;
+      }
+
+      .tagline {
+        font-size: 0.85rem;
+      }
+
+      .metrics-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        margin-bottom: 1.75rem;
+      }
+
+      .card {
+        padding: 1.15rem;
+        border-radius: 10px;
+      }
+
+      .card-value {
+        font-size: 1.55rem;
+      }
+
+      .terminal-container {
+        margin-bottom: 1.75rem;
+        border-radius: 10px;
+      }
+
+      .terminal-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.4rem;
+        padding: 0.6rem 0.85rem;
+      }
+
+      .terminal-title {
+        font-size: 0.68rem;
+        line-height: 1.3;
+        word-break: break-all;
+      }
+
+      .terminal-body {
+        padding: 0.85rem;
+        font-size: 0.76rem;
+        max-height: 300px;
+      }
+
+      .terminal-line {
+        flex-direction: column;
+        gap: 0.15rem;
+        margin-bottom: 0.65rem;
+        word-break: break-word;
+      }
+
+      .incident-panel {
+        padding: 1.25rem;
+        margin-bottom: 1.75rem;
+        border-radius: 10px;
+      }
+
+      .incident-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+      }
+
+      .incident-cta-box {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 1rem !important;
+      }
+
+      .incident-cta-box .btn-showcase {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .container {
+        padding: 1rem 0.75rem;
+      }
+
+      h1 {
+        font-size: 1.2rem;
+      }
+
+      .card-value {
+        font-size: 1.4rem;
+      }
+    }
   </style>
 </head>
 <body>
@@ -307,7 +424,7 @@
           <p class="tagline">Asymmetric Spark DRI + NVIDIA RTX 5090 Blackwell Reflex Co-Processor</p>
         </div>
       </div>
-      <div style="display: flex; align-items: center; gap: 1rem;">
+      <div class="header-actions" style="display: flex; align-items: center; gap: 1rem;">
         <a href="showcase/" class="btn-showcase">
           <span style="font-size: 1.1rem;">🎮</span>
           <span>Simulation Showcase</span>
@@ -323,7 +440,7 @@
     <div class="metrics-grid">
       <div class="card">
         <div class="card-label">Verified Test Checkpoints</div>
-        <div class="card-value accent-green" id="metric-checkpoints">551 / 551</div>
+        <div class="card-value accent-green" id="metric-checkpoints">558 / 558</div>
         <div class="card-subtext">Binary Exit Code 0 &middot; 0 Mock Passes</div>
       </div>
       <div class="card">
@@ -333,8 +450,8 @@
       </div>
       <div class="card">
         <div class="card-label">Autonomous Work Batch</div>
-        <div class="card-value accent-cyan" id="metric-batch">BATCH-07</div>
-        <div class="card-subtext">DGX Spark (:8877) &middot; Checkpoints 551-555</div>
+        <div class="card-value accent-cyan" id="metric-batch">BATCH-09</div>
+        <div class="card-subtext">DGX Spark (:8877) &middot; Checkpoints 556-558 Verified</div>
       </div>
       <div class="card">
         <div class="card-label">Active Integration Target</div>
@@ -376,7 +493,7 @@
       <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">
         The harness plays the subterranean simulation autonomously, audits all 99 UI buttons and living viewport telemetry, assesses generated 16-bit pixel assets across 16 domains, and drives continuous self-building loops without human intervention.
       </p>
-      <div style="background: rgba(6, 182, 212, 0.06); border: 1px solid rgba(6, 182, 212, 0.35); border-radius: 8px; padding: 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+      <div class="incident-cta-box" style="background: rgba(6, 182, 212, 0.06); border: 1px solid rgba(6, 182, 212, 0.35); border-radius: 8px; padding: 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
         <div>
           <div style="font-weight: 700; color: #fff; font-size: 1.05rem; margin-bottom: 0.3rem;">🎮 Project Deep-Mantle Interactive Showcase</div>
           <div style="font-size: 0.82rem; color: var(--text-muted);">Explore procedural planetary relief cartography, 16-bit colonist pawn matrix, and animated mechanical systems live on GitHub Pages.</div>
