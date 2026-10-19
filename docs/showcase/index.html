@@ -4042,6 +4042,23 @@
         let DEPLOYED_FLORA = [];
         let DEPLOYED_WILDLIFE = [];
 
+        // 32-bit Integer Avalanche Hash (Murmur3/PCG mixer) for isotropic procedural tile distribution
+        function hash2D(x, y, seed) {
+            let h = (Math.imul(x, 374761393) + Math.imul(y, 668265263) + Math.imul(seed || 0, 1013904223)) | 0;
+            h = Math.imul(h ^ (h >>> 13), 1274126177);
+            return (h ^ (h >>> 16)) >>> 0;
+        }
+
+        // Returns a non-correlated variant index with 65% base foundation (v0) and 35% natural detail variation
+        function getFloorVariantIndex(x, y, seed, count) {
+            if (count <= 1) return 0;
+            const h = hash2D(x, y, seed);
+            // 65% chance of base pristine floor (variant 0) to maintain calm, clean visual foundation
+            if ((h % 100) < 65) return 0;
+            // 35% distributed evenly across detail variants 1..(count - 1)
+            return 1 + ((h >>> 8) % (count - 1));
+        }
+
         function loadLocalColonySector(worldX, worldY) {
             const seed = Math.floor(currentSeed + worldX * 133 + worldY * 7919);
             const noise = new SimplexNoise(seed);

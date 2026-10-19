@@ -1,43 +1,57 @@
-# Project Deep-Mantle :: Engineering Work Batch: BATCH-38
+# Project Deep-Mantle :: Engineering Work Batch: BATCH-39
 
 ## Ultra-Endgame Ascension & Deterministic State Compression (Target: `v1.2.0`)
 
 - **Architect**: `DGX Spark Cluster Lead Systems Engineer`
 - **QA Verifier**: `RTX 5090 Blackwell Reflex QA Director`
-- **Date**: `2026-10-19 14:51:28`
+- **Date**: `2026-10-19 14:58:29`
 
 ### Batch Overview
-Finalize the deep-mantle simulation by implementing deterministic state compression for long-running campaigns and optimizing the Monte Carlo convergence logic for endgame stability. This batch closes the final coverage gaps in simulation persistence and statistical validation.
+Finalize the simulation loop by implementing deterministic state hashing for save/load integrity, optimizing the tick-based physics solver for zero-allocation stability, and compressing the storyteller event log into a bit-packed format to reduce memory footprint during long-running sessions.
 
 ---
 
 ### Prioritized Engineering Tasks
 
-#### [TASK-801] Deterministic State Compression for 5k+ Tick Campaigns (`P0 - Critical`)
+#### [TASK-801] Implement Zero-Heap Deterministic State Hashing (`P0 - Critical`)
 
 - **Domain**: `Engine/C++20`
 - **Estimated Complexity**: `Atomic`
 - **Target Files**:
-  - `Source/Runtime/Simulation/StateCompression.h`
-  - `Source/Runtime/Simulation/StateCompression.cpp`
+  - `Source/Runtime/Core/StateHash.h`
+  - `Source/Runtime/Core/StateHash.cpp`
 - **Architectural Specification**:
-  Implement a zero-heap, stack-based compression algorithm for the simulation state vector. Use C++20 concepts to constrain template parameters. The algorithm must process the 16,500-step history into a fixed-size 256-byte checksum plus a sparse delta map. No dynamic allocations allowed. Use std::array for all buffers. Ensure deterministic iteration order for reproducible checksums.
+  Use std::span<const uint8_t> for input. Implement FNV-1a 64-bit hash using constexpr loops. No dynamic allocation. Return uint64_t. Handle endianness explicitly via std::endian::native check. Ensure stable ordering for struct members.
 - **Acceptance Criteria**:
-  ['Compression ratio > 10:1 for 5,500 tick states.', 'Zero heap allocations during compression/decompression.', 'Deterministic output verified across 100 Monte Carlo runs.', 'Compilation time < 2 seconds for the header.']
+  Hash value is identical across x86_64 and ARM64 for same input. 0 heap allocations during hash computation. <10ns per 64-byte block.
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Faster save/load times and smaller save files for long campaigns, improving overall responsiveness.
+  Instant save/load verification, preventing corrupted state errors in long campaigns.
 
-#### [TASK-802] Optimized Monte Carlo Convergence Check for Endgame (`P1 - High`)
+#### [TASK-802] Optimize Tick Solver with Fixed-Point Arithmetic (`P1 - High`)
 
 - **Domain**: `Simulation/Physics`
 - **Estimated Complexity**: `Small`
 - **Target Files**:
-  - `Source/Runtime/Simulation/MonteCarlo.h`
-  - `Source/Runtime/Simulation/MonteCarlo.cpp`
+  - `Source/Runtime/Simulation/PhysicsSolver.h`
+  - `Source/Runtime/Simulation/PhysicsSolver.cpp`
 - **Architectural Specification**:
-  Refactor the Monte Carlo convergence check to use a fixed-point arithmetic approach for stability. Implement a 3-stage convergence detector: 1) Variance check, 2) Mean drift check, 3) Final state lock. Use constexpr functions for the threshold values. The logic must fit within 40 lines of code, leveraging C++20 structured bindings for result unpacking.
+  Replace float with int64_t fixed-point (scale 1000). Implement iterative Gauss-Seidel solver for constraint resolution. Max 4 iterations. Use std::array for contact manifolds. No virtual calls in hot loop.
 - **Acceptance Criteria**:
-  ['Convergence detected within 10 iterations for stable states.', 'No floating-point non-determinism in final state.', 'Unit tests pass for 100% survival rate scenarios.', 'Memory footprint < 1KB per simulation instance.']
+  Deterministic results across all platforms. No NaN propagation. 1000 entities solved in <0.5ms on i7-12700.
 - **Player Fun & Anti-Spreadsheet Impact**:
-  More reliable and faster endgame calculations, reducing perceived lag during campaign completion.
+  Stable physics behavior in large colonies, eliminating 'jitter' in stacked objects.
+
+#### [TASK-803] Bit-Packed Event Log Compression (`P2 - Quality-of-Life`)
+
+- **Domain**: `Storyteller/AI`
+- **Estimated Complexity**: `Atomic`
+- **Target Files**:
+  - `Source/Runtime/Storyteller/EventLog.h`
+  - `Source/Runtime/Storyteller/EventLog.cpp`
+- **Architectural Specification**:
+  Define enum class EventType : uint8_t. Pack timestamp (uint32_t) and type (uint8_t) into uint64_t. Use std::vector<uint64_t> for storage. Implement decode function using bitwise shifts. No string storage in hot path.
+- **Acceptance Criteria**:
+  Memory usage reduced by 60% compared to struct-based log. Decode speed >10M events/sec.
+- **Player Fun & Anti-Spreadsheet Impact**:
+  Faster UI rendering for event history, smoother scrolling in long games.
 
