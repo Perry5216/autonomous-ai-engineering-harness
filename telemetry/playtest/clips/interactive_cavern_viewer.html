@@ -1287,19 +1287,24 @@
 </svg>
     </div>
 
-    <!-- WebAudio Procedural Cavern Soundscape Monitor -->
+    <!-- WebAudio 90 BPM Vibe Soundtrack & Cavern Monitor -->
     <div class="audio-panel">
       <div class="audio-header">
         <div class="audio-title">
-          <span>🎧 Studio Audio Engine :: Procedural Cavern Soundscape (WebAudio API)</span>
+          <span>🎧 Studio Audio Engine :: 90 BPM Subterranean Lo-Fi & Frontier Chill Suite</span>
         </div>
         <div class="audio-controls">
-          <button id="btn-toggle-audio" class="btn-audio" onclick="toggleCavernAudio()">🔊 Enable Cavern Audio</button>
+          <button id="btn-toggle-audio" class="btn-audio" onclick="toggleCavernAudio()">▶ Play 90 BPM Vibe</button>
           <button class="btn-audio-fx" onclick="triggerSoundFx('geophone')">⚡ Geophone Ping</button>
           <button class="btn-audio-fx" onclick="triggerSoundFx('steam')">💨 Steam Hiss</button>
           <button class="btn-audio-fx" onclick="triggerSoundFx('conveyor')">⚙️ Conveyor Thrum</button>
           <button class="btn-audio-fx" onclick="triggerSoundFx('mood')">✨ Strange Mood Chime</button>
         </div>
+      </div>
+      <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 6px; font-size: 11px; color: #94a3b8;">
+        <span style="color: #38bdf8; font-weight: bold;">[KEY: D MINOR]</span>
+        <span>• 8-Track Stems: Moog Bass, Rhodes Chords, Tape Drums, Arps, Air</span>
+        <span style="margin-left: auto; color: #22c55e; font-weight: bold;">● FLOW STATE 100%</span>
       </div>
       <canvas id="audio-viz" class="audio-visualizer-canvas"></canvas>
     </div>
@@ -1323,10 +1328,12 @@
   <script>
     let audioCtx = null;
     let isPlaying = false;
-    let droneGain = null;
-    let conveyorGain = null;
     let analyser = null;
     let vizAnim = null;
+    let vibeInterval = null;
+    let vibeStep = 0;
+    let masterGain = null;
+    let audioElement = null;
 
     function initAudio() {
       if (audioCtx) return;
@@ -1334,75 +1341,177 @@
       audioCtx = new AudioContext();
 
       analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 64;
+      analyser.fftSize = 128;
+      masterGain = audioCtx.createGain();
+      masterGain.gain.setValueAtTime(0.75, audioCtx.currentTime);
+
+      masterGain.connect(analyser);
       analyser.connect(audioCtx.destination);
 
-      // 1. Bedrock Subterranean Drone (42 Hz sine wave + low-pass noise)
-      const osc = audioCtx.createOscillator();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(42, audioCtx.currentTime);
-
-      const oscGain = audioCtx.createGain();
-      oscGain.gain.setValueAtTime(0.12, audioCtx.currentTime);
-
-      osc.connect(oscGain);
-      oscGain.connect(analyser);
-      osc.start();
-
-      // Pink noise room tone
-      const bufferSize = audioCtx.sampleRate * 2;
-      const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-      const output = noiseBuffer.getChannelData(0);
-      let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
-      for (let i = 0; i < bufferSize; i++) {
-        const white = Math.random() * 2 - 1;
-        b0 = 0.99886 * b0 + white * 0.0555179;
-        b1 = 0.99332 * b1 + white * 0.0750759;
-        b2 = 0.96900 * b2 + white * 0.1538520;
-        b3 = 0.86650 * b3 + white * 0.3104856;
-        b4 = 0.55000 * b4 + white * 0.5329522;
-        b5 = -0.7616 * b5 - white * 0.0168980;
-        output[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.04;
-        b6 = white * 0.115926;
+      try {
+        audioElement = new Audio('Colony_Master_Soundscape.ogg');
+        audioElement.loop = true;
+        const src = audioCtx.createMediaElementSource(audioElement);
+        src.connect(masterGain);
+      } catch (e) {
+        console.log('[CavernAudio] Using direct WebAudio synth:', e);
       }
 
-      const whiteNoise = audioCtx.createBufferSource();
-      whiteNoise.buffer = noiseBuffer;
-      whiteNoise.loop = true;
-
-      const filter = audioCtx.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(140, audioCtx.currentTime);
-
-      droneGain = audioCtx.createGain();
-      droneGain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-
-      whiteNoise.connect(filter);
-      filter.connect(droneGain);
-      droneGain.connect(analyser);
-      whiteNoise.start();
-
       startVisualizer();
-      scheduleBackgroundPings();
     }
 
     function toggleCavernAudio() {
       const btn = document.getElementById('btn-toggle-audio');
-      if (!audioCtx) {
-        initAudio();
+      if (!audioCtx) initAudio();
+
+      if (!isPlaying) {
         isPlaying = true;
-        btn.textContent = '⏹ Mute Cavern Audio';
-        btn.style.background = '#dc2626';
-      } else if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-        isPlaying = true;
-        btn.textContent = '⏹ Mute Cavern Audio';
-        btn.style.background = '#dc2626';
-      } else if (audioCtx.state === 'running') {
-        audioCtx.suspend();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+
+        if (audioElement) {
+          audioElement.play().catch(e => {
+            startGenerativeVibe();
+          });
+        } else {
+          startGenerativeVibe();
+        }
+
+        btn.textContent = '⏸ Pause Vibe';
+        btn.style.background = '#22c55e';
+      } else {
         isPlaying = false;
-        btn.textContent = '🔊 Enable Cavern Audio';
+        if (audioElement) audioElement.pause();
+        stopGenerativeVibe();
+
+        btn.textContent = '▶ Play 90 BPM Vibe';
         btn.style.background = '#0284c7';
+      }
+    }
+
+    function startGenerativeVibe() {
+      if (vibeInterval) return;
+      const beatMs = (60.0 / 90.0) * 1000.0;
+      const stepMs = beatMs / 4.0;
+      vibeStep = 0;
+
+      vibeInterval = setInterval(() => {
+        if (!isPlaying) return;
+        const now = audioCtx.currentTime;
+        const barStep = vibeStep % 64;
+        const beat = Math.floor(barStep / 4);
+        const sub16 = barStep % 4;
+
+        // Kick Drum
+        if (barStep % 16 === 0 || barStep % 16 === 6 || barStep % 16 === 10) {
+          const osc = audioCtx.createOscillator();
+          const g = audioCtx.createGain();
+          osc.frequency.setValueAtTime(130, now);
+          osc.frequency.exponentialRampToValueAtTime(45, now + 0.18);
+          g.gain.setValueAtTime(0.65, now);
+          g.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+          osc.connect(g);
+          g.connect(masterGain);
+          osc.start(now);
+          osc.stop(now + 0.23);
+        }
+
+        // Snare / Rimshot
+        if (barStep % 16 === 4 || barStep % 16 === 12) {
+          const osc = audioCtx.createOscillator();
+          const g = audioCtx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(210, now);
+          g.gain.setValueAtTime(0.35, now);
+          g.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+          osc.connect(g);
+          g.connect(masterGain);
+          osc.start(now);
+          osc.stop(now + 0.13);
+        }
+
+        // Swung Shaker
+        if (sub16 % 2 === 0) {
+          const osc = audioCtx.createOscillator();
+          const g = audioCtx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(6500 + Math.random() * 1500, now);
+          g.gain.setValueAtTime(sub16 === 2 ? 0.08 : 0.04, now);
+          g.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+          osc.connect(g);
+          g.connect(masterGain);
+          osc.start(now);
+          osc.stop(now + 0.05);
+        }
+
+        // Deep Moog Bass
+        if (sub16 === 0 || sub16 === 2) {
+          const bassNotes = [36.71, 36.71, 36.71, 36.71, 29.14, 29.14, 29.14, 29.14, 43.65, 43.65, 43.65, 43.65, 48.99, 48.99, 55.00, 55.00];
+          const osc = audioCtx.createOscillator();
+          const f = audioCtx.createBiquadFilter();
+          const g = audioCtx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(bassNotes[beat % 16], now);
+          f.type = 'lowpass';
+          f.frequency.setValueAtTime(240, now);
+          f.frequency.exponentialRampToValueAtTime(80, now + 0.3);
+          g.gain.setValueAtTime(0.4, now);
+          g.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+          osc.connect(f);
+          f.connect(g);
+          g.connect(masterGain);
+          osc.start(now);
+          osc.stop(now + 0.36);
+        }
+
+        // Rhodes Chords
+        if (barStep % 16 === 0) {
+          const barIdx = Math.floor(barStep / 16);
+          const chords = [
+            [146.83, 174.61, 220.00, 261.63, 329.63], // Dm9
+            [116.54, 146.83, 174.61, 220.00, 261.63], // Bbmaj9
+            [87.31, 220.00, 261.63, 329.63, 392.00],  // Fmaj9
+            [97.99, 233.08, 293.66, 349.23, 440.00]   // Gm9
+          ];
+          const notes = chords[barIdx % 4];
+          notes.forEach(fVal => {
+            const osc = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(fVal, now);
+            g.gain.setValueAtTime(0.01, now);
+            g.gain.linearRampToValueAtTime(0.1, now + 0.35);
+            g.gain.exponentialRampToValueAtTime(0.001, now + 2.5);
+            osc.connect(g);
+            g.connect(masterGain);
+            osc.start(now);
+            osc.stop(now + 2.6);
+          });
+        }
+
+        // Crystalline Bell Arp
+        if (sub16 % 2 === 1) {
+          const arpScale = [440, 523.25, 587.33, 659.25, 783.99, 880, 1046.5];
+          const aFreq = arpScale[(barStep * 3) % arpScale.length];
+          const osc = audioCtx.createOscillator();
+          const g = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(aFreq, now);
+          g.gain.setValueAtTime(0.08, now);
+          g.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+          osc.connect(g);
+          g.connect(masterGain);
+          osc.start(now);
+          osc.stop(now + 0.36);
+        }
+
+        vibeStep++;
+      }, stepMs);
+    }
+
+    function stopGenerativeVibe() {
+      if (vibeInterval) {
+        clearInterval(vibeInterval);
+        vibeInterval = null;
       }
     }
 
@@ -1412,7 +1521,6 @@
 
       const t = audioCtx.currentTime;
       if (type === 'geophone') {
-        // High resonance seismic rock click/ping
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = 'triangle';
@@ -1425,7 +1533,6 @@
         osc.start(t);
         osc.stop(t + 0.13);
       } else if (type === 'steam') {
-        // Bandpass filtered white noise burst
         const bufferSize = audioCtx.sampleRate * 0.8;
         const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
         const data = noiseBuffer.getChannelData(0);
@@ -1445,7 +1552,6 @@
         gain.connect(analyser);
         src.start(t);
       } else if (type === 'conveyor') {
-        // Rhythmic dual mechanical clack
         for (let i = 0; i < 3; i++) {
           const osc = audioCtx.createOscillator();
           const gain = audioCtx.createGain();
@@ -1459,7 +1565,6 @@
           osc.stop(t + i * 0.08 + 0.06);
         }
       } else if (type === 'mood') {
-        // Pentatonic resonant bell chord
         const freqs = [523.25, 659.25, 783.99, 1046.50];
         freqs.forEach((f, idx) => {
           const osc = audioCtx.createOscillator();
@@ -1476,14 +1581,6 @@
       }
     }
 
-    function scheduleBackgroundPings() {
-      setInterval(() => {
-        if (isPlaying && Math.random() > 0.45) {
-          triggerSoundFx(Math.random() > 0.5 ? 'geophone' : 'conveyor');
-        }
-      }, 3500);
-    }
-
     function startVisualizer() {
       const canvas = document.getElementById('audio-viz');
       if (!canvas || !analyser) return;
@@ -1495,21 +1592,26 @@
         vizAnim = requestAnimationFrame(draw);
         analyser.getByteFrequencyData(dataArray);
 
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+
         ctx.fillStyle = '#030712';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        const barWidth = (canvas.width / bufferLength) * 2.5;
+        const barWidth = (canvas.width / bufferLength) * 2.2;
         let x = 0;
 
         for (let i = 0; i < bufferLength; i++) {
           const barHeight = (dataArray[i] / 255) * canvas.height;
-          ctx.fillStyle = `rgb(${dataArray[i] + 50}, 189, 248)`;
+          const grad = ctx.createLinearGradient(0, canvas.height, 0, 0);
+          grad.addColorStop(0, '#0284c7');
+          grad.addColorStop(0.5, '#38bdf8');
+          grad.addColorStop(1, '#c084fc');
+          ctx.fillStyle = grad;
           ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
-          x += barWidth + 1;
+          x += barWidth + 1.5;
         }
       }
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
       draw();
     }
   </script>

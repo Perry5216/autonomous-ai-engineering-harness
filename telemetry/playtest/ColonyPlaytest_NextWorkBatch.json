@@ -1,64 +1,64 @@
 {
-  "batch_id": "BATCH-70",
+  "batch_id": "BATCH-71",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "This batch finalizes the simulation loop by implementing deterministic state hashing for save/load integrity, optimizing the tick-based physics solver for 100% Monte Carlo survival, and introducing a lightweight psychological state machine for colonist morale. These atomic tasks close the final coverage gaps in simulation determinism and entity behavior.",
+  "overview": "This batch finalizes the simulation core by implementing deterministic state serialization for ultra-endgame scenarios and optimizing the Monte Carlo integration loop. The focus is on reducing memory footprint during long-running simulations (5,500+ ticks) and ensuring zero-latency state restoration for save/load operations, directly supporting the 'Deep-Mantle' stability metrics.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Deterministic State Hashing for Save/Load Integrity",
+      "title": "Implement Zero-Copy Deterministic State Serializer",
       "target_files": [
-        "Source/Engine/Core/StateHash.h",
-        "Source/Engine/Core/StateHash.cpp"
+        "src/engine/core/StateSerializer.h",
+        "src/engine/core/StateSerializer.cpp"
       ],
-      "architectural_spec": "Implement a zero-heap, constexpr-friendly FNV-1a hash for the core simulation state struct. Use std::array for fixed-size state buffers. Ensure no dynamic allocation during hash computation. The hash must be stable across compiler versions and optimization levels. Integrate into the main loop as a post-tick validation step.",
+      "architectural_spec": "Use C++20 concepts to constrain serialization types. Implement a static-sized buffer (std::array<uint8_t, 4096>) for state snapshots. Avoid heap allocations in the hot path. Use std::span for view-based reading. Ensure endianness consistency via std::endian::native checks. The serializer must handle nested structs recursively without stack overflow by using a fixed-depth iterative approach.",
       "acceptance_criteria": [
-        "Hash computation completes in < 1 microsecond for 10,000 entities.",
-        "Identical simulation runs produce identical hash values.",
-        "No heap allocations occur during hashing.",
-        "Unit tests verify hash stability across 1000 random seeds."
+        "Serialization of a full 5,500-tick state completes in < 1ms.",
+        "Zero heap allocations during serialization/deserialization.",
+        "Bit-exact match between original and restored state.",
+        "Unit tests cover edge cases: empty state, max-depth nesting, and endianness swaps."
       ],
-      "player_fun_impact": "Guarantees 100% reproducible saves, eliminating 'desync' errors in long campaigns.",
+      "player_fun_impact": "Instant save/load functionality, eliminating wait times during long simulation sessions.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Optimized Tick-Based Collision Solver",
+      "title": "Optimize Monte Carlo Integration Loop with SIMD",
       "target_files": [
-        "Source/Simulation/Physics/CollisionSolver.h",
-        "Source/Simulation/Physics/CollisionSolver.cpp"
+        "src/simulation/physics/MonteCarloIntegrator.h",
+        "src/simulation/physics/MonteCarloIntegrator.cpp"
       ],
-      "architectural_spec": "Refactor the collision solver to use a flat array of AABBs with a sweep-and-prune algorithm. Limit to 60 lines of core logic. Use std::span for data access. Remove recursive calls in favor of iterative processing. Ensure cache-friendly memory layout for entity positions and velocities.",
+      "architectural_spec": "Refactor the integration loop to utilize C++20 std::simd (if available) or manual SSE/AVX intrinsics via a wrapper. Process 4 or 8 physics steps in parallel. Ensure the random number generator (XorShift128+) is vectorized. Maintain deterministic ordering by processing chunks sequentially but internally parallelized. No dynamic memory allocation in the loop.",
       "acceptance_criteria": [
-        "Collision detection for 5,000 entities completes in < 2ms.",
-        "Zero deadlocks in 10,000 simulation ticks.",
-        "Memory footprint reduced by 40% compared to previous batch.",
-        "All 16,500 logged footsteps match expected trajectories."
+        "Integration speed increases by at least 30% compared to scalar version.",
+        "Deterministic output matches scalar version exactly.",
+        "No regressions in collision detection accuracy.",
+        "Code compiles with -O3 and -march=native without warnings."
       ],
-      "player_fun_impact": "Smoother frame rates and more accurate physics interactions in dense scenes.",
+      "player_fun_impact": "Smoother frame rates during complex physics interactions, especially in dense colony scenes.",
       "estimated_complexity": "Small"
     },
     {
       "task_id": "TASK-803",
       "priority": "P2 - Quality-of-Life",
       "domain": "Storyteller/AI",
-      "title": "Lightweight Colonist Morale State Machine",
+      "title": "Cache-Friendly Event Queue for Storyteller",
       "target_files": [
-        "Source/AI/Colonist/MoraleState.h",
-        "Source/AI/Colonist/MoraleState.cpp"
+        "src/ai/storyteller/EventQueue.h",
+        "src/ai/storyteller/EventQueue.cpp"
       ],
-      "architectural_spec": "Implement a 3-state finite state machine (Idle, Working, Panicked) for colonist morale. Use enum class for states. Transitions are driven by simple integer counters (e.g., food level, noise level). No dynamic memory allocation. State changes trigger immediate visual feedback via a callback interface.",
+      "architectural_spec": "Replace std::deque with a custom circular buffer using std::array. Implement a priority queue using a binary heap stored in a contiguous array. Use C++20 ranges for filtering events. Ensure all event structs are packed (alignas(8)) to minimize cache misses. Provide a 'peek' operation that is O(1) and non-destructive.",
       "acceptance_criteria": [
-        "State transitions occur within 1 tick of condition change.",
-        "No memory leaks detected in 5,500 tick run.",
-        "Visual feedback matches internal state 100%.",
-        "Code size under 60 lines per file."
+        "Memory usage for event queue reduced by 40%.",
+        "Event processing latency reduced by 20%.",
+        "No memory leaks detected in Valgrind.",
+        "All existing Storyteller tests pass."
       ],
-      "player_fun_impact": "Clearer visual cues for colonist status, aiding strategic decision-making.",
+      "player_fun_impact": "More responsive narrative events and faster UI updates during story progression.",
       "estimated_complexity": "Atomic"
     }
   ]
