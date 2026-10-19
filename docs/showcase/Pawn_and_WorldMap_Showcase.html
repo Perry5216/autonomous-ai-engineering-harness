@@ -1907,7 +1907,211 @@
             border-color: var(--accent-cyan);
             color: var(--accent-cyan);
         }
+
+        /* ------------------------------------------------------------- */
+        /* SUBTERRANEAN HI-FI VIBE DECK // 4-STATION CASSETTE PLAYER     */
+        /* ------------------------------------------------------------- */
+        .vibe-deck-bar {
+            background: linear-gradient(180deg, #090e18 0%, #05080e 100%);
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            border-top: none;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+            position: relative;
+            z-index: 100;
+        }
+
+        .vibe-deck-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .vibe-cassette-mini {
+            width: 72px;
+            height: 36px;
+            background: #020408;
+            border: 1px solid #1e293b;
+            border-radius: 4px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding: 0 6px;
+            box-shadow: inset 0 0 6px rgba(0,0,0,0.9);
+        }
+
+        .vibe-spool {
+            width: 18px;
+            height: 18px;
+            border: 2px dashed #475569;
+            border-radius: 50%;
+            transition: transform 0.1s linear;
+        }
+
+        .vibe-spool.spinning {
+            animation: spinSpool 2.4s linear infinite;
+        }
+
+        @keyframes spinSpool {
+            100% { transform: rotate(360deg); }
+        }
+
+        .vibe-tape-window {
+            position: absolute;
+            width: 24px;
+            height: 12px;
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: 2px;
+        }
+
+        .vibe-stations-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .vibe-station-pill {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            padding: 4px 10px;
+            font-size: 10px;
+            font-family: var(--font-mono);
+            color: #94a3b8;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .vibe-station-pill:hover {
+            border-color: var(--accent-cyan);
+            color: #e2e8f0;
+            background: rgba(56, 189, 248, 0.12);
+        }
+
+        .vibe-station-pill.active {
+            border-color: var(--accent-amber);
+            color: #fef08a;
+            background: rgba(245, 158, 11, 0.15);
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+        }
+
+        .vibe-station-pill .pill-bpm {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 1px 4px;
+            border-radius: 2px;
+            font-size: 8px;
+            color: var(--accent-cyan);
+        }
+
+        .vibe-station-pill.active .pill-bpm {
+            color: var(--accent-amber);
+        }
+
+        .vibe-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn-vibe-play {
+            background: linear-gradient(180deg, #10b981 0%, #059669 100%);
+            border: 1px solid #34d399;
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 5px 14px;
+            border-radius: 3px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+            transition: all 0.15s;
+        }
+
+        .btn-vibe-play:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 16px rgba(16, 185, 129, 0.7);
+        }
+
+        .btn-vibe-play.playing {
+            background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
+            border-color: #fbbf24;
+            box-shadow: 0 0 12px rgba(245, 158, 11, 0.5);
+        }
+
+        .vibe-vu-cluster {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #020408;
+            border: 1px solid #1e293b;
+            padding: 3px 8px;
+            border-radius: 3px;
+        }
+
+        .vibe-vu-meter {
+            width: 48px;
+            height: 18px;
+            background: #090e17;
+            border: 1px solid #334155;
+            position: relative;
+            overflow: hidden;
+            border-radius: 2px;
+        }
+
+        .vibe-vu-dial {
+            position: absolute;
+            left: 2px;
+            right: 2px;
+            top: 2px;
+            bottom: 2px;
+            display: flex;
+            align-items: flex-end;
+            gap: 1px;
+        }
+
+        .vibe-vu-needle {
+            position: absolute;
+            bottom: -2px;
+            left: 50%;
+            width: 1.5px;
+            height: 18px;
+            background: #ef4444;
+            transform-origin: bottom center;
+            transform: rotate(-35deg);
+            transition: transform 0.06s ease-out;
+            box-shadow: 0 0 4px #ef4444;
+        }
+
+        .vibe-slider-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 9px;
+            color: #64748b;
+            font-family: var(--font-mono);
+        }
+
+        .vibe-slider-group input[type="range"] {
+            width: 60px;
+            accent-color: var(--accent-cyan);
+            height: 3px;
+            cursor: pointer;
+        }
     </style>
+
 </head>
 <body>
 
@@ -1924,7 +2128,66 @@
         </div>
     </header>
 
-    <div class="showcase-grid">
+    <!-- SUBTERRANEAN HI-FI VIBE DECK // 4-STATION CASSETTE & ANALOG VU PLAYER -->
+    <div id="vibe-deck" class="vibe-deck-bar">
+        <div class="vibe-deck-brand">
+            <div class="vibe-cassette-mini">
+                <div id="spool-left" class="vibe-spool"></div>
+                <div class="vibe-tape-window"></div>
+                <div id="spool-right" class="vibe-spool"></div>
+            </div>
+            <div>
+                <div style="font-size: 11px; font-weight: bold; color: var(--accent-cyan); letter-spacing: 0.5px;">MANTLE-WAVE FM // SUBTERRANEAN SOUNDSCAPE</div>
+                <div id="vibe-station-desc" style="font-size: 8px; color: #94a3b8; font-family: var(--font-mono);">STATION 01: 90 BPM D-MIN CHILLHOP · LO-FI BEATS</div>
+            </div>
+        </div>
+
+        <div class="vibe-stations-row">
+            <button class="vibe-station-pill active" onclick="switchVibeStation(0)">
+                <span>📻 01 CHILLHOP</span>
+                <span class="pill-bpm">90 BPM</span>
+            </button>
+            <button class="vibe-station-pill" onclick="switchVibeStation(1)">
+                <span>⚡ 02 SYNTHWAVE</span>
+                <span class="pill-bpm">84 BPM</span>
+            </button>
+            <button class="vibe-station-pill" onclick="switchVibeStation(2)">
+                <span>🌌 03 432Hz AMBIENT</span>
+                <span class="pill-bpm">72 BPM</span>
+            </button>
+            <button class="vibe-station-pill" onclick="switchVibeStation(3)">
+                <span>🎷 04 JAZZHOP</span>
+                <span class="pill-bpm">96 BPM</span>
+            </button>
+        </div>
+
+        <div class="vibe-controls">
+            <!-- Dual Analog VU Peak Meters -->
+            <div class="vibe-vu-cluster" title="Analog Peak VU Meters (RMS)">
+                <div class="vibe-vu-meter"><div id="vu-needle-l" class="vibe-vu-needle"></div></div>
+                <div class="vibe-vu-meter"><div id="vu-needle-r" class="vibe-vu-needle"></div></div>
+            </div>
+
+            <!-- Tape Warmth Slider -->
+            <div class="vibe-slider-group" title="Tape Saturation & Vinyl Warmth Filter">
+                <span>WARMTH</span>
+                <input type="range" id="vibe-warmth-slider" min="500" max="18000" value="8500" oninput="updateTapeWarmth(this.value)">
+            </div>
+
+            <!-- Volume Slider -->
+            <div class="vibe-slider-group" title="Master Audio Output Level">
+                <span>VOL</span>
+                <input type="range" id="vibe-vol-slider" min="0" max="1" step="0.01" value="0.75" oninput="updateVibeVolume(this.value)">
+            </div>
+
+            <!-- Master Play / Pause Button -->
+            <button id="btn-vibe-play" class="btn-vibe-play" onclick="toggleVibePlayback()">
+                <span id="btn-vibe-icon">▶</span>
+                <span id="btn-vibe-label">PLAY VIBE</span>
+            </button>
+        </div>
+    </div>
+
 
         <!-- LEFT COLUMN: PROCEDURAL PLANETARY CARTOGRAPHY MAP -->
         <div class="section-card">
@@ -5976,9 +6239,198 @@
         }
 
         // =========================================================================
-        // TACTILE WEB AUDIO API RETRO SOUND SYNTHESIZER
+        // TACTILE WEB AUDIO API RETRO SOUND SYNTHESIZER & 4-STATION VIBE DECK
         // =========================================================================
         let audioCtx = null;
+
+        const VIBE_STATIONS = [
+            {
+                id: 0,
+                name: "01 CHILLHOP",
+                desc: "STATION 01: 90 BPM D-MIN CHILLHOP · DUSTY LO-FI BEATS & SUBCUBIC RHODES",
+                bpm: 90,
+                file: "Colony_Master_Soundscape.ogg"
+            },
+            {
+                id: 1,
+                name: "02 SYNTHWAVE",
+                desc: "STATION 02: 84 BPM A-MIN GEOTHERMAL NEON SYNTHWAVE · ANALOG ARPS & FAT SAW LEAD",
+                bpm: 84,
+                file: "station_02_geothermal_neon.ogg"
+            },
+            {
+                id: 2,
+                name: "03 432Hz AMBIENT",
+                desc: "STATION 03: 72 BPM D-MIN TECTONIC DRIFT 432Hz · SUBTERRANEAN CAVERN MEDITATION",
+                bpm: 72,
+                file: "station_03_tectonic_drift.ogg"
+            },
+            {
+                id: 3,
+                name: "04 JAZZHOP",
+                desc: "STATION 04: 96 BPM G-MIN FRONTIER ASSEMBLY JAZZHOP · BRUSH DRUMS & WALKING BASS",
+                bpm: 96,
+                file: "station_04_frontier_assembly.ogg"
+            }
+        ];
+
+        let currentVibeStation = 0;
+        let isVibePlaying = false;
+        let vibeAudioElement = null;
+        let vibeSourceNode = null;
+        let vibeFilterNode = null;
+        let vibeGainNode = null;
+        let vibeAnalyserNode = null;
+        let vuAnimationFrameId = null;
+
+        function initVibeDeck() {
+            if (!vibeAudioElement) {
+                vibeAudioElement = new Audio();
+                vibeAudioElement.loop = true;
+                vibeAudioElement.crossOrigin = "anonymous";
+            }
+        }
+
+        function switchVibeStation(index) {
+            currentVibeStation = index;
+            const station = VIBE_STATIONS[index];
+            const descEl = document.getElementById("vibe-station-desc");
+            if (descEl) descEl.innerText = station.desc;
+
+            const pills = document.querySelectorAll(".vibe-station-pill");
+            pills.forEach((p, idx) => {
+                if (idx === index) p.classList.add("active");
+                else p.classList.remove("active");
+            });
+
+            if (isVibePlaying) {
+                startVibeTrack(station.file);
+            }
+        }
+
+        function toggleVibePlayback() {
+            const ctx = getAudioContext();
+            initVibeDeck();
+
+            isVibePlaying = !isVibePlaying;
+            const btn = document.getElementById("btn-vibe-play");
+            const btnIcon = document.getElementById("btn-vibe-icon");
+            const btnLabel = document.getElementById("btn-vibe-label");
+            const spoolL = document.getElementById("spool-left");
+            const spoolR = document.getElementById("spool-right");
+
+            if (isVibePlaying) {
+                if (btn) btn.classList.add("playing");
+                if (btnIcon) btnIcon.innerText = "⏸";
+                if (btnLabel) btnLabel.innerText = "PAUSE VIBE";
+                if (spoolL) spoolL.classList.add("spinning");
+                if (spoolR) spoolR.classList.add("spinning");
+
+                startVibeTrack(VIBE_STATIONS[currentVibeStation].file);
+                startVuAnimation();
+            } else {
+                if (btn) btn.classList.remove("playing");
+                if (btnIcon) btnIcon.innerText = "▶";
+                if (btnLabel) btnLabel.innerText = "PLAY VIBE";
+                if (spoolL) spoolL.classList.remove("spinning");
+                if (spoolR) spoolR.classList.remove("spinning");
+
+                if (vibeAudioElement) {
+                    vibeAudioElement.pause();
+                }
+                stopVuAnimation();
+            }
+        }
+
+        function startVibeTrack(filePath) {
+            initVibeDeck();
+            const ctx = getAudioContext();
+            
+            if (ctx && !vibeSourceNode && vibeAudioElement) {
+                try {
+                    vibeSourceNode = ctx.createMediaElementSource(vibeAudioElement);
+                    vibeFilterNode = ctx.createBiquadFilter();
+                    vibeFilterNode.type = 'lowpass';
+                    vibeFilterNode.frequency.value = parseFloat(document.getElementById("vibe-warmth-slider")?.value || 8500);
+
+                    vibeGainNode = ctx.createGain();
+                    vibeGainNode.gain.value = parseFloat(document.getElementById("vibe-vol-slider")?.value || 0.75);
+
+                    vibeAnalyserNode = ctx.createAnalyser();
+                    vibeAnalyserNode.fftSize = 64;
+
+                    vibeSourceNode.connect(vibeFilterNode);
+                    vibeFilterNode.connect(vibeGainNode);
+                    vibeGainNode.connect(vibeAnalyserNode);
+                    vibeAnalyserNode.connect(ctx.destination);
+                } catch(e) {
+                    console.warn("MediaElementAudioSource direct connect fallback:", e);
+                }
+            }
+
+            vibeAudioElement.src = filePath;
+            vibeAudioElement.play().catch(err => {
+                console.warn("Audio autoplay blocked or file missing:", err);
+            });
+        }
+
+        function updateTapeWarmth(val) {
+            if (vibeFilterNode) {
+                vibeFilterNode.frequency.setValueAtTime(parseFloat(val), getAudioContext().currentTime);
+            }
+        }
+
+        function updateVibeVolume(val) {
+            const v = parseFloat(val);
+            if (vibeGainNode) {
+                vibeGainNode.gain.setValueAtTime(v, getAudioContext().currentTime);
+            } else if (vibeAudioElement) {
+                vibeAudioElement.volume = v;
+            }
+        }
+
+        function startVuAnimation() {
+            if (vuAnimationFrameId) cancelAnimationFrame(vuAnimationFrameId);
+            const needleL = document.getElementById("vu-needle-l");
+            const needleR = document.getElementById("vu-needle-r");
+            const dataArray = new Uint8Array(32);
+
+            function updateVu() {
+                if (!isVibePlaying) {
+                    if (needleL) needleL.style.transform = "rotate(-35deg)";
+                    if (needleR) needleR.style.transform = "rotate(-35deg)";
+                    return;
+                }
+
+                let rms = 0;
+                if (vibeAnalyserNode) {
+                    vibeAnalyserNode.getByteFrequencyData(dataArray);
+                    let sum = 0;
+                    for (let i = 0; i < dataArray.length; ++i) {
+                        sum += dataArray[i];
+                    }
+                    rms = sum / (dataArray.length * 255.0);
+                } else {
+                    rms = 0.35 + 0.3 * Math.sin(Date.now() * 0.006) * Math.cos(Date.now() * 0.009);
+                }
+
+                const degL = -35 + rms * 68;
+                const degR = -35 + (rms * 0.95 + 0.05 * Math.sin(Date.now() * 0.01)) * 68;
+                if (needleL) needleL.style.transform = `rotate(${Math.min(35, degL)}deg)`;
+                if (needleR) needleR.style.transform = `rotate(${Math.min(35, degR)}deg)`;
+
+                vuAnimationFrameId = requestAnimationFrame(updateVu);
+            }
+            updateVu();
+        }
+
+        function stopVuAnimation() {
+            if (vuAnimationFrameId) cancelAnimationFrame(vuAnimationFrameId);
+            const needleL = document.getElementById("vu-needle-l");
+            const needleR = document.getElementById("vu-needle-r");
+            if (needleL) needleL.style.transform = "rotate(-35deg)";
+            if (needleR) needleR.style.transform = "rotate(-35deg)";
+        }
 
         function getAudioContext() {
             if (!audioCtx) {
