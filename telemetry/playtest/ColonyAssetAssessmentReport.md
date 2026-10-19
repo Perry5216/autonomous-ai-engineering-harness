@@ -1,6 +1,6 @@
 # Project Deep-Mantle: Autonomous Asset Assessment Report
 
-**Generated:** 2026-10-19 05:13:12 UTC  
+**Generated:** 2026-10-19 05:19:38 UTC  
 **Evaluated By:** Operator's Local AI Cluster (DGX Spark :8877 & RTX 5090 Blackwell :8080)  
 **RTX 5090 Role Transition:** `ROLE_ENTER` -> `ROLE_EXIT` Clean VRAM Hand-off  
 **Total Assets Evaluated:** 52  
@@ -9,81 +9,88 @@
 
 ## 1. Operator AI Cognitive Assessment & Feature Directives
 
-Here is the architectural and visual design assessment for **Project Deep-Mantle**, executed from the perspective of the Lead Visual Designer and Gameplay Architect on the DGX Spark & RTX 5090 cluster.
+Here is the architectural and visual design audit for **Project Deep-Mantle**, executed from the perspective of the Lead Visual Designer and Gameplay Architect on the DGX Spark & RTX 5090 cluster.
 
-### 1. Visual Coherence & Spatial Consistency Evaluation
+### 1. Visual & Spatial Consistency Audit
+**Does this make sense? (Top-down orthographic, 16-bit scaling, spatial consistency)**
 
-**Does this make sense?**
-Yes, but with critical caveats regarding the transition between 16-bit pixel art and modern orthographic rendering. The current asset list suggests a hybrid approach that risks visual dissonance if not strictly quantized.
+**Verdict:** The current asset list is logically sound but suffers from **scale ambiguity** and **layering conflicts** inherent to mixed-domain 2D orthographic projections.
 
-**Top-Down Orthographic Perspective Analysis:**
-*   **Grid Alignment:** All assets must snap to a strict 16x16 or 32x32 pixel grid. The "Lithophone" and "Terminal Desk" must share the same baseline height as the "Mess Bench" to prevent parallax errors in the UI.
-*   **Depth Cues:** In a top-down view, depth is conveyed through layering and shadow.
-    *   *Flora:* The "Spore Tree" and "Crystal Pine" must use a 3-layer stack (Trunk -> Canopy -> Highlight) to simulate volume without breaking the orthographic plane.
-    *   *Machinery:* The "Pultrusion Mill" and "Smelter" require distinct "active" vs. "idle" sprite states with clear emission glows (cyan for active, amber for idle) to maintain readability against the dark subterranean background.
+*   **Orthographic Perspective:**
+    *   **Status:** ✅ Correct. Top-down is optimal for Factorio-style logistics and RimWorld-style tile-based management.
+    *   **Issue:** The "Lithophone" and "Terminal Desk" are non-orthographic in traditional 3D, but in 16-bit pixel art, they must be flattened. Ensure the **Lithophone** uses a 45-degree isometric-lite projection (common in 16-bit) to show the keys, while the **Terminal Desk** remains strictly top-down to show screen content clearly.
+    *   **Fix:** Enforce a **2.5D orthographic hybrid**: Ground plane is strict top-down; vertical objects (Trees, Turrets, Lithophone) use a slight 15° tilt for readability without breaking the grid.
+
+*   **16-bit Pixel Scaling:**
+    *   **Status:** ⚠️ Needs quantization.
+    *   **Issue:** Mixed asset sizes. A "Muffalo" (large) vs. "Stool" (small) must adhere to a **16x16 or 32x32 grid unit**.
+    *   **Fix:**
+        *   **Small Assets (Stool, Inserter, Chute):** 16x16 px.
+        *   **Medium Assets (Table, Shelf, Wolf):** 32x32 px.
+        *   **Large Assets (Spore Tree, Turbine, Muffalo):** 64x64 px (or 2x32x32 blocks).
+        *   **Rule:** All assets must snap to the 16px grid. No fractional pixels. Use **nearest-neighbor scaling** for UI overlays.
+
 *   **Spatial Consistency:**
-    *   *Fauna:* The 4-frame walk cycles for Muffalo, Deer, Boar, and Wolf must have identical stride lengths relative to the grid. A Wolf’s step should cover exactly 2 grid units per frame to match the "Hauler" drone’s movement speed.
-    *   *Lighting:* Use a unified light map. The "Lamp" must cast a hard-edged, pixel-perfect cone of light that interacts with the "Storage Shelf" shadows. No soft gradients; use dithering for light falloff to maintain the 16-bit aesthetic.
-
-**Verdict:** The perspective is viable if we enforce a **strict 32x32 pixel grid** with **no anti-aliasing**. The "Lithophone" is the most complex asset; it must be simplified to 3 distinct color bands to remain readable at 1x zoom.
+    *   **Issue:** "Rogue Subversion Loop" is abstract. Is it a physical object or a state?
+    *   **Fix:** Represent the **Rogue Subversion Loop** as a **glowing, pulsing 16x16 node** with a distinct color (e.g., Cyan #00FFFF) to differentiate from static machinery. Ensure **Conveyors N/E/S/W** have visible directional arrows (1px thick) to prevent player confusion at 1x zoom.
 
 ---
 
-### 2. Gameplay Loop Clarity & Player Comprehension
+### 2. Gameplay Loop Clarity
+**Is it clear? Will the player understand what's going on? (Factorio + RimWorld hybrid)**
 
-**Is it clear? Will the player understand?**
-The loop is **Factorio-grade automation** nested within **RimWorld-grade survival**. It is clear *if* the UI hierarchy is rigid.
+**Verdict:** The loop is **intuitive but fragmented**. It needs a **unified resource flow diagram** to prevent cognitive overload.
 
-**The Core Loop:**
-1.  **Extract (Input):** Drones (Hauler/Sentry) gather resources from Subterranean Flora (Spore Tree, Crystal Pine) and Fauna (Muffalo wool, Deer meat).
-2.  **Process (Transformation):** Resources move via Conveyors/Inserters to Industrial Machinery (Pultrusion Mill, Smelter).
-3.  **Sustain (Output):** Processed goods feed Habitation Furniture (Lithophone for morale, Terminal Desk for research) and Power Systems (Turbine).
-4.  **Expand (Feedback):** Morale and Research unlock new drone types (Rogue Subversion Loop) and deeper strata.
+#### The Core Loop (3-Step Cycle):
+1.  **Harvest (Flora/Fauna):**
+    *   *Input:* Spore Trees, Berry Bushes, Muffalo.
+    *   *Output:* Raw Biomass, Crystal Shards, Hide.
+    *   *Player Action:* Place Harvesters (Drones) or assign Pawns to collect.
+2.  **Process (Industrial Machinery):**
+    *   *Input:* Raw Biomass, Crystal Shards.
+    *   *Output:* Refined Fuel, Circuit Boards, Lithophone Notes (for buffs).
+    *   *Player Action:* Connect Conveyors/Inserters. Optimize throughput.
+3.  **Sustain & Expand (Habitation & Logistics):**
+    *   *Input:* Refined Fuel, Circuit Boards.
+    *   *Output:* Power, Research Points, Population Growth.
+    *   *Player Action:* Upgrade Turrets, Expand Storage, Unlock new Flora.
 
-**Player Comprehension Strategy:**
-*   **Visual Feedback:** Each machine must have a **single, bold status indicator** (e.g., a 2-pixel high bar above the sprite). Green = Active, Yellow = Idle, Red = Blocked.
-*   **Pawn Behavior:** Pawns (or drones) must follow **strict pathfinding rules**. If a Conveyor is blocked, the Hauler drone must visibly stop and flash red. No ambiguous animations.
-*   **UI Integration:** The "Terminal Desk" is the only interactive UI element in-world. Clicking it opens a minimal, high-contrast overlay showing:
-    *   Current Power (Turbine output)
-    *   Morale (Lithophone level)
-    *   Next Objective (e.g., "Build 2 Smelters")
-
-**Verdict:** The loop is intuitive if we **limit simultaneous active tasks to 3**. The player should never be overwhelmed. Use **color-coded paths** for Conveyors (N/E/S/W) to reduce cognitive load.
+#### Clarity Enhancements:
+*   **Color-Coded Resources:**
+    *   **Biomass:** Green (#4CAF50)
+    *   **Crystals:** Cyan (#00BCD4)
+    *   **Fuel:** Orange (#FF9800)
+    *   **Power:** Yellow (#FFEB3B)
+*   **Pawn AI States:** Use **icon overlays** on pawns:
+    *   🟢 Idle
+    *   🟡 Moving
+    *   🔵 Working
+    *   🔴 Stuck/Blocked
+*   **Tutorial Pop-ups:** On first placement of each asset type, show a **1-line tooltip** with its input/output ratio (e.g., "Pultrusion Mill: 1 Biomass → 1 Board").
 
 ---
 
-### 3. AI Artifacts, Quantization, and Perspective Alignment Fixes
-
-**Where things look like AI done, what needs replacement?**
+### 3. AI Artifact Remediation & Quantization
+**Where things look like it was AI done, what needs replacement, quantization, or perspective alignment?**
 
 | Asset | Issue | Fix |
 |-------|-------|-----|
-| **Spore Tree** | AI often generates fuzzy, non-grid-aligned canopies. | **Replace** with a 3-tier pixel stack. Use only 4 colors: Dark Green, Mid Green, Light Green, Highlight. No gradients. |
-| **Crystal Pine** | Overly complex refraction effects. | **Quantize** to 3 flat planes. Use dithering for the "crystal" effect. Ensure the trunk is exactly 2 pixels wide. |
-| **Muffalo/Wolf** | Inconsistent stride lengths in 4-frame cycles. | **Align** all walk cycles to a 2-pixel step per frame. Ensure the head and body move in unison. No "squash and stretch" beyond 1 pixel. |
-| **Conveyors** | Directional arrows are often misaligned. | **Standardize** arrows to 4x4 pixels. N: Up, E: Right, S: Down, W: Left. Use a single color (Cyan) for all active conveyors. |
-| **Lithophone** | Too many details in the strings. | **Simplify** to 3 horizontal lines. The "sound" effect should be a 1-pixel expanding circle, not a complex waveform. |
-| **Rogue Subversion Loop** | Ambiguous shape. | **Define** as a 3-pixel spiral. Use a distinct color (Magenta) to differentiate from standard drones. |
+| **Spore Tree** | Blurry edges, inconsistent leaf clusters. | **Quantize:** Use 4 distinct leaf shapes. Align trunk to 16px grid. Add **shadow layer** (1px dark green) for depth. |
+| **Muffalo** | 4-frame walk cycle is jerky; feet not aligned. | **Align:** Ensure all 4 frames have **identical bounding box**. Feet must touch the same Y-coordinate. Use **subpixel interpolation** disabled. |
+| **Conveyors N/E/S/W** | Arrows are faint; direction unclear at 1x zoom. | **Replace:** Use **bold, 2px white arrows** on a dark background. Add **animated dot** moving along the belt for visual feedback. |
+| **Lithophone** | Keys look like random pixels; no clear hierarchy. | **Quantize:** Use **3 distinct key colors** (Red, Blue, Yellow) for 3-note chords. Align keys to 4px sub-grid. |
+| **Rogue Subversion Loop** | Abstract shape; hard to distinguish from UI. | **Replace:** Use a **glowing, rotating 16x16 spiral** with a **pulse animation** (2Hz). Add a **number label** (1, 2, 3...) for loop order. |
+| **Terminal Desk** | Screen content is unreadable. | **Fix:** Use **3-line max** text on screen. Font size 8px. High contrast (Black on White). |
 
-**Perspective Alignment:**
-*   All assets must be **centered on the grid**.
-*   Shadows must be **1 pixel offset** to the bottom-right.
-*   No overlapping sprites unless explicitly layered (e.g., a Stool on a Mess Bench).
+**General Quantization Rules:**
+1.  **Palette:** Limit to **16 colors** per asset. Use **indexed color** for consistency.
+2.  **Alignment:** All objects must snap to **16x16 grid**. No half-pixels.
+3.  **Shadows:** Use **1px hard shadows** offset by 1px down-right. No gradients.
 
 ---
 
-### 4. New Depth & Fun Features for Maximum Engagement
-
-To maximize player engagement, we introduce **3 new mechanics** that leverage the existing asset domains:
-
-#### A. **Resonance Chains (Lithophone + Flora)**
-*   **Mechanic:** When a Lithophone is active, it emits a "pulse" every 2 seconds. If a Spore Tree or Crystal Pine is within 3 grid units, it enters a "Resonant State" (glows brighter).
-*   **Effect:** Resonant Flora produce resources 2x faster.
-*   **Fun Factor:** Players must strategically place Lithophones to create "resonance zones," encouraging spatial puzzle-solving.
-
-#### B. **Symbiotic Fauna Behavior (Muffalo + Wolf)**
-*   **Mechanic:** Muffalos follow the nearest Hauler Drone. Wolves follow the nearest Sentry Rover.
-*   **Effect:**
+### 4. New Depth & Fun Features
+**What new depth and fun features should be added
 
 ## 2. Domain Asset Telemetry
 
