@@ -1,6 +1,6 @@
 # Project Deep-Mantle: Autonomous Asset Assessment Report
 
-**Generated:** 2026-10-19 04:47:47 UTC  
+**Generated:** 2026-10-19 04:54:06 UTC  
 **Evaluated By:** Operator's Local AI Cluster (DGX Spark :8877 & RTX 5090 Blackwell :8080)  
 **RTX 5090 Role Transition:** `ROLE_ENTER` -> `ROLE_EXIT` Clean VRAM Hand-off  
 **Total Assets Evaluated:** 52  
@@ -9,85 +9,81 @@
 
 ## 1. Operator AI Cognitive Assessment & Feature Directives
 
-Here is the architectural and visual design assessment for **Project Deep-Mantle**, executed from the perspective of the Lead Visual Designer and Gameplay Architect on the DGX Spark & RTX 5090 cluster.
+Here is the architectural and visual design analysis for **Project Deep-Mantle**, executed from the perspective of the Lead Visual Designer and Gameplay Architect on the DGX Spark/RTX 5090 cluster.
 
-### 1. Visual & Spatial Consistency Evaluation
-**Does this make sense? (Top-down orthographic, 16-bit scaling, spatial consistency)**
+### 1. Visual Coherence & Spatial Consistency Evaluation
 
-**Verdict:** The structure is logically sound but requires strict **grid-based quantization** to avoid visual noise. The current asset list is modular but lacks a unified "pixel-perfect" baseline.
+**Does this make sense?**
+Yes, the structure is logically sound, but the visual execution requires strict adherence to **isometric orthographic projection** with a fixed Z-axis layering system to avoid occlusion errors common in subterranean environments.
 
-*   **Perspective Alignment:**
-    *   **Standard:** All assets must adhere to a strict **2:1 isometric projection** (or true top-down 1:1 if prioritizing clarity over depth). Given the "subterranean" theme, a slight vertical offset (Z-axis) for stacked items (e.g., Lithophone on a Shelf) is critical.
-    *   **Issue:** "Lithophone" and "Terminal Desk" are complex shapes. In 16-bit, these often suffer from aliasing. **Fix:** Use 4x integer scaling for all sprites. Ensure the "Lithophone" tubes align exactly with the grid cells of the "Terminal Desk" if placed adjacently.
-*   **Spatial Consistency:**
-    *   **Drone Bay vs. Sentry Rover:** The Drone Bay must have a visible "port" (1-tile wide) that aligns perfectly with the Sentry Rover’s docking point. Misalignment here breaks immersion.
-    *   **Conveyors (N/E/S/W):** Must use a **single-tile sprite sheet** with 4 rotations. The "Inserter" must visually overlap the conveyor tile by exactly 1 pixel to show connection.
-*   **16-bit Scaling:**
-    *   **Palette:** Use a **16-color palette per domain** (e.g., Earth tones for Flora, Metallic blues for Machinery). This reduces cognitive load.
-    *   **Resolution:** 32x32 pixels per tile is optimal for readability on modern high-DPI screens (RTX 5090) while maintaining the retro aesthetic.
+*   **Perspective & Scaling:**
+    *   **16-bit Pixel Scaling:** We must enforce a strict 16px grid base. All assets must snap to this grid.
+        *   *Small items* (Stool, Berry Bush): 16x16 or 16x32 px.
+        *   *Medium items* (Table, Drone): 32x32 or 32x48 px.
+        *   *Large structures* (Turbine, Spore Tree): 48x48 or 64x64 px.
+    *   **Orthographic Consistency:** Use a 2:1 isometric ratio (standard for pixel art clarity). Ensure all "top-down" elements (like the Lithophone keys or Conveyor belts) align perfectly with the grid lines. No perspective foreshortening; depth is conveyed solely through Y-axis stacking and shadow casting.
 
-**Action Item:** Implement a **Z-index layering system**:
-1.  Ground (Conveyors, Floor)
-2.  Base Objects (Tables, Shelves)
-3.  Interactive Objects (Drones, Pawns)
-4.  Overlays (Lamps, Lithophone glow)
+*   **Spatial Consistency Issues to Watch:**
+    *   **Layering Conflicts:** The *Spore Tree* canopy must not obscure the *Terminal Desk* behind it. Use a strict Z-index: Ground (0) → Furniture (1) → Flora (2) → Machinery (3) → Drones (4).
+    *   **Lighting Uniformity:** Subterranean environments lack natural light direction. Implement a **global ambient occlusion map** baked into the sprites. Each asset must have a consistent light source (e.g., top-left) to maintain readability.
+
+*   **Verdict:** The domain separation is excellent. The visual language must be **high-contrast, low-poly pixel art** with a limited palette (max 16 colors per asset) to ensure readability on high-refresh-rate monitors.
 
 ---
 
-### 2. Gameplay Loop Clarity
-**Is it clear? Will the player understand what's going on? (Factorio-grade automation + RimWorld-grade pawn survival)**
+### 2. Gameplay Loop Clarity & Player Comprehension
 
-**Verdict:** The loop is **intelligible but fragmented**. The current asset list implies two disconnected systems: **Production (Factorio)** and **Survival (RimWorld)**. The player will struggle to see the *causal link* between them.
+**Is it clear? Will the player understand?**
+Yes, if we implement a **Three-Tier Feedback Loop** that mirrors Factorio’s efficiency and RimWorld’s narrative density.
 
-**Proposed Unified Loop:**
-1.  **Input:** Pawns (Muffalo/Deer) consume **Flora** (Spore Tree, Berry Bush) → Produce **Raw Materials** (Fiber, Nutrients).
-2.  **Processing:** **Industrial Machinery** (Pultrusion Mill, Smelter) converts Raw Materials into **Components**.
-3.  **Automation:** **Drones** (Hauler, Sentry) move Components via **Conveyors/Inserters** to **Habitation Furniture** (Terminal Desk, Lithophone).
-4.  **Output:** **Habitation** generates **Energy/Research Points** → Powers **Drone Bay** → Unlocks new **Fauna/Flora** strains.
+#### The Core Loop:
+1.  **Input (Extraction):** Player places *Hydroponics* and *Smelter*. Resources flow via *Conveyors*.
+2.  **Process (Automation):** *Drones* (Agronomy/Sanitation) interact with *Flora* and *Fauna*. *Machinery* converts raw inputs into components.
+3.  **Output (Expansion):** Components build new *Habitation* or *Industrial* structures. *Sentry Rovers* defend against *Rogue Subversion Loops*.
 
-**Clarity Enhancements:**
-*   **Color-Coded Systems:**
-    *   **Green:** Flora & Fauna (Biological)
-    *   **Blue:** Machinery & Logistics (Industrial)
-    *   **Yellow:** Habitation & Drones (Operational)
-*   **Visual Feedback:** When a Drone picks up an item, the item sprite should **pulse** and **snap** to the drone’s center. When a Conveyor moves, use a **2-frame animation** (100ms per frame) to show flow direction.
+#### Clarity Enhancements:
+*   **Visual Cues for Flow:**
+    *   *Conveyors:* Animated stripes moving in the direction of flow (N/E/S/W).
+    *   *Drones:* Distinct color codes for tasks (e.g., Green = Agronomy, Blue = Sanitation, Red = Sentry).
+    *   *Fauna:* 4-frame walk cycles must be smooth and loop seamlessly. The *Muffalo* should have a slight "bob" to indicate weight.
+*   **UI Integration:**
+    *   Hover tooltips must show **input/output rates** (e.g., "Smelter: 1 Iron → 1 Plate / 2s").
+    *   *Rogue Subversion Loop* should have a pulsing red outline when active, indicating urgency.
 
-**Player Understanding Check:**
-*   **Question:** "Why is my Lithophone glowing?"
-*   **Answer:** It’s powered by the adjacent Terminal Desk. The glow intensity indicates research speed.
-*   **Question:** "Why did the Muffalo stop eating?"
-*   **Answer:** The Berry Bush is depleted. The Hauler Drone is bringing a new one.
-
----
-
-### 3. AI-Generated Artifacts & Quantization Fixes
-**Where things look like it was AI done, what needs replacement, quantization, or perspective alignment?**
-
-**Common AI Artifacts in 16-bit Style:**
-1.  **Inconsistent Line Weights:** AI often varies stroke width (1px vs. 2px) within the same sprite.
-    *   **Fix:** Enforce **1px black outlines** for all foreground objects. Use **2px** only for major structural elements (e.g., Turbine base).
-2.  **Floating Shadows:** AI adds soft, blurred shadows that break pixel-perfect alignment.
-    *   **Fix:** Replace with **hard-edged, 1px offset shadows** (e.g., 1px down, 1px right) in a darker shade of the object’s base color.
-3.  **Misaligned Grids:** The "Lithophone" tubes may not align with the "Terminal Desk" grid.
-    *   **Fix:** **Snap all sprites to a 32x32 grid.** Use a **nearest-neighbor** interpolation for scaling. No anti-aliasing.
-4.  **Color Bleeding:** AI blends colors between adjacent tiles.
-    *   **Fix:** Use **indexed color palettes** with no gradients. Each tile must have a **unique, non-overlapping color set**.
-
-**Specific Replacements:**
-*   **Drone Bay:** Replace the generic "box" with a **layered sprite**: Base (1px outline), Inner Glow (2px), Docking Port (1px).
-*   **Conveyors:** Ensure the **arrow direction** is baked into the sprite, not added via code. Use **4 distinct sprites** for N/E/S/W, not rotated versions, to avoid pixel distortion.
-*   **Fauna Walk Cycles:** The "4-frame walk cycle" must have **consistent foot placement**. Frame 1: Left foot forward. Frame 2: Both feet mid. Frame 3: Right foot forward. Frame 4: Both feet mid. **No sliding.**
+**Player Understanding:**
+The player will understand if:
+1.  **Chain Reactions are Visible:** When a *Healroot* is harvested, the *Agronomy Drone* immediately flies to the *Storage Shelf*.
+2.  **Bottlenecks are Highlighted:** If a *Conveyor* is full, it flashes amber. If a *Turbine* is idle, it dims.
+3.  **Fauna Behavior is Predictable:** *Deer* graze near *Berry Bushes*; *Wolves* patrol near *Sentry Rovers*. This creates a natural "ecosystem" feel.
 
 ---
 
-### 4. New Depth & Fun Features for Engagement
-**What new depth and fun features should be added to the game in this loop to maximize player engagement?**
+### 3. AI-Generated Artifacts: Replacement & Quantization Strategy
 
-To elevate from a static simulation to an engaging experience, introduce **dynamic interactions** and **emergent gameplay**:
+**Where things look like AI done, what needs replacement?**
 
-1.  **Dynamic Lighting System (RTX 5090 Advantage):**
-    *   **Lamps** cast **real-time, pixel-perfect light cones** that affect adjacent tiles.
-    *   **Feature:** "Photosynthesis Boost" –
+| Asset Domain | Common AI Artifacts | Replacement/Quantization Strategy |
+|--------------|---------------------|-----------------------------------|
+| **1. Drones** | Blurry edges, inconsistent pixel counts, floating shadows. | **Replace with hand-crafted 16px sprites.** Use 1-bit alpha for crisp edges. Ensure all drones have the same base height (16px) for grid alignment. |
+| **2. Furniture** | Mismatched perspective (e.g., table top not parallel to floor). | **Quantize to 2:1 isometric grid.** Redraw *Terminal Desk* and *Lithophone* with strict 90-degree angles. Use a single light source for all shadows. |
+| **3. Flora** | Overly detailed leaves, non-uniform color gradients. | **Simplify to 3-4 color palettes per plant.** *Spore Tree*: Use 3 shades of green + 1 highlight. *Crystal Pine*: Use 2 shades of blue + 1 white highlight. |
+| **4. Fauna** | Inconsistent walk cycle frames, misaligned feet. | **Standardize 4-frame cycles.** Ensure all 4 frames have the same bounding box. *Muffalo*: Heavy, slow steps. *Deer*: Light, quick steps. *Wolf*: Alert, head-up posture. |
+| **5. Machinery** | Complex, unreadable details, no clear input/output ports. | **Simplify to geometric shapes.** *Turbine*: Circle + 3 blades. *Smelter*: Rectangle + flame icon. Add **port indicators** (small arrows) on all machinery. |
+| **6. Logistics** | Misaligned conveyor belts, inconsistent arrow directions. | **Snap to grid.** All *Conveyors* must be 16px wide. *Inserter* must have a clear "pick-up" and "drop-off" animation. *Chute* must show vertical movement. |
+
+**Quantization Rules:**
+*   **Palette:** Use a 16-color indexed palette for all assets.
+*   **Resolution:** All sprites must be multiples of 16px.
+*   **Alignment:** All sprites must be centered on their grid cell.
+
+---
+
+### 4. New Depth & Fun Features for Maximum Engagement
+
+To maximize player engagement, we introduce **Systemic Interactions** that leverage the DGX Spark’s parallel processing capabilities for real-time simulation.
+
+#### A. **Dynamic Ecosystem Interactions**
+1.  **Symbiotic Growth:** *Healroot* grows faster if placed adjacent to *Crystal Pine
 
 ## 2. Domain Asset Telemetry
 
