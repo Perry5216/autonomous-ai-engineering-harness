@@ -1,0 +1,80 @@
+{
+  "status": "APPROVED",
+  "audio_director": "DGX Spark / RTX 5090 Blackwell",
+  "cavern_acoustics": {
+    "reverberation_rt60_sec": 2.45,
+    "basalt_absorption_coeff_1khz": 0.08,
+    "low_pass_structural_cutoff_hz": 180,
+    "sub_bass_resonance_hz": 42.0
+  },
+  "dsp_synthesizers": {
+    "GeophoneStressPing": {
+      "type": "triangle",
+      "freq_start_hz": 840,
+      "freq_end_hz": 110,
+      "decay_ms": 120,
+      "gain": 0.28
+    },
+    "SteamExhaustHiss": {
+      "type": "bandpass_noise",
+      "center_freq_hz": 1200,
+      "q": 3.5,
+      "attack_ms": 80,
+      "decay_ms": 700,
+      "gain": 0.25
+    },
+    "ConveyorMechanicalHum": {
+      "type": "square",
+      "freq_hz": 160,
+      "harmonics": [
+        200,
+        240
+      ],
+      "pulse_interval_ms": 600,
+      "gain": 0.08
+    },
+    "ColonistStrangeMoodChime": {
+      "type": "polyphonic_sine",
+      "notes_hz": [
+        523.25,
+        659.25,
+        783.99,
+        1046.5
+      ],
+      "decay_ms": 1800,
+      "gain": 0.12
+    },
+    "MagmaWaterObsidianReaction": {
+      "type": "noise_crack_transient",
+      "sub_boom_hz": 38,
+      "steam_tail_ms": 1200,
+      "gain": 0.35
+    }
+  },
+  "llm_generative_sound_prompts": [
+    {
+      "event": "Geophone Seismic Stress Ping",
+      "model_prompt": "sharp subterranean stone stress ping, high resonance crystalline click with ominous hollow cave echo, piezoelectric sensor pickup, isolated sound effect",
+      "duration_sec": 1.2,
+      "acoustic_space": "deep subterranean cavern, basalt rock walls"
+    },
+    {
+      "event": "High-Pressure Steam Vent Discharge",
+      "model_prompt": "pressurized industrial steam release valve hiss, sharp metallic hiss valve opening, boiling geothermal exhaust, cavern reverberation",
+      "duration_sec": 2.5,
+      "acoustic_space": "industrial subterranean engine hall"
+    },
+    {
+      "event": "Subterranean Conveyor & Ore Crusher",
+      "model_prompt": "heavy mechanical conveyor belt rhythmic thrum, metallic rollers clicking on iron rails, steady industrial pulse, deep bass vibration",
+      "duration_sec": 4.0,
+      "acoustic_space": "enclosed factory tunnel"
+    },
+    {
+      "event": "Colonist Strange Mood Epiphany",
+      "model_prompt": "ethereal celestial chime chord, mystical bell harmonics reverberating in a massive subterranean cathedral cave, psychological transcendence",
+      "duration_sec": 3.5,
+      "acoustic_space": "cathedral cavern, high reverberation"
+    }
+  ]
+}
