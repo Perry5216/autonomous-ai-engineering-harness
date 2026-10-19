@@ -17,11 +17,11 @@
 | Metric | Live State | Verification Source |
 |---|---|---|
 | **Test Checkpoints Passing** | **577 / 577 Verified** | `ColonyPluginTest.exe` (Binary Exit Code 0) |
-| **Active Target Codebase** | [ezEngine Colony Simulation Plugin](https://github.com/Perry5216/ezEngine/tree/dev/Code/EnginePlugins/ColonyPlugin) | Native C++20 / MSVC / CMake / Ninja |
+| **Active Target Codebase** | [Project Deep-Mantle Simulation Core (Showcase)](https://perry5216.github.io/autonomous-ai-engineering-harness/showcase/) | Native C++20 / Vulkan / RmlUi |
 | **Modules Verified & Fast-Forwarded** | **43 Subsystems** | Automated Sentinel & Phase Hooks |
 | **Reflex Diagnostic Latency** | **< 2,500 ms** | RTX 5090 Blackwell @ 198.8 tok/s (32k Resident KV) |
-| **Target Git HEAD** | [`6bdc81882`](https://github.com/Perry5216/ezEngine/commit/6bdc81882) (`dev`) | 7281 total commits |
-| **Last Verified Timestamp** | **2026-10-19 04:13:08** | Continuous Verification Loop |
+| **Target Git HEAD** | `6bdc81882` (`dev`) | 7281 total commits |
+| **Last Verified Timestamp** | **2026-10-19 04:18:00** | Continuous Verification Loop |
 
 - **Interactive Simulation Showcase**: Launch the [Live Subterranean Cartography & Colonist Simulation Showcase](https://perry5216.github.io/autonomous-ai-engineering-harness/showcase/) directly in your browser.
 - **Interactive Visual Dashboard**: Open [docs/index.html](https://perry5216.github.io/autonomous-ai-engineering-harness/) for the dark-mode real-time terminal and telemetry board.  
