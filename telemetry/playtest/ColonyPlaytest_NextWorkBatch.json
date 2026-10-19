@@ -1,50 +1,46 @@
 {
-  "batch_id": "BATCH-33",
+  "batch_id": "BATCH-34",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "Finalize simulation coverage by implementing deterministic state compression for long-running campaigns and optimizing endgame tick processing. This batch ensures 100% Monte Carlo survival rate stability and reduces memory footprint for 5,500+ tick simulations without introducing cascading header dependencies.",
+  "overview": "Finalize the simulation core by implementing deterministic state hashing for rapid save/load verification and optimizing the Monte Carlo tick loop for cache locality. These steps ensure the 5,500-tick baseline remains stable under extreme load and provide immediate feedback on simulation integrity.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Implement Zero-Heap Deterministic State Compression for Tick History",
+      "title": "Implement Deterministic State Hashing for Save Verification",
       "target_files": [
-        "src/engine/core/StateCompressor.h",
-        "src/engine/core/StateCompressor.cpp"
+        "Source/Runtime/Simulation/StateHash.h",
+        "Source/Runtime/Simulation/StateHash.cpp"
       ],
-      "architectural_spec": "Use std::array<uint8_t, 1024> for fixed-size buffers. Implement a static inline function `compressTick` that packs 5,500 ticks into a bitfield using constexpr logic. No dynamic allocation. Use `std::bit_cast` for type punning. Ensure all operations are noexcept. The compressor must handle 16,500 footsteps by indexing into a static lookup table. Memory layout must be cache-line aligned (64 bytes).",
-      "acceptance_criteria": "1. Compression ratio > 85% for 5,500 ticks. 2. Zero heap allocations during compression. 3. Decompression is O(1) for random access. 4. All tests pass with 0 deadlocks.",
-      "player_fun_impact": "Faster load times for long campaigns; smoother UI responsiveness during endgame reviews.",
+      "architectural_spec": "1. Define a struct `StateHash` using `std::array<uint64_t, 4>` for 256-bit output.\n2. Implement `ComputeHash(const SimulationState& state)` using a non-allocating FNV-1a variant.\n3. Iterate through `state.ticks`, `state.footsteps`, and `state.monte_carlo_results` in linear order.\n4. Use `constexpr` helpers for bit-shifting operations to ensure compile-time evaluation where possible.\n5. Ensure no dynamic allocation occurs during hash computation.\n6. Return the final 256-bit hash as a `std::string_view` from a static buffer.\n7. Validate that the hash is identical across multiple runs with the same seed.",
+      "acceptance_criteria": [
+        "Hash computation completes in < 1ms for 5,500 ticks.",
+        "Zero heap allocations during hash calculation.",
+        "Identical seeds produce identical 256-bit hashes.",
+        "Unit tests verify hash stability across 100 iterations."
+      ],
+      "player_fun_impact": "Instant save/load verification ensures no data corruption in long-running simulations.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Optimize Monte Carlo Survival Rate Calculation for 100% Stability",
+      "title": "Optimize Monte Carlo Tick Loop for Cache Locality",
       "target_files": [
-        "src/simulation/MonteCarloEngine.h",
-        "src/simulation/MonteCarloEngine.cpp"
+        "Source/Runtime/Simulation/MonteCarlo.h",
+        "Source/Runtime/Simulation/MonteCarlo.cpp"
       ],
-      "architectural_spec": "Replace iterative loops with unrolled constexpr calculations for the 16,500 footsteps. Use `std::span` for view-based access to precomputed survival probabilities. Implement a static `constexpr` array for the 100% survival rate lookup. Ensure no floating-point drift by using fixed-point arithmetic (int64_t scaled by 1e6). All functions must be `noexcept` and `constexpr` where possible.",
-      "acceptance_criteria": "1. Survival rate calculation completes in < 1 microsecond. 2. Fixed-point arithmetic matches IEEE 754 within 1e-6 tolerance. 3. No deadlocks in parallel execution. 4. Memory usage < 1KB for state.",
-      "player_fun_impact": "Instantaneous feedback on simulation outcomes; reliable endgame statistics.",
+      "architectural_spec": "1. Refactor `MonteCarloStep` to use a flat `std::vector` for all entity states.\n2. Pre-allocate the vector to exactly 5,500 entries at initialization.\n3. Replace pointer-based entity references with `uint32_t` indices.\n4. Implement a `ProcessTick` function that iterates linearly through the vector.\n5. Use `__builtin_prefetch` for the next entity index in the loop.\n6. Remove all virtual function calls in the hot path; use `if constexpr` for type dispatch.\n7. Ensure the struct size is a multiple of 64 bytes for cache line alignment.",
+      "acceptance_criteria": [
+        "Tick processing time reduced by at least 30%.",
+        "No cache misses in the primary entity loop (verified via perf counters).",
+        "Memory footprint remains constant after initialization.",
+        "All 16,500 footsteps logged correctly in order."
+      ],
+      "player_fun_impact": "Smoother frame rates and faster simulation progression in large-scale scenarios.",
       "estimated_complexity": "Small"
-    },
-    {
-      "task_id": "TASK-803",
-      "priority": "P2 - Quality-of-Life",
-      "domain": "Storyteller/AI",
-      "title": "Cache-Line Aligned Endgame Narrative State Machine",
-      "target_files": [
-        "src/storyteller/EndgameNarrator.h",
-        "src/storyteller/EndgameNarrator.cpp"
-      ],
-      "architectural_spec": "Define a `struct alignas(64) NarrativeState` containing 4 `uint32_t` fields for tick, step, event, and status. Implement a static `constexpr` transition table for 10 endgame states. Use `std::bit_cast` for state transitions. No virtual functions. All methods are `inline` and `noexcept`. The state machine must process 5,500 ticks in a single pass with no branching penalties.",
-      "acceptance_criteria": "1. State transitions are branchless. 2. Cache miss rate < 1% for sequential access. 3. Narrative output is deterministic across runs. 4. Zero heap allocations.",
-      "player_fun_impact": "Consistent and predictable story progression; no lag during endgame sequences.",
-      "estimated_complexity": "Atomic"
     }
   ]
 }

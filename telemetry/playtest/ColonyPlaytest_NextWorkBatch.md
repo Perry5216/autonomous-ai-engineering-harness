@@ -1,57 +1,55 @@
-# Project Deep-Mantle :: Engineering Work Batch: BATCH-33
+# Project Deep-Mantle :: Engineering Work Batch: BATCH-34
 
 ## Ultra-Endgame Ascension & Deterministic State Compression (Target: `v1.2.0`)
 
 - **Architect**: `DGX Spark Cluster Lead Systems Engineer`
 - **QA Verifier**: `RTX 5090 Blackwell Reflex QA Director`
-- **Date**: `2026-10-19 14:13:55`
+- **Date**: `2026-10-19 14:21:36`
 
 ### Batch Overview
-Finalize simulation coverage by implementing deterministic state compression for long-running campaigns and optimizing endgame tick processing. This batch ensures 100% Monte Carlo survival rate stability and reduces memory footprint for 5,500+ tick simulations without introducing cascading header dependencies.
+Finalize the simulation core by implementing deterministic state hashing for rapid save/load verification and optimizing the Monte Carlo tick loop for cache locality. These steps ensure the 5,500-tick baseline remains stable under extreme load and provide immediate feedback on simulation integrity.
 
 ---
 
 ### Prioritized Engineering Tasks
 
-#### [TASK-801] Implement Zero-Heap Deterministic State Compression for Tick History (`P0 - Critical`)
+#### [TASK-801] Implement Deterministic State Hashing for Save Verification (`P0 - Critical`)
 
 - **Domain**: `Engine/C++20`
 - **Estimated Complexity**: `Atomic`
 - **Target Files**:
-  - `src/engine/core/StateCompressor.h`
-  - `src/engine/core/StateCompressor.cpp`
+  - `Source/Runtime/Simulation/StateHash.h`
+  - `Source/Runtime/Simulation/StateHash.cpp`
 - **Architectural Specification**:
-  Use std::array<uint8_t, 1024> for fixed-size buffers. Implement a static inline function `compressTick` that packs 5,500 ticks into a bitfield using constexpr logic. No dynamic allocation. Use `std::bit_cast` for type punning. Ensure all operations are noexcept. The compressor must handle 16,500 footsteps by indexing into a static lookup table. Memory layout must be cache-line aligned (64 bytes).
+  1. Define a struct `StateHash` using `std::array<uint64_t, 4>` for 256-bit output.
+2. Implement `ComputeHash(const SimulationState& state)` using a non-allocating FNV-1a variant.
+3. Iterate through `state.ticks`, `state.footsteps`, and `state.monte_carlo_results` in linear order.
+4. Use `constexpr` helpers for bit-shifting operations to ensure compile-time evaluation where possible.
+5. Ensure no dynamic allocation occurs during hash computation.
+6. Return the final 256-bit hash as a `std::string_view` from a static buffer.
+7. Validate that the hash is identical across multiple runs with the same seed.
 - **Acceptance Criteria**:
-  1. Compression ratio > 85% for 5,500 ticks. 2. Zero heap allocations during compression. 3. Decompression is O(1) for random access. 4. All tests pass with 0 deadlocks.
+  ['Hash computation completes in < 1ms for 5,500 ticks.', 'Zero heap allocations during hash calculation.', 'Identical seeds produce identical 256-bit hashes.', 'Unit tests verify hash stability across 100 iterations.']
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Faster load times for long campaigns; smoother UI responsiveness during endgame reviews.
+  Instant save/load verification ensures no data corruption in long-running simulations.
 
-#### [TASK-802] Optimize Monte Carlo Survival Rate Calculation for 100% Stability (`P1 - High`)
+#### [TASK-802] Optimize Monte Carlo Tick Loop for Cache Locality (`P1 - High`)
 
 - **Domain**: `Simulation/Physics`
 - **Estimated Complexity**: `Small`
 - **Target Files**:
-  - `src/simulation/MonteCarloEngine.h`
-  - `src/simulation/MonteCarloEngine.cpp`
+  - `Source/Runtime/Simulation/MonteCarlo.h`
+  - `Source/Runtime/Simulation/MonteCarlo.cpp`
 - **Architectural Specification**:
-  Replace iterative loops with unrolled constexpr calculations for the 16,500 footsteps. Use `std::span` for view-based access to precomputed survival probabilities. Implement a static `constexpr` array for the 100% survival rate lookup. Ensure no floating-point drift by using fixed-point arithmetic (int64_t scaled by 1e6). All functions must be `noexcept` and `constexpr` where possible.
+  1. Refactor `MonteCarloStep` to use a flat `std::vector` for all entity states.
+2. Pre-allocate the vector to exactly 5,500 entries at initialization.
+3. Replace pointer-based entity references with `uint32_t` indices.
+4. Implement a `ProcessTick` function that iterates linearly through the vector.
+5. Use `__builtin_prefetch` for the next entity index in the loop.
+6. Remove all virtual function calls in the hot path; use `if constexpr` for type dispatch.
+7. Ensure the struct size is a multiple of 64 bytes for cache line alignment.
 - **Acceptance Criteria**:
-  1. Survival rate calculation completes in < 1 microsecond. 2. Fixed-point arithmetic matches IEEE 754 within 1e-6 tolerance. 3. No deadlocks in parallel execution. 4. Memory usage < 1KB for state.
+  ['Tick processing time reduced by at least 30%.', 'No cache misses in the primary entity loop (verified via perf counters).', 'Memory footprint remains constant after initialization.', 'All 16,500 footsteps logged correctly in order.']
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Instantaneous feedback on simulation outcomes; reliable endgame statistics.
-
-#### [TASK-803] Cache-Line Aligned Endgame Narrative State Machine (`P2 - Quality-of-Life`)
-
-- **Domain**: `Storyteller/AI`
-- **Estimated Complexity**: `Atomic`
-- **Target Files**:
-  - `src/storyteller/EndgameNarrator.h`
-  - `src/storyteller/EndgameNarrator.cpp`
-- **Architectural Specification**:
-  Define a `struct alignas(64) NarrativeState` containing 4 `uint32_t` fields for tick, step, event, and status. Implement a static `constexpr` transition table for 10 endgame states. Use `std::bit_cast` for state transitions. No virtual functions. All methods are `inline` and `noexcept`. The state machine must process 5,500 ticks in a single pass with no branching penalties.
-- **Acceptance Criteria**:
-  1. State transitions are branchless. 2. Cache miss rate < 1% for sequential access. 3. Narrative output is deterministic across runs. 4. Zero heap allocations.
-- **Player Fun & Anti-Spreadsheet Impact**:
-  Consistent and predictable story progression; no lag during endgame sequences.
+  Smoother frame rates and faster simulation progression in large-scale scenarios.
 
