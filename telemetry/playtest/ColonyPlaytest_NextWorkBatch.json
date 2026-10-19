@@ -1,46 +1,65 @@
 {
-  "batch_id": "BATCH-26",
+  "batch_id": "BATCH-27",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "Finalize the simulation loop by implementing deterministic state hashing for rapid save/load verification and optimizing the Monte Carlo convergence logic for the endgame phase. These tasks close the final gaps in state integrity and performance stability, ensuring the 5,500-tick campaign remains reproducible and efficient.",
+  "overview": "Finalize simulation coverage by implementing deterministic state compression for long-running campaigns and optimizing endgame tick processing. This batch focuses on reducing memory footprint and improving cache locality for the 5,500+ tick milestone, ensuring zero deadlocks and 100% Monte Carlo survival rate stability.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Implement Deterministic State Hashing for Save Verification",
+      "title": "Implement Zero-Heap Deterministic State Compression",
       "target_files": [
-        "src/engine/core/StateHash.h",
-        "src/engine/core/StateHash.cpp"
+        "Source/Engine/Core/StateCompression.h",
+        "Source/Engine/Core/StateCompression.cpp"
       ],
-      "architectural_spec": "1. Define struct `StateHash` with `uint64_t value`.\n2. Implement `computeHash(const SimulationState& state)` using FNV-1a algorithm.\n3. Iterate through all primitive members of `SimulationState`.\n4. Combine hashes using bitwise XOR and multiplication.\n5. Ensure no heap allocations during hash computation.\n6. Return `StateHash` by value.\n7. Add `operator==` for `StateHash`.\n8. Add `operator!=` for `StateHash`.\n9. Add `operator<<` for `StateHash`.\n10. Mark functions as `constexpr` where possible.\n11. Use `std::span` for member iteration.\n12. Handle null pointers as 0.\n13. Handle empty containers as 0.\n14. Ensure deterministic order of iteration.\n15. Validate against known test vectors.\n16. Integrate into `SaveManager::verify()`.\n17. Log hash mismatches as errors.\n18. Return `std::optional<StateHash>`.\n19. Use `std::monostate` for empty state.\n20. Ensure C++20 compatibility.\n21. No dynamic memory allocation.\n22. Use `static_assert` for size checks.\n23. Optimize for cache locality.\n24. Minimize branch mispredictions.\n25. Document all fields.\n26. Add unit tests for edge cases.\n27. Test with 5,500 tick state.\n28. Verify reproducibility.\n29. Check for overflow handling.\n30. Finalize API.",
+      "architectural_spec": "Use std::span for contiguous memory access. Implement a fixed-size ring buffer for state deltas. Utilize C++20 concepts for type-safe serialization. No dynamic allocations in hot path. Use std::bit_cast for efficient integer packing. Ensure all operations are constexpr-friendly where possible.",
       "acceptance_criteria": [
-        "Hash computation is deterministic across runs.",
-        "No heap allocations during hashing.",
-        "Unit tests pass for known states.",
-        "Integration with SaveManager is seamless."
+        "Memory usage reduced by >40% for 5,500 tick state.",
+        "Zero heap allocations during compression/decompression.",
+        "All unit tests pass with 100% coverage.",
+        "Deterministic output verified against BATCH-26 baseline."
       ],
-      "player_fun_impact": "Faster save/load verification and reliable state integrity checks.",
+      "player_fun_impact": "Faster load times and smoother frame rates in long campaigns.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Optimize Monte Carlo Convergence for Endgame Phase",
+      "title": "Optimize Endgame Tick Processing with SIMD",
       "target_files": [
-        "src/simulation/mc/ConvergenceOptimizer.h",
-        "src/simulation/mc/ConvergenceOptimizer.cpp"
+        "Source/Engine/Simulation/PhysicsTick.h",
+        "Source/Engine/Simulation/PhysicsTick.cpp"
       ],
-      "architectural_spec": "1. Define struct `MCResult` with `double mean`, `double variance`.\n2. Implement `converge(const std::vector<double>& samples)`.\n3. Use Welford's algorithm for online variance calculation.\n4. Stop iteration when variance < epsilon (1e-6).\n5. Return `MCResult` by value.\n6. Handle empty vector as zero result.\n7. Use `std::accumulate` for sum.\n8. Precompute count for division.\n9. Ensure no heap allocations in loop.\n10. Use `constexpr` for epsilon.\n11. Add `operator<<` for `MCResult`.\n12. Validate input size.\n13. Handle NaN inputs.\n14. Integrate with `SimulationLoop`.\n15. Log convergence step count.\n16. Ensure thread safety.\n17. Use `std::atomic` for counters.\n18. Minimize cache misses.\n19. Document algorithm steps.\n20. Add unit tests for convergence.\n21. Test with 16,500 samples.\n22. Verify accuracy against reference.\n23. Check performance gains.\n24. Finalize API.",
+      "architectural_spec": "Leverage C++20 std::simd for vectorized physics calculations. Align data structures to 64-byte boundaries. Implement branchless logic for collision detection in the final 100 ticks. Use std::array for fixed-size physics state.",
       "acceptance_criteria": [
-        "Convergence achieved within 100 iterations for typical cases.",
-        "Variance calculation is numerically stable.",
-        "No heap allocations during convergence loop.",
-        "Integration with SimulationLoop is seamless."
+        "Tick processing time reduced by >25%.",
+        "No regressions in Monte Carlo survival rate.",
+        "SIMD instructions verified via compiler output.",
+        "Cache miss rate reduced by >15%."
       ],
-      "player_fun_impact": "Faster simulation ticks and more stable endgame results.",
+      "player_fun_impact": "More responsive physics interactions in late-game scenarios.",
       "estimated_complexity": "Small"
+    },
+    {
+      "task_id": "TASK-803",
+      "priority": "P2 - Quality-of-Life",
+      "domain": "Storyteller/AI",
+      "title": "Cache-Friendly Colonist Psychology State Lookup",
+      "target_files": [
+        "Source/Engine/AI/ColonistPsychology.h",
+        "Source/Engine/AI/ColonistPsychology.cpp"
+      ],
+      "architectural_spec": "Flatten psychology state into a single contiguous array. Use std::span for iteration. Implement a simple hash map with open addressing for quick state lookups. Ensure all structs are trivially copyable.",
+      "acceptance_criteria": [
+        "Lookup time reduced to <10ns per colonist.",
+        "Memory layout verified as contiguous.",
+        "No deadlocks in parallel psychology updates.",
+        "Unit tests confirm deterministic state transitions."
+      ],
+      "player_fun_impact": "Smoother AI behavior transitions and reduced stutter.",
+      "estimated_complexity": "Atomic"
     }
   ]
 }
