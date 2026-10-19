@@ -1,57 +1,57 @@
-# Project Deep-Mantle :: Engineering Work Batch: BATCH-41
+# Project Deep-Mantle :: Engineering Work Batch: BATCH-42
 
 ## Ultra-Endgame Ascension & Deterministic State Compression (Target: `v1.2.0`)
 
 - **Architect**: `DGX Spark Cluster Lead Systems Engineer`
 - **QA Verifier**: `RTX 5090 Blackwell Reflex QA Director`
-- **Date**: `2026-10-19 15:13:36`
+- **Date**: `2026-10-19 15:21:16`
 
 ### Batch Overview
-Finalize simulation coverage by implementing deterministic state hashing for save/load integrity, optimizing colonist psychology decay curves for long-term stability, and establishing a zero-allocation event bus for endgame ascension triggers.
+This batch finalizes the simulation loop by implementing deterministic state hashing for save/load integrity, optimizing the tick-based physics solver for 100% Monte Carlo survival, and introducing a lightweight psychological state machine for colonist morale. These atomic tasks close the final coverage gaps in the Deep-Mantle simulation core.
 
 ---
 
 ### Prioritized Engineering Tasks
 
-#### [TASK-801] Deterministic State Hashing for Save Integrity (`P0 - Critical`)
+#### [TASK-801] Deterministic State Hashing for Save/Load Integrity (`P0 - Critical`)
 
 - **Domain**: `Engine/C++20`
 - **Estimated Complexity**: `Atomic`
 - **Target Files**:
-  - `src/engine/core/StateHasher.h`
-  - `src/engine/core/StateHasher.cpp`
+  - `Source/Runtime/State/StateHasher.h`
+  - `Source/Runtime/State/StateHasher.cpp`
 - **Architectural Specification**:
-  Implement a constexpr-friendly FNV-1a hash for struct-based state snapshots. Use std::array for fixed-size buffers. No dynamic allocation. Hash order must be stable across compiler versions. Integrate with existing I/O pipeline via template specialization for POD types.
+  Implement a zero-heap, constexpr-friendly FNV-1a hash for the core simulation state struct. Use std::array for fixed-size state buffers. Ensure no dynamic allocation during hashing. The hasher must be stable across compiler versions (C++20 standard). Integrate with the existing TickManager to verify state consistency after every 100 ticks. Handle endianness explicitly using std::endian.
 - **Acceptance Criteria**:
-  1. Hash output is identical across 1000 runs. 2. Zero heap allocations during hashing. 3. Compile time < 50ms for 100 structs.
+  ['Hash computation completes in < 1 microsecond for 10k entities.', 'Zero heap allocations during hashing phase.', 'Identical state produces identical hash across 3 different compiler versions (MSVC, Clang, GCC).', 'Unit tests cover edge cases: empty state, max-size state, and partial updates.']
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Instant, reliable save/load cycles with no corruption warnings.
+  Ensures save games are never corrupted, providing a reliable and fast resume experience.
 
-#### [TASK-802] Optimized Psychology Decay Curves (`P1 - High`)
+#### [TASK-802] Optimized Tick-Based Collision Solver for 10k Entities (`P1 - High`)
 
 - **Domain**: `Simulation/Physics`
 - **Estimated Complexity**: `Small`
 - **Target Files**:
-  - `src/sim/psychology/DecayModel.h`
-  - `src/sim/psychology/DecayModel.cpp`
+  - `Source/Runtime/Physics/Solver.h`
+  - `Source/Runtime/Physics/Solver.cpp`
 - **Architectural Specification**:
-  Replace iterative decay loops with closed-form exponential solutions using std::exp. Precompute lookup tables for common time steps (1, 5, 10 ticks). Use float precision for speed. Ensure monotonic convergence to baseline.
+  Refactor the collision detection loop to use a spatial hash grid with fixed-size buckets (std::array). Implement a sweep-and-prune algorithm for 1D axis alignment before 2D checks. Use SIMD intrinsics (SSE4.2/AVX2) for bounding box intersection tests. Ensure the solver is stateless and operates on contiguous memory blocks. Max 60 lines of logic per function.
 - **Acceptance Criteria**:
-  1. Decay values match reference within 1e-6. 2. 10x faster than iterative method. 3. No NaN propagation.
+  ['10,000 entity collision check completes in < 2ms.', 'No false positives in collision detection.', 'Memory footprint remains constant regardless of entity count (within grid limits).', 'Passes all 16,500 logged footsteps from BATCH-41 without deadlock.']
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Smoother, more predictable colonist mood transitions in long sessions.
+  Smooth 60 FPS performance even with large colonies, preventing stutter during complex interactions.
 
-#### [TASK-803] Zero-Allocation Event Bus for Ascension (`P2 - Quality-of-Life`)
+#### [TASK-803] Lightweight Colonist Morale State Machine (`P2 - Quality-of-Life`)
 
 - **Domain**: `Storyteller/AI`
 - **Estimated Complexity**: `Atomic`
 - **Target Files**:
-  - `src/ai/EventBus.h`
-  - `src/ai/EventBus.cpp`
+  - `Source/Runtime/AI/MoraleSystem.h`
+  - `Source/Runtime/AI/MoraleSystem.cpp`
 - **Architectural Specification**:
-  Implement a fixed-capacity ring buffer for event dispatch. Use std::variant for event types. Dispatch via function pointers stored in a static array. No std::function overhead. Support 16 concurrent listeners.
+  Implement a 3-state finite state machine (Idle, Working, Panicked) for colonist morale. Use a bitfield for state storage to minimize memory. Transitions are driven by tick-based events (e.g., 'Food Shortage', 'Nightfall'). No dynamic strings; use enum indices for state names. Integrate with the existing TickManager for synchronous updates.
 - **Acceptance Criteria**:
-  1. Dispatch latency < 10ns. 2. No heap allocations. 3. Handles 10k events/sec without drop.
+  ['State transitions occur within 1 tick of event trigger.', 'Memory usage per colonist < 16 bytes for morale state.', 'No cascading header dependencies; self-contained module.', 'Visual feedback in UI reflects state changes instantly.']
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Responsive UI updates during complex endgame sequences.
+  Provides clear, immediate feedback on colony status, enhancing strategic decision-making.
 

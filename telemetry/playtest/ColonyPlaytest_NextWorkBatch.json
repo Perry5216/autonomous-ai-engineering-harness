@@ -1,49 +1,64 @@
 {
-  "batch_id": "BATCH-41",
+  "batch_id": "BATCH-42",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "Finalize simulation coverage by implementing deterministic state hashing for save/load integrity, optimizing colonist psychology decay curves for long-term stability, and establishing a zero-allocation event bus for endgame ascension triggers.",
+  "overview": "This batch finalizes the simulation loop by implementing deterministic state hashing for save/load integrity, optimizing the tick-based physics solver for 100% Monte Carlo survival, and introducing a lightweight psychological state machine for colonist morale. These atomic tasks close the final coverage gaps in the Deep-Mantle simulation core.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Deterministic State Hashing for Save Integrity",
+      "title": "Deterministic State Hashing for Save/Load Integrity",
       "target_files": [
-        "src/engine/core/StateHasher.h",
-        "src/engine/core/StateHasher.cpp"
+        "Source/Runtime/State/StateHasher.h",
+        "Source/Runtime/State/StateHasher.cpp"
       ],
-      "architectural_spec": "Implement a constexpr-friendly FNV-1a hash for struct-based state snapshots. Use std::array for fixed-size buffers. No dynamic allocation. Hash order must be stable across compiler versions. Integrate with existing I/O pipeline via template specialization for POD types.",
-      "acceptance_criteria": "1. Hash output is identical across 1000 runs. 2. Zero heap allocations during hashing. 3. Compile time < 50ms for 100 structs.",
-      "player_fun_impact": "Instant, reliable save/load cycles with no corruption warnings.",
+      "architectural_spec": "Implement a zero-heap, constexpr-friendly FNV-1a hash for the core simulation state struct. Use std::array for fixed-size state buffers. Ensure no dynamic allocation during hashing. The hasher must be stable across compiler versions (C++20 standard). Integrate with the existing TickManager to verify state consistency after every 100 ticks. Handle endianness explicitly using std::endian.",
+      "acceptance_criteria": [
+        "Hash computation completes in < 1 microsecond for 10k entities.",
+        "Zero heap allocations during hashing phase.",
+        "Identical state produces identical hash across 3 different compiler versions (MSVC, Clang, GCC).",
+        "Unit tests cover edge cases: empty state, max-size state, and partial updates."
+      ],
+      "player_fun_impact": "Ensures save games are never corrupted, providing a reliable and fast resume experience.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Optimized Psychology Decay Curves",
+      "title": "Optimized Tick-Based Collision Solver for 10k Entities",
       "target_files": [
-        "src/sim/psychology/DecayModel.h",
-        "src/sim/psychology/DecayModel.cpp"
+        "Source/Runtime/Physics/Solver.h",
+        "Source/Runtime/Physics/Solver.cpp"
       ],
-      "architectural_spec": "Replace iterative decay loops with closed-form exponential solutions using std::exp. Precompute lookup tables for common time steps (1, 5, 10 ticks). Use float precision for speed. Ensure monotonic convergence to baseline.",
-      "acceptance_criteria": "1. Decay values match reference within 1e-6. 2. 10x faster than iterative method. 3. No NaN propagation.",
-      "player_fun_impact": "Smoother, more predictable colonist mood transitions in long sessions.",
+      "architectural_spec": "Refactor the collision detection loop to use a spatial hash grid with fixed-size buckets (std::array). Implement a sweep-and-prune algorithm for 1D axis alignment before 2D checks. Use SIMD intrinsics (SSE4.2/AVX2) for bounding box intersection tests. Ensure the solver is stateless and operates on contiguous memory blocks. Max 60 lines of logic per function.",
+      "acceptance_criteria": [
+        "10,000 entity collision check completes in < 2ms.",
+        "No false positives in collision detection.",
+        "Memory footprint remains constant regardless of entity count (within grid limits).",
+        "Passes all 16,500 logged footsteps from BATCH-41 without deadlock."
+      ],
+      "player_fun_impact": "Smooth 60 FPS performance even with large colonies, preventing stutter during complex interactions.",
       "estimated_complexity": "Small"
     },
     {
       "task_id": "TASK-803",
       "priority": "P2 - Quality-of-Life",
       "domain": "Storyteller/AI",
-      "title": "Zero-Allocation Event Bus for Ascension",
+      "title": "Lightweight Colonist Morale State Machine",
       "target_files": [
-        "src/ai/EventBus.h",
-        "src/ai/EventBus.cpp"
+        "Source/Runtime/AI/MoraleSystem.h",
+        "Source/Runtime/AI/MoraleSystem.cpp"
       ],
-      "architectural_spec": "Implement a fixed-capacity ring buffer for event dispatch. Use std::variant for event types. Dispatch via function pointers stored in a static array. No std::function overhead. Support 16 concurrent listeners.",
-      "acceptance_criteria": "1. Dispatch latency < 10ns. 2. No heap allocations. 3. Handles 10k events/sec without drop.",
-      "player_fun_impact": "Responsive UI updates during complex endgame sequences.",
+      "architectural_spec": "Implement a 3-state finite state machine (Idle, Working, Panicked) for colonist morale. Use a bitfield for state storage to minimize memory. Transitions are driven by tick-based events (e.g., 'Food Shortage', 'Nightfall'). No dynamic strings; use enum indices for state names. Integrate with the existing TickManager for synchronous updates.",
+      "acceptance_criteria": [
+        "State transitions occur within 1 tick of event trigger.",
+        "Memory usage per colonist < 16 bytes for morale state.",
+        "No cascading header dependencies; self-contained module.",
+        "Visual feedback in UI reflects state changes instantly."
+      ],
+      "player_fun_impact": "Provides clear, immediate feedback on colony status, enhancing strategic decision-making.",
       "estimated_complexity": "Atomic"
     }
   ]
