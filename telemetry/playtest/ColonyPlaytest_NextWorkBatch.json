@@ -1,65 +1,46 @@
 {
-  "batch_id": "BATCH-25",
+  "batch_id": "BATCH-26",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "This batch focuses on finalizing the simulation loop by implementing deterministic state serialization for save/load integrity and optimizing the tick-based physics integration for ultra-endgame stability. These tasks close the final gaps in simulation coverage by ensuring reproducible state transitions and minimizing memory fragmentation during long-running sessions.",
+  "overview": "Finalize the simulation loop by implementing deterministic state hashing for rapid save/load verification and optimizing the Monte Carlo convergence logic for the endgame phase. These tasks close the final gaps in state integrity and performance stability, ensuring the 5,500-tick campaign remains reproducible and efficient.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Implement Deterministic State Hashing for Save/Load Integrity",
+      "title": "Implement Deterministic State Hashing for Save Verification",
       "target_files": [
-        "src/engine/core/StateSerializer.h",
-        "src/engine/core/StateSerializer.cpp"
+        "src/engine/core/StateHash.h",
+        "src/engine/core/StateHash.cpp"
       ],
-      "architectural_spec": "Implement a zero-heap, constexpr-friendly state hasher using FNV-1a 64-bit algorithm. The serializer must traverse the component array linearly. Use std::span for contiguous memory access. No dynamic allocations during hashing. The hash must be stable across different compilation units if the struct layout is identical. Include a static_assert for struct size alignment. The implementation should fit within 40 lines of logic, focusing on the hash accumulation loop and the finalization step.",
+      "architectural_spec": "1. Define struct `StateHash` with `uint64_t value`.\n2. Implement `computeHash(const SimulationState& state)` using FNV-1a algorithm.\n3. Iterate through all primitive members of `SimulationState`.\n4. Combine hashes using bitwise XOR and multiplication.\n5. Ensure no heap allocations during hash computation.\n6. Return `StateHash` by value.\n7. Add `operator==` for `StateHash`.\n8. Add `operator!=` for `StateHash`.\n9. Add `operator<<` for `StateHash`.\n10. Mark functions as `constexpr` where possible.\n11. Use `std::span` for member iteration.\n12. Handle null pointers as 0.\n13. Handle empty containers as 0.\n14. Ensure deterministic order of iteration.\n15. Validate against known test vectors.\n16. Integrate into `SaveManager::verify()`.\n17. Log hash mismatches as errors.\n18. Return `std::optional<StateHash>`.\n19. Use `std::monostate` for empty state.\n20. Ensure C++20 compatibility.\n21. No dynamic memory allocation.\n22. Use `static_assert` for size checks.\n23. Optimize for cache locality.\n24. Minimize branch mispredictions.\n25. Document all fields.\n26. Add unit tests for edge cases.\n27. Test with 5,500 tick state.\n28. Verify reproducibility.\n29. Check for overflow handling.\n30. Finalize API.",
       "acceptance_criteria": [
-        "Hash value is identical for the same state across 1000 runs.",
-        "No heap allocations occur during hashing.",
-        "Compilation time increases by < 5ms.",
-        "Unit tests pass for edge cases (empty state, max capacity)."
+        "Hash computation is deterministic across runs.",
+        "No heap allocations during hashing.",
+        "Unit tests pass for known states.",
+        "Integration with SaveManager is seamless."
       ],
-      "player_fun_impact": "Ensures 100% reliable save/load functionality, preventing progress loss in long campaigns.",
+      "player_fun_impact": "Faster save/load verification and reliable state integrity checks.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Optimize Fixed-Step Integration for Ultra-Endgame Stability",
+      "title": "Optimize Monte Carlo Convergence for Endgame Phase",
       "target_files": [
-        "src/simulation/physics/Integrator.h",
-        "src/simulation/physics/Integrator.cpp"
+        "src/simulation/mc/ConvergenceOptimizer.h",
+        "src/simulation/mc/ConvergenceOptimizer.cpp"
       ],
-      "architectural_spec": "Refactor the semi-implicit Euler integrator to use a fixed timestep of 1/60s. Implement a 'catch-up' loop for variable frame times using a while loop with a max iteration count of 4 to prevent spiral of death. Use float32 for all calculations to maintain cache locality. Store position and velocity in a packed struct. The logic should handle the accumulation of delta time and the step execution in under 50 lines. Ensure no floating-point drift by resetting the accumulator modulo the fixed step.",
+      "architectural_spec": "1. Define struct `MCResult` with `double mean`, `double variance`.\n2. Implement `converge(const std::vector<double>& samples)`.\n3. Use Welford's algorithm for online variance calculation.\n4. Stop iteration when variance < epsilon (1e-6).\n5. Return `MCResult` by value.\n6. Handle empty vector as zero result.\n7. Use `std::accumulate` for sum.\n8. Precompute count for division.\n9. Ensure no heap allocations in loop.\n10. Use `constexpr` for epsilon.\n11. Add `operator<<` for `MCResult`.\n12. Validate input size.\n13. Handle NaN inputs.\n14. Integrate with `SimulationLoop`.\n15. Log convergence step count.\n16. Ensure thread safety.\n17. Use `std::atomic` for counters.\n18. Minimize cache misses.\n19. Document algorithm steps.\n20. Add unit tests for convergence.\n21. Test with 16,500 samples.\n22. Verify accuracy against reference.\n23. Check performance gains.\n24. Finalize API.",
       "acceptance_criteria": [
-        "Physics simulation remains stable at 10,000+ ticks.",
-        "No visible jitter in object movement.",
-        "Frame time variance is < 1ms.",
-        "Memory usage for physics state remains constant."
+        "Convergence achieved within 100 iterations for typical cases.",
+        "Variance calculation is numerically stable.",
+        "No heap allocations during convergence loop.",
+        "Integration with SimulationLoop is seamless."
       ],
-      "player_fun_impact": "Provides smooth, predictable motion for all entities, enhancing the visual clarity of the simulation.",
+      "player_fun_impact": "Faster simulation ticks and more stable endgame results.",
       "estimated_complexity": "Small"
-    },
-    {
-      "task_id": "TASK-803",
-      "priority": "P2 - Quality-of-Life",
-      "domain": "Storyteller/AI",
-      "title": "Compact Event Log Buffer for Long-Running Sessions",
-      "target_files": [
-        "src/storyteller/EventLog.h",
-        "src/storyteller/EventLog.cpp"
-      ],
-      "architectural_spec": "Implement a circular buffer for the event log with a fixed capacity of 1024 entries. Use a struct with a 32-bit timestamp and a 16-bit event ID. The push operation should overwrite the oldest entry when full. Provide a method to retrieve the last N events using a simple index calculation. The implementation should be header-only if possible, or split into a minimal .cpp file. Total logic lines should not exceed 30. Ensure thread-safety is not required as the simulation is single-threaded.",
-      "acceptance_criteria": [
-        "Memory footprint of the event log is constant.",
-        "Retrieval of the last 10 events is O(1).",
-        "No memory leaks detected in Valgrind.",
-        "Log entries are correctly ordered by timestamp."
-      ],
-      "player_fun_impact": "Reduces memory usage in long campaigns, allowing for more complex entity counts without performance degradation.",
-      "estimated_complexity": "Atomic"
     }
   ]
 }
