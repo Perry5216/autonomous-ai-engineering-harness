@@ -1727,6 +1727,12 @@
             </div>
 
             <div class="control-group">
+                <span class="control-label">MAP SCALE:</span>
+                <button id="btn-scale-32" class="btn-toggle active" onclick="setLocalMapScale(32)">32×32 OUTPOST</button>
+                <button id="btn-scale-48" class="btn-toggle" onclick="setLocalMapScale(48)">48×48 EXPEDITION</button>
+            </div>
+
+            <div class="control-group">
                 <span class="control-label">OVERLAYS:</span>
                 <button id="btn-overlay-grid" class="btn-toggle" onclick="toggleLocalGridOverlay()">GRID</button>
                 <button id="btn-overlay-pawns" class="btn-toggle active" onclick="toggleLocalPawnsOverlay()">PAWNS</button>
@@ -4215,8 +4221,9 @@
                     }
 
                     // Preserve clear colony compound (Landing Zone, Habitation Quarters, & Factory Logistics Bay)
-                    const isLandingZone = (x >= 7 && x <= 18 && y >= 7 && y <= 16);
-                    const isFactoryBay = (x >= 19 && x <= 25 && y >= 9 && y <= 15);
+                    const off = getCompoundOffset();
+                    const isLandingZone = (x >= 7 + off.x && x <= 18 + off.x && y >= 7 + off.y && y <= 16 + off.y);
+                    const isFactoryBay = (x >= 19 + off.x && x <= 25 + off.x && y >= 9 + off.y && y <= 15 + off.y);
                     const isColonyCompound = isLandingZone || isFactoryBay;
 
                     if (isColonyCompound) {
@@ -4321,10 +4328,12 @@
             });
 
             // Collect all candidate open floor cells outside the colony compound
+            const off = getCompoundOffset();
             const openFloorCandidates = [];
             for (let y = 3; y < LOCAL_MAP_SIZE - 3; y++) {
                 for (let x = 3; x < LOCAL_MAP_SIZE - 3; x++) {
-                    const inColony = (x >= 7 && x <= 18 && y >= 7 && y <= 16) || (x >= 19 && x <= 25 && y >= 9 && y <= 15);
+                    const inColony = (x >= 7 + off.x && x <= 18 + off.x && y >= 7 + off.y && y <= 16 + off.y) || 
+                                     (x >= 19 + off.x && x <= 25 + off.x && y >= 9 + off.y && y <= 15 + off.y);
                     if (inColony) continue;
 
                     const cell = localColonyGrid[y][x];
