@@ -1,64 +1,49 @@
 {
-  "batch_id": "BATCH-71",
+  "batch_id": "BATCH-72",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "This batch finalizes the simulation core by implementing deterministic state serialization for ultra-endgame scenarios and optimizing the Monte Carlo integration loop. The focus is on reducing memory footprint during long-running simulations (5,500+ ticks) and ensuring zero-latency state restoration for save/load operations, directly supporting the 'Deep-Mantle' stability metrics.",
+  "overview": "Finalize the simulation loop by implementing deterministic state hashing for rapid save/load verification and optimizing the Monte Carlo convergence check for the 5,500-tick milestone. These tasks close the final gaps in state integrity and performance profiling, ensuring the engine achieves 100% coverage with zero deadlocks.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Implement Zero-Copy Deterministic State Serializer",
+      "title": "Implement Deterministic State Hashing for Save/Load Verification",
       "target_files": [
-        "src/engine/core/StateSerializer.h",
-        "src/engine/core/StateSerializer.cpp"
+        "Source/Engine/Core/StateHasher.h",
+        "Source/Engine/Core/StateHasher.cpp"
       ],
-      "architectural_spec": "Use C++20 concepts to constrain serialization types. Implement a static-sized buffer (std::array<uint8_t, 4096>) for state snapshots. Avoid heap allocations in the hot path. Use std::span for view-based reading. Ensure endianness consistency via std::endian::native checks. The serializer must handle nested structs recursively without stack overflow by using a fixed-depth iterative approach.",
-      "acceptance_criteria": [
-        "Serialization of a full 5,500-tick state completes in < 1ms.",
-        "Zero heap allocations during serialization/deserialization.",
-        "Bit-exact match between original and restored state.",
-        "Unit tests cover edge cases: empty state, max-depth nesting, and endianness swaps."
-      ],
-      "player_fun_impact": "Instant save/load functionality, eliminating wait times during long simulation sessions.",
+      "architectural_spec": "1. Define `struct StateHash` using `std::array<uint64_t, 4>` for 256-bit output.\n2. Implement `ComputeStateHash(const SimulationState& state)` using a custom FNV-1a variant optimized for C++20 `constexpr` evaluation where possible.\n3. Ensure zero heap allocations by using fixed-size arrays for intermediate hash states.\n4. Integrate with `SimulationState` via a `friend` declaration for direct member access.\n5. Add `static_assert` checks for struct size alignment.\n6. Provide `operator==` for fast comparison.\n7. Include `ToString()` for debug logging.\n8. Ensure thread-safety via `std::atomic` for the global tick counter used in hashing.",
+      "acceptance_criteria": "1. Hash computation completes in < 100ns for a standard 5,500-tick state.\n2. Identical states produce identical hashes across 100 Monte Carlo runs.\n3. No heap allocations during hash computation.\n4. Unit tests verify collision resistance for 10,000 random states.",
+      "player_fun_impact": "Instant save/load verification, reducing perceived load times and ensuring data integrity.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Optimize Monte Carlo Integration Loop with SIMD",
+      "title": "Optimize Monte Carlo Convergence Check for 5,500-Tick Milestone",
       "target_files": [
-        "src/simulation/physics/MonteCarloIntegrator.h",
-        "src/simulation/physics/MonteCarloIntegrator.cpp"
+        "Source/Simulation/MonteCarlo/ConvergenceChecker.h",
+        "Source/Simulation/MonteCarlo/ConvergenceChecker.cpp"
       ],
-      "architectural_spec": "Refactor the integration loop to utilize C++20 std::simd (if available) or manual SSE/AVX intrinsics via a wrapper. Process 4 or 8 physics steps in parallel. Ensure the random number generator (XorShift128+) is vectorized. Maintain deterministic ordering by processing chunks sequentially but internally parallelized. No dynamic memory allocation in the loop.",
-      "acceptance_criteria": [
-        "Integration speed increases by at least 30% compared to scalar version.",
-        "Deterministic output matches scalar version exactly.",
-        "No regressions in collision detection accuracy.",
-        "Code compiles with -O3 and -march=native without warnings."
-      ],
-      "player_fun_impact": "Smoother frame rates during complex physics interactions, especially in dense colony scenes.",
+      "architectural_spec": "1. Create `class ConvergenceChecker` with a fixed-size ring buffer `std::array<float, 16>` for recent variance values.\n2. Implement `CheckConvergence()` using a sliding window average of the last 16 ticks.\n3. Use `std::numbers::pi` and standard deviations for statistical validation.\n4. Avoid dynamic memory by pre-allocating the ring buffer.\n5. Add `IsConverged()` returning `bool` based on variance < 1e-6.\n6. Integrate with the main simulation loop via a pointer to the checker.\n7. Ensure `constexpr` initialization of the buffer size.\n8. Log convergence status only on state change to minimize I/O overhead.",
+      "acceptance_criteria": "1. Convergence detected within 5 ticks of the theoretical limit.\n2. Memory footprint < 1KB per checker instance.\n3. No false positives in 1,000 test runs.\n4. Integration with the main loop adds < 0.1ms overhead.",
+      "player_fun_impact": "Faster simulation stabilization, leading to quicker resolution of complex scenarios.",
       "estimated_complexity": "Small"
     },
     {
       "task_id": "TASK-803",
       "priority": "P2 - Quality-of-Life",
       "domain": "Storyteller/AI",
-      "title": "Cache-Friendly Event Queue for Storyteller",
+      "title": "Add Compact Event Log Serialization for Endgame Summary",
       "target_files": [
-        "src/ai/storyteller/EventQueue.h",
-        "src/ai/storyteller/EventQueue.cpp"
+        "Source/Storyteller/EventLog.h",
+        "Source/Storyteller/EventLog.cpp"
       ],
-      "architectural_spec": "Replace std::deque with a custom circular buffer using std::array. Implement a priority queue using a binary heap stored in a contiguous array. Use C++20 ranges for filtering events. Ensure all event structs are packed (alignas(8)) to minimize cache misses. Provide a 'peek' operation that is O(1) and non-destructive.",
-      "acceptance_criteria": [
-        "Memory usage for event queue reduced by 40%.",
-        "Event processing latency reduced by 20%.",
-        "No memory leaks detected in Valgrind.",
-        "All existing Storyteller tests pass."
-      ],
-      "player_fun_impact": "More responsive narrative events and faster UI updates during story progression.",
+      "architectural_spec": "1. Define `struct CompactEvent` with `uint16_t id`, `uint16_t tick`, and `uint32_t payload`.\n2. Implement `SerializeToBuffer()` using a fixed-size `std::span<uint8_t>`.\n3. Use bit-packing for `id` and `tick` to fit within 32 bits where possible.\n4. Provide `DeserializeFromBuffer()` with strict bounds checking.\n5. Ensure `constexpr` support for the event ID enum.\n6. Add `GetEventCount()` for quick summary generation.\n7. Integrate with the `StateHasher` for checksum validation.\n8. Limit log size to 1,024 events for the endgame summary.",
+      "acceptance_criteria": "1. Serialization size reduced by 40% compared to JSON.\n2. Deserialization speed > 10MB/s.\n3. No data loss in round-trip tests.\n4. Compatible with the existing `StateHasher`.",
+      "player_fun_impact": "Smaller save files and faster loading of endgame summaries.",
       "estimated_complexity": "Atomic"
     }
   ]
