@@ -4670,8 +4670,8 @@
                 soil: "#3f3f46"
             };
 
-            // 1. Draw Terrain Layer (Two-Pass Monolithic Bedrock & Excavated Cavern Floor)
-            // PASS 1: Excavated Cavern Floor, Fluids, and Tactical Floor Grid
+            // 1. Draw Terrain Layer (Two-Pass High-Detail Monolithic Bedrock & Tactile Cavern Floors)
+            // PASS 1: Excavated Cavern Floor, Hewn Flagstones, Fluids, and Tactical Floor Grid
             for (let y = 0; y < LOCAL_MAP_SIZE; y++) {
                 for (let x = 0; x < LOCAL_MAP_SIZE; x++) {
                     const cell = localColonyGrid[y][x];
@@ -4727,32 +4727,136 @@
                             }
                         }
                     } else {
-                        // Excavated Cavern Floor Tiles
-                        const floorKey = cell.floorSpriteKey || "floor_basalt_v0";
-                        const floorImg = TILE_SPRITE_CACHE[floorKey] || TILE_SPRITE_CACHE["floor_basalt"];
-                        if (floorImg && floorImg.complete && floorImg.naturalWidth > 0) {
-                            localCtx.drawImage(floorImg, px, py, cellSize + 0.5, cellSize + 0.5);
+                        // Excavated Cavern Floor Tiles: High-Detail Tactile Surfaces
+                        const seed = (x * 37 + y * 59 + currentSeed) % 100;
+                        const isAlloyFloor = (cell.isAlloy || cell.terrain.includes("alloy") || cell.terrain.includes("plating"));
+                        const isSulfurFloor = cell.terrain.includes("sulfur");
+                        const isSporeFloor = (cell.terrain.includes("spore") || cell.terrain.includes("humus"));
+                        const isIceFloor = (cell.isIce || cell.terrain.includes("cryo") || cell.terrain.includes("ice"));
+
+                        if (isAlloyFloor) {
+                            // Industrial Precursor Hull Plating: Riveted Steel Slabs with Diamond/Weld Seam
+                            localCtx.fillStyle = "#1e293b";
+                            localCtx.fillRect(px, py, cellSize, cellSize);
+                            localCtx.fillStyle = "#27354a";
+                            localCtx.fillRect(px + 1, py + 1, cellSize - 2, cellSize - 2);
+                            localCtx.strokeStyle = "rgba(56, 189, 248, 0.35)";
+                            localCtx.lineWidth = 1;
+                            localCtx.strokeRect(px + 1, py + 1, cellSize - 2, cellSize - 2);
+                            localCtx.fillStyle = "#38bdf8";
+                            localCtx.fillRect(px + 2, py + 2, 1.5, 1.5);
+                            localCtx.fillRect(px + cellSize - 3.5, py + 2, 1.5, 1.5);
+                            localCtx.fillRect(px + 2, py + cellSize - 3.5, 1.5, 1.5);
+                            localCtx.fillRect(px + cellSize - 3.5, py + cellSize - 3.5, 1.5, 1.5);
+                        } else if (isSulfurFloor) {
+                            // Geothermal Sulfur Crust: Polygonal Desiccation Cracks & Yellow-Gold Nodules
+                            localCtx.fillStyle = "#854d0e";
+                            localCtx.fillRect(px, py, cellSize, cellSize);
+                            localCtx.fillStyle = "#a16207";
+                            localCtx.fillRect(px + 1, py + 1, cellSize - 2, cellSize - 2);
+                            localCtx.fillStyle = "#eab308";
+                            localCtx.fillRect(px + 3, py + 3, cellSize * 0.4, cellSize * 0.35);
+                            localCtx.fillStyle = "#facc15";
+                            localCtx.fillRect(px + 4, py + 4, cellSize * 0.2, cellSize * 0.2);
+                            localCtx.strokeStyle = "#422006";
+                            localCtx.lineWidth = 1;
+                            localCtx.beginPath();
+                            localCtx.moveTo(px, py + cellSize * 0.5);
+                            localCtx.lineTo(px + cellSize * 0.5, py + cellSize * 0.4);
+                            localCtx.lineTo(px + cellSize, py + cellSize * 0.6);
+                            localCtx.stroke();
+                        } else if (isSporeFloor) {
+                            // Bioluminescent Fungal Humus: Velvet Purple Turf + Glowing Mycelium
+                            localCtx.fillStyle = "#2e1065";
+                            localCtx.fillRect(px, py, cellSize, cellSize);
+                            localCtx.fillStyle = "#3b1261";
+                            localCtx.fillRect(px + 1, py + 1, cellSize - 2, cellSize - 2);
+                            const glowPulse = Math.sin((localAnimationTick * 0.08) + x * 0.6 + y * 0.4) * 0.3 + 0.7;
+                            localCtx.fillStyle = `rgba(168, 85, 247, ${glowPulse})`;
+                            localCtx.fillRect(px + 3, py + 4, 2, 2);
+                            localCtx.fillStyle = `rgba(52, 211, 153, ${glowPulse})`;
+                            localCtx.fillRect(px + cellSize - 5, py + cellSize - 5, 2, 2);
+                        } else if (isIceFloor) {
+                            // Cryo Permafrost: Glacial Ice Depth & Crystalline Stress Cracks
+                            localCtx.fillStyle = "#0c4a6e";
+                            localCtx.fillRect(px, py, cellSize, cellSize);
+                            localCtx.fillStyle = "#0369a1";
+                            localCtx.fillRect(px + 1, py + 1, cellSize - 2, cellSize - 2);
+                            localCtx.strokeStyle = "#7dd3fc";
+                            localCtx.lineWidth = 1;
+                            localCtx.beginPath();
+                            localCtx.moveTo(px + 2, py + cellSize - 3);
+                            localCtx.lineTo(px + cellSize * 0.6, py + cellSize * 0.4);
+                            localCtx.lineTo(px + cellSize - 2, py + 2);
+                            localCtx.stroke();
                         } else {
-                            localCtx.fillStyle = "#2d3039";
-                            localCtx.fillRect(px, py, cellSize + 0.5, cellSize + 0.5);
+                            // Natural Excavated Basalt Cavern Floor: Interlocking Hewn Stone Pavers & Chisel Relic
+                            const baseV = (seed % 5) - 2;
+                            const fR = Math.max(18, Math.min(32, 22 + baseV * 2));
+                            const fG = Math.max(22, Math.min(36, 26 + baseV * 2));
+                            const fB = Math.max(30, Math.min(48, 36 + baseV * 3));
+                            localCtx.fillStyle = `rgb(${fR}, ${fG}, ${fB})`;
+                            localCtx.fillRect(px, py, cellSize, cellSize);
+
+                            // Tactile Hewn Stone Pavers (Interlocking slabs with mortar joints & chisel highlights)
+                            const slabMode = seed % 3;
+                            if (slabMode === 0) {
+                                // Two horizontal hewn slabs
+                                const midY = py + Math.floor(cellSize * 0.5);
+                                localCtx.fillStyle = `rgb(${fR + 3}, ${fG + 3}, ${fB + 4})`;
+                                localCtx.fillRect(px + 1, py + 1, cellSize - 2, midY - py - 1);
+                                localCtx.fillStyle = `rgba(90, 110, 140, 0.45)`;
+                                localCtx.fillRect(px + 1, py + 1, cellSize - 2, 1);
+                                localCtx.fillStyle = "#0c0e14";
+                                localCtx.fillRect(px, midY, cellSize, 1);
+                            } else if (slabMode === 1) {
+                                // Two vertical hewn slabs
+                                const midX = px + Math.floor(cellSize * 0.52);
+                                localCtx.fillStyle = `rgb(${fR + 3}, ${fG + 3}, ${fB + 4})`;
+                                localCtx.fillRect(px + 1, py + 1, midX - px - 1, cellSize - 2);
+                                localCtx.fillStyle = `rgba(90, 110, 140, 0.45)`;
+                                localCtx.fillRect(px + 1, py + 1, cellSize - 2, 1);
+                                localCtx.fillStyle = "#0c0e14";
+                                localCtx.fillRect(midX, py, 1, cellSize);
+                            } else {
+                                // L-Joint interlocking flagstones
+                                const midX = px + Math.floor(cellSize * 0.48);
+                                const midY = py + Math.floor(cellSize * 0.52);
+                                localCtx.fillStyle = `rgba(90, 110, 140, 0.4)`;
+                                localCtx.fillRect(px + 1, py + 1, cellSize - 2, 1);
+                                localCtx.fillStyle = "#0c0e14";
+                                localCtx.fillRect(midX, py, 1, midY - py);
+                                localCtx.fillRect(px, midY, cellSize, 1);
+                            }
+
+                            // Chisel pits & micro pickaxe gouge flecks
+                            if (seed % 4 === 0) {
+                                const cx = px + (seed * 3) % 9 + 2;
+                                const cy = py + (seed * 7) % 9 + 2;
+                                localCtx.fillStyle = "#0c0e14";
+                                localCtx.fillRect(cx, cy, 1, 1);
+                                localCtx.fillStyle = "rgba(100, 120, 150, 0.45)";
+                                localCtx.fillRect(cx + 1, cy, 1, 1);
+                            }
                         }
 
-                        // Loose talus / scree rubble debris spilling from cliff footing
+                        // Loose Talus / Scree Rubble Debris Spilling from Cliff Base
                         const hasWallN = (y > 0 && localColonyGrid[y-1][x].isWall);
                         const hasWallW = (x > 0 && localColonyGrid[y][x-1].isWall);
                         if (hasWallN) {
-                            const seedP = (x * 17 + y * 31) % 4;
-                            localCtx.fillStyle = "rgba(10, 15, 25, 0.55)";
-                            localCtx.fillRect(px + cellSize * 0.2 + seedP, py + 1, 2, 2);
-                            localCtx.fillRect(px + cellSize * 0.55, py + 2, 3, 2);
-                            localCtx.fillRect(px + cellSize * 0.8 - seedP, py + 1, 2, 1);
-                            localCtx.fillStyle = "rgba(255, 255, 255, 0.15)";
-                            localCtx.fillRect(px + cellSize * 0.55, py + 2, 1, 1);
+                            const seedP = (x * 17 + y * 31) % 5;
+                            localCtx.fillStyle = "#12151d";
+                            localCtx.fillRect(px + cellSize * 0.2 + seedP, py + 1, 3, 2);
+                            localCtx.fillRect(px + cellSize * 0.6, py + 2, 3, 2);
+                            localCtx.fillStyle = "#4a5568";
+                            localCtx.fillRect(px + cellSize * 0.2 + seedP, py + 1, 1, 1);
+                            localCtx.fillRect(px + cellSize * 0.6, py + 2, 1, 1);
                         }
                         if (hasWallW) {
-                            localCtx.fillStyle = "rgba(10, 15, 25, 0.45)";
-                            localCtx.fillRect(px + 1, py + cellSize * 0.35, 2, 2);
-                            localCtx.fillRect(px + 2, py + cellSize * 0.7, 1, 2);
+                            localCtx.fillStyle = "#12151d";
+                            localCtx.fillRect(px + 1, py + cellSize * 0.35, 2, 3);
+                            localCtx.fillStyle = "#4a5568";
+                            localCtx.fillRect(px + 1, py + cellSize * 0.35, 1, 1);
                         }
                     }
 
@@ -4780,8 +4884,11 @@
                     const hasS = (y < LOCAL_MAP_SIZE - 1 && localColonyGrid[y+1][x].isWall);
                     const hasW = (x > 0 && localColonyGrid[y][x-1].isWall);
 
-                    // 1. Continuous Macro Geological Strata (World Coordinates = Zero Tile Seams)
-                    const strata = Math.sin(x * 0.32 + y * 0.14) * 3.5 + Math.cos(y * 0.25) * 2.5;
+                    // 1. Multi-Scale Continuous Geological Strata (Macro Wave + Micro Sedimentary Bands)
+                    const strataMacro = Math.sin(x * 0.28 + y * 0.12) * 4.0 + Math.cos(y * 0.22) * 3.0;
+                    const strataMicro = Math.sin(x * 0.85 + y * 0.45) * 1.5;
+                    const strata = strataMacro + strataMicro;
+
                     let baseR = 17, baseG = 19, baseB = 25;
                     if (cell.terrain.includes("obsidian") || cell.terrain.includes("magma")) {
                         baseR = 14; baseG = 14; baseB = 16;
@@ -4792,9 +4899,9 @@
                     } else if (cell.terrain.includes("granite") || cell.terrain.includes("pumice")) {
                         baseR = 26; baseG = 22; baseB = 20;
                     }
-                    const r = Math.max(10, Math.min(45, Math.round(baseR + strata)));
-                    const g = Math.max(12, Math.min(48, Math.round(baseG + strata)));
-                    const b = Math.max(16, Math.min(60, Math.round(baseB + strata * 1.2)));
+                    const r = Math.max(10, Math.min(48, Math.round(baseR + strata)));
+                    const g = Math.max(12, Math.min(52, Math.round(baseG + strata)));
+                    const b = Math.max(16, Math.min(65, Math.round(baseB + strata * 1.25)));
                     const rockFill = `rgb(${r}, ${g}, ${b})`;
 
                     // 2. 45-Degree Convex Corner Chamfers (Eliminates boxy 90-degree square stair-steps)
@@ -4837,14 +4944,23 @@
                     localCtx.closePath();
                     localCtx.fill();
 
-                    // Continuous macro geological fissures across the rock formation
-                    if ((x * 11 + y * 23) % 7 === 0) {
-                        localCtx.strokeStyle = "rgba(10, 12, 16, 0.4)";
+                    // 3. Tactile Mineral Texture: Feldspar, Quartz & Augite Micro-Flecks
+                    const cellSeed = (x * 73 + y * 97) % 100;
+                    localCtx.fillStyle = (cellSeed % 2 === 0) ? `rgb(${r + 8}, ${g + 9}, ${b + 13})` : `rgb(${Math.max(6, r - 5)}, ${Math.max(8, g - 5)}, ${Math.max(10, b - 6)})`;
+                    localCtx.fillRect(px + (cellSeed % 9) + 2, py + ((cellSeed * 3) % 9) + 2, 1, 1);
+                    localCtx.fillRect(px + ((cellSeed * 5) % 9) + 2, py + ((cellSeed * 7) % 9) + 2, 1, 1);
+
+                    // 4. Continuous Quartz & Calcite Hairline Crystal Veins (World Coordinates)
+                    if ((x * 13 + y * 29) % 9 === 0) {
+                        localCtx.strokeStyle = "rgba(70, 85, 115, 0.45)";
                         localCtx.lineWidth = 1;
                         localCtx.beginPath();
-                        localCtx.moveTo(px, py + cellSize * 0.4);
-                        localCtx.lineTo(px + cellSize, py + cellSize * 0.45);
+                        localCtx.moveTo(px, py + cellSize * 0.35);
+                        localCtx.lineTo(px + cellSize, py + cellSize * 0.42);
                         localCtx.stroke();
+                        // Specular quartz glint
+                        localCtx.fillStyle = "#8ba0c2";
+                        localCtx.fillRect(px + cellSize * 0.5, py + cellSize * 0.38, 1.5, 1.5);
                     }
 
                     // Ore Vein Inclusions embedded into solid rock
@@ -4860,46 +4976,63 @@
                         continue;
                     }
 
-                    // 3. South Vertical Cliff Face & Drop Shadow (Facing open floor below)
+                    // 5. South Vertical Cliff Face & Columnar Basalt Overhang
                     if (!hasS) {
-                        const cliffTop = py + cellSize * 0.60;
+                        const cliffTop = py + cellSize * 0.58;
                         const cliffBot = py + cellSize;
                         localCtx.fillStyle = "#0a0c10";
                         localCtx.fillRect(px, cliffTop, cellSize, cliffBot - cliffTop);
 
-                        // Vertical chisel cleavage striations
-                        localCtx.strokeStyle = "#13161f";
-                        localCtx.lineWidth = 1;
+                        // Columnar vertical jointing
                         for (let cx = px + 2; cx < px + cellSize; cx += 3) {
+                            localCtx.strokeStyle = "#050608";
+                            localCtx.lineWidth = 1;
                             localCtx.beginPath();
                             localCtx.moveTo(cx, cliffTop + 1);
                             localCtx.lineTo(cx, cliffBot - 1);
                             localCtx.stroke();
+
+                            // Column specular edge highlight
+                            localCtx.fillStyle = "rgba(35, 42, 58, 0.75)";
+                            localCtx.fillRect(cx + 1, cliffTop + 1, 1, cliffBot - cliffTop - 2);
                         }
                         localCtx.fillStyle = "#040507";
                         localCtx.fillRect(px, cliffBot - 1, cellSize, 1);
 
-                        // Ambient occlusion drop shadow cast 5-6px onto floor below
-                        localCtx.fillStyle = "rgba(2, 3, 6, 0.72)";
+                        // Ambient occlusion drop shadow cast 6px onto floor below
+                        localCtx.fillStyle = "rgba(2, 3, 6, 0.75)";
                         localCtx.beginPath();
                         localCtx.moveTo(px, cliffBot);
-                        localCtx.lineTo(px + cellSize * 0.3, cliffBot + 5);
-                        localCtx.lineTo(px + cellSize * 0.7, cliffBot + 4);
-                        localCtx.lineTo(px + cellSize, cliffBot + 6);
+                        localCtx.lineTo(px + cellSize * 0.25, cliffBot + 6);
+                        localCtx.lineTo(px + cellSize * 0.65, cliffBot + 5);
+                        localCtx.lineTo(px + cellSize, cliffBot + 7);
                         localCtx.lineTo(px + cellSize, cliffBot);
                         localCtx.closePath();
                         localCtx.fill();
+
+                        // Scree rubble chunks spilled at base
+                        const rSeed = (x * 19 + y * 37) % 6;
+                        localCtx.fillStyle = "#222735";
+                        localCtx.fillRect(px + 2 + rSeed, cliffBot + 1, 3, 2);
+                        localCtx.fillStyle = "#4a5568";
+                        localCtx.fillRect(px + 2 + rSeed, cliffBot + 1, 1, 1);
+                        localCtx.fillStyle = "#1a1f2b";
+                        localCtx.fillRect(px + 9 - rSeed, cliffBot + 2, 3, 2);
                     }
 
-                    // 4. North Illuminated Top Ridge (Direct overhead rim light)
+                    // 6. North Illuminated Chiseled Ridge (Overhead Rim Light)
                     if (!hasN) {
                         localCtx.fillStyle = "#526078";
                         localCtx.fillRect(px, py, cellSize, Math.max(1, cellSize * 0.12));
                         localCtx.fillStyle = "#879bb9";
                         localCtx.fillRect(px + 2, py, cellSize - 4, 1);
+                        if ((x + y) % 3 === 0) {
+                            localCtx.fillStyle = "#cad7e8";
+                            localCtx.fillRect(px + 5, py + 1, 1.5, 1);
+                        }
                     }
 
-                    // 5. West Rim Lighting & East Shadow Groove
+                    // 7. West Rim Lighting & East Shadow Groove
                     if (!hasW) {
                         localCtx.fillStyle = "#2d3442";
                         localCtx.fillRect(px, py, Math.max(1, cellSize * 0.08), cellSize);
@@ -4909,7 +5042,7 @@
                         localCtx.fillRect(px + cellSize - Math.max(1, cellSize * 0.08), py, Math.max(1, cellSize * 0.08), cellSize);
                     }
 
-                    // 6. Chamfer Diagonal Bevel Strokes
+                    // 8. Chamfer Diagonal Bevel Strokes
                     localCtx.lineWidth = 1.5;
                     if (!hasN && !hasW) {
                         localCtx.strokeStyle = "#526078";
@@ -4917,6 +5050,8 @@
                         localCtx.moveTo(px, py + half);
                         localCtx.lineTo(px + half, py);
                         localCtx.stroke();
+                        localCtx.fillStyle = "#879bb9";
+                        localCtx.fillRect(px + half, py, 1.5, 1);
                     }
                     if (!hasN && !hasE) {
                         localCtx.strokeStyle = "#526078";
@@ -4924,6 +5059,8 @@
                         localCtx.moveTo(px + cellSize - half, py);
                         localCtx.lineTo(px + cellSize, py + half);
                         localCtx.stroke();
+                        localCtx.fillStyle = "#879bb9";
+                        localCtx.fillRect(px + cellSize - half, py, 1.5, 1);
                     }
                     if (!hasS && !hasW) {
                         localCtx.strokeStyle = "#0a0c10";
