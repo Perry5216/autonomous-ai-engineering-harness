@@ -4343,9 +4343,9 @@
         }
 
         const BASE_DEPLOYED_COLONISTS = [
-            { arch: 'miner', name: 'Spark Mitchell', role: 'Leader · Miner', x: 9.5, y: 12.2, animOffset: 0 },
+            { arch: 'miner', name: 'Spark Mitchell', role: 'Leader · Miner', x: 10.0, y: 8.5, animOffset: 0 },
             { arch: 'engineer', name: 'Garrison Vance', role: 'Machinist', x: 19.2, y: 10.5, animOffset: 12 },
-            { arch: 'medic', name: 'Dr. Mara Lin', role: 'Doctor', x: 10.5, y: 13.8, animOffset: 24 },
+            { arch: 'medic', name: 'Dr. Mara Lin', role: 'Doctor', x: 8.0, y: 13.5, animOffset: 24 },
             { arch: 'soldier', name: 'Torque Stone', role: 'Security', x: 16.5, y: 13.2, animOffset: 36 }
         ];
 
@@ -4357,7 +4357,7 @@
             { key: "tokamak", name: "Compact Tokamak Core", x: 11, y: 14, w: 2, h: 2, state: "active" },
             { key: "research", name: "Sub-Strata Research Bench", x: 13, y: 13, w: 2, h: 1, state: "active" },
             { key: "rad_deflector", name: "Rad-Deflector Core", x: 13, y: 9, w: 1, h: 1, state: "active" },
-            { key: "drone_bay", name: "Drone Hangar Bay", x: 17, y: 7.5, w: 2, h: 2, state: "active" }
+            { key: "drone_bay", name: "Drone Hangar Bay", x: 17, y: 8, w: 2, h: 2, state: "active" }
         ];
 
         const BASE_DEPLOYED_FURNITURE = [
@@ -4722,7 +4722,6 @@
                     c.walkSpeed = 100;
                     return;
                 }
-                if (occupiedTiles.has(`${gx},${gy}`)) return;
                 const c = localColonyGrid[gy][gx];
                 c.isWall = true;
                 c.isAuto = true;
@@ -6086,22 +6085,24 @@
                 // 2.10 Draw Subterranean Wildlife (4-Frame Walk Cycles & Badges)
                 const faunaFrame = Math.floor(localAnimationTick / 8) % 4;
                 DEPLOYED_WILDLIFE.forEach(animal => {
-                    // Slight wandering motion
-                    // Collision-aware wandering motion using unified spatial obstruction solver
+                    // Directional collision-aware wandering motion using unified spatial obstruction solver
                     const rad = (animal.species === 'muffalo' ? 0.65 : 0.45);
+                    const testRad = rad * 0.4;
                     const nextX = animal.x + animal.vx;
                     const nextY = animal.y + animal.vy;
 
-                    // Test X-axis movement against walls, lava, machinery, tables, and desks
-                    if (isPositionBlocked(nextX, animal.y, rad * 0.45)) {
-                        animal.vx = -animal.vx + (Math.random() - 0.5) * 0.003;
+                    // Directional X-axis check (probe forward in travel direction)
+                    const probeX = nextX + (animal.vx > 0 ? testRad : -testRad);
+                    if (isPositionBlocked(probeX, animal.y, 0.1)) {
+                        animal.vx = (animal.vx > 0 ? -1 : 1) * (0.006 + Math.random() * 0.006);
                     } else {
                         animal.x = nextX;
                     }
 
-                    // Test Y-axis movement against walls, lava, machinery, tables, and desks
-                    if (isPositionBlocked(animal.x, nextY, rad * 0.45)) {
-                        animal.vy = -animal.vy + (Math.random() - 0.5) * 0.003;
+                    // Directional Y-axis check (probe forward in travel direction)
+                    const probeY = nextY + (animal.vy > 0 ? testRad : -testRad);
+                    if (isPositionBlocked(animal.x, probeY, 0.1)) {
+                        animal.vy = (animal.vy > 0 ? -1 : 1) * (0.005 + Math.random() * 0.006);
                     } else {
                         animal.y = nextY;
                     }
@@ -6317,11 +6318,59 @@
             const droneFrame = Math.floor(droneAnimTick) % 4;
             const isEmpActive = (droneNetworkState === 'EMP_REBOOTING');
 
+            // Room Airspace Bounds:
+            // Airborne drones freely fly OVER tables, benches, desks, conveyors, and crates,
+            // but are 100% mathematically contained within their designated room facility walls.
+            // Under NO circumstance can a drone ever cross or clip through a wall!
+            const DRONE_FACILITY_BOUNDS = {
+                sanitation: {
+                    // Mess Hall inner airspace [x: 8..15, y: 7..12]
+                    // Inner open floor: x from 8.6 to 14.4, y from 7.6 to 11.4
+                    minX: 8.6 + off.x,
+                    maxX: 14.4 + off.x,
+                    minY: 7.6 + off.y,
+                    maxY: 11.4 + off.y
+                },
+                agronomy: {
+                    // Hydroponics & Research Wing inner airspace [x: 6..10, y: 12..17]
+                    // Inner open floor: x from 6.6 to 9.4, y from 12.6 to 16.4
+                    minX: 6.6 + off.x,
+                    maxX: 9.4 + off.x,
+                    minY: 12.6 + off.y,
+                    maxY: 16.4 + off.y
+                },
+                hauler: {
+                    // Logistics & Fabrication Yard inner airspace [x: 15..25, y: 7..16]
+                    // Inner open floor: x from 15.6 to 24.4, y from 7.6 to 15.4
+                    minX: 15.6 + off.x,
+                    maxX: 24.4 + off.x,
+                    minY: 7.6 + off.y,
+                    maxY: 15.4 + off.y
+                },
+                sentry: {
+                    // Tread-Warden Sentry Rover: Logistics perimeter security corridor
+                    minX: 15.6 + off.x,
+                    maxX: 24.4 + off.x,
+                    minY: 8.0 + off.y,
+                    maxY: 15.4 + off.y
+                }
+            };
+
             DEPLOYED_DRONES.forEach((drone) => {
                 if (drone.x === undefined) drone.x = drone.baseX;
                 if (drone.y === undefined) drone.y = drone.baseY;
                 if (drone.vx === undefined) drone.vx = 0.018;
                 if (drone.vy === undefined) drone.vy = 0.014;
+
+                const bounds = DRONE_FACILITY_BOUNDS[drone.key];
+
+                // If drone ever drifts or was initialized outside room airspace, clamp immediately inside
+                if (bounds) {
+                    if (drone.x < bounds.minX) { drone.x = bounds.minX; drone.vx = Math.abs(drone.vx || 0.018); }
+                    if (drone.x > bounds.maxX) { drone.x = bounds.maxX; drone.vx = -Math.abs(drone.vx || 0.018); }
+                    if (drone.y < bounds.minY) { drone.y = bounds.minY; drone.vy = Math.abs(drone.vy || 0.014); }
+                    if (drone.y > bounds.maxY) { drone.y = bounds.maxY; drone.vy = -Math.abs(drone.vy || 0.014); }
+                }
 
                 const hoverBob = (drone.altitude > 0 && !isEmpActive) 
                     ? Math.sin((droneAnimTick * 3 + drone.x * 2)) * (cellSize * 0.08) 
@@ -6333,63 +6382,84 @@
                     const stepVx = drone.vx * speedMultiplier;
                     const stepVy = drone.vy * speedMultiplier;
 
-                    const droneRadius = (drone.altitude === 0) ? 0.42 : 0.35;
-                    const nextX = drone.x + stepVx;
-                    const nextY = drone.y + stepVy;
+                    if (drone.altitude > 0 && bounds) {
+                        // AIRBORNE DRONES (Sanitation, Agronomy, Hauler):
+                        // - Freely glide OVER tables, chairs, desks, conveyors, and floor crates
+                        // - Strictly contained within room boundaries: IMPOSSIBLE to penetrate or pass through walls!
+                        const nextX = drone.x + stepVx;
+                        if (nextX <= bounds.minX) {
+                            drone.x = bounds.minX;
+                            drone.vx = Math.abs(drone.vx);
+                        } else if (nextX >= bounds.maxX) {
+                            drone.x = bounds.maxX;
+                            drone.vx = -Math.abs(drone.vx);
+                        } else {
+                            drone.x = nextX;
+                        }
 
-                    // AIRBORNE DRONES (altitude > 0, Agronomy, Sanitation, Hauler):
-                    // - Fly freely OVER low furniture (tables, chairs, desks, conveyor belts, crates)
-                    // - CANNOT go through solid walls (cavern rock walls, plasteel blast walls)
-                    // - CAN pass through open doorway hatches (cell.isDoorway === true)
-                    //
-                    // GROUND VEHICLES (altitude === 0, Sentry Rover):
-                    // - Ground treads blocked by both walls AND solid furniture (tables, desks)
-                    const isBlockedFn = (drone.altitude > 0) ? isDroneBlockedByWall : isPositionBlocked;
-
-                    // X-axis collision test against walls
-                    if (!isBlockedFn(nextX, drone.y, droneRadius)) {
-                        drone.x = nextX;
+                        const nextY = drone.y + stepVy;
+                        if (nextY <= bounds.minY) {
+                            drone.y = bounds.minY;
+                            drone.vy = Math.abs(drone.vy);
+                        } else if (nextY >= bounds.maxY) {
+                            drone.y = bounds.maxY;
+                            drone.vy = -Math.abs(drone.vy);
+                        } else {
+                            drone.y = nextY;
+                        }
                     } else {
-                        drone.vx = -drone.vx + (Math.random() - 0.5) * 0.004;
-                        drone.vx = Math.max(-0.035, Math.min(0.035, drone.vx));
-                        if (Math.abs(drone.vx) < 0.008) drone.vx = (drone.vx < 0 ? -0.016 : 0.016);
-                    }
+                        // GROUND VEHICLES (Tread-Warden Sentry Rover, altitude === 0):
+                        // - Ground treads blocked by walls AND solid machinery/tables
+                        const roverRad = 0.38;
+                        const nextX = drone.x + stepVx;
+                        const probeX = nextX + (stepVx > 0 ? roverRad : -roverRad);
+                        if (bounds && (nextX <= bounds.minX || nextX >= bounds.maxX || isPositionBlocked(probeX, drone.y, 0.12))) {
+                            drone.vx = (drone.vx > 0 ? -1 : 1) * Math.abs(drone.vx);
+                        } else {
+                            drone.x = nextX;
+                        }
 
-                    // Y-axis collision test against walls
-                    if (!isBlockedFn(drone.x, nextY, droneRadius)) {
-                        drone.y = nextY;
-                    } else {
-                        drone.vy = -drone.vy + (Math.random() - 0.5) * 0.004;
-                        drone.vy = Math.max(-0.035, Math.min(0.035, drone.vy));
-                        if (Math.abs(drone.vy) < 0.008) drone.vy = (drone.vy < 0 ? -0.016 : 0.016);
+                        const nextY = drone.y + stepVy;
+                        const probeY = nextY + (stepVy > 0 ? roverRad : -roverRad);
+                        if (bounds && (nextY <= bounds.minY || nextY >= bounds.maxY || isPositionBlocked(drone.x, probeY, 0.12))) {
+                            drone.vy = (drone.vy > 0 ? -1 : 1) * Math.abs(drone.vy);
+                        } else {
+                            drone.y = nextY;
+                        }
                     }
-
-                    // Strict map boundary clamp
-                    drone.x = Math.max(1.8, Math.min(LOCAL_MAP_SIZE - 2.8, drone.x));
-                    drone.y = Math.max(1.8, Math.min(LOCAL_MAP_SIZE - 2.8, drone.y));
 
                     // Contextual telemetry updates when hovering over functional furniture
-                    const off = getCompoundOffset();
                     if (drone.key === 'sanitation') {
                         const distToTable = Math.hypot(drone.x - (11.5 + off.x), drone.y - (10.0 + off.y));
+                        const distToShelf = Math.hypot(drone.x - (9.0 + off.x), drone.y - (11.0 + off.y));
                         if (distToTable < 1.3) {
                             drone.status = "SCRUBBING DINING TABLE";
+                        } else if (distToShelf < 1.1) {
+                            drone.status = "SANITIZING STORAGE SHELF";
                         } else {
                             drone.status = "CLEANING MESS HALL";
                         }
                     } else if (drone.key === 'agronomy') {
                         const distToHydro = Math.hypot(drone.x - (7.5 + off.x), drone.y - (14.5 + off.y));
+                        const distToDesk = Math.hypot(drone.x - (8.0 + off.x), drone.y - (13.0 + off.y));
                         if (distToHydro < 1.4) {
                             drone.status = "MISTING HYDROPONICS";
+                        } else if (distToDesk < 1.1) {
+                            drone.status = "LOGGING CROP YIELD";
                         } else {
                             drone.status = "MONITORING BIOLAB";
                         }
                     } else if (drone.key === 'hauler') {
-                        if (drone.x > 19 + off.x) {
-                            drone.status = "LOADING CONVEYOR";
+                        const isOverConveyor = (drone.x >= 19.5 + off.x && drone.x <= 23.5 + off.x && drone.y >= 9.5 + off.y && drone.y <= 14.5 + off.y);
+                        if (isOverConveyor) {
+                            drone.status = "LOADING CONVEYOR LOOP";
+                        } else if (drone.x < 18 + off.x) {
+                            drone.status = "FETCHING STEEL INGOTS";
                         } else {
                             drone.status = "HAULING STEEL";
                         }
+                    } else if (drone.key === 'sentry') {
+                        drone.status = (drone.state === 'rogue' || droneNetworkState === 'ROGUE') ? "TARGET LOCKED [COLONIST]" : "PERIMETER PATROL";
                     }
                 }
 
