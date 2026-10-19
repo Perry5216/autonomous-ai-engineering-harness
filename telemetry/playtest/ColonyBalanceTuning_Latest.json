@@ -1,0 +1,10 @@
+{
+  "flow_state": "MILD_BOREDOM_ZONE (Too Safe / Plateauing Mid-Game)",
+  "survival_pct": 100.0,
+  "deltas": {
+    "SapperRaidThreatMultiplier": 1.25,
+    "SeismicTremorFrequencyTicks": 750,
+    "SOECOxygenYieldPerUnit": 0.82,
+    "LichenAleRecreationBuff": 1.15
+  }
+}

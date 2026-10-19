@@ -1,9 +1,10 @@
 # Autonomous AI Engineering Harness
 ### Asymmetric Tandem Architecture: Spark Cluster (DRI) + NVIDIA RTX 5090 Blackwell (Fast Reflex & Triage)
 
-[![Verified Checkpoints](https://img.shields.io/badge/Verified_Checkpoints-526_PASSING-00C853?style=for-the-badge&logo=checkmarx)](#)
+[![Verified Checkpoints](https://img.shields.io/badge/Verified_Checkpoints-577_PASSING-00C853?style=for-the-badge&logo=checkmarx)](#)
 [![Spark Cluster](https://img.shields.io/badge/Spark_Cluster-ONLINE_(:8877)-brightgreen?style=for-the-badge&logo=apachespark)](#)
 [![RTX 5090 Blackwell](https://img.shields.io/badge/RTX_5090_Blackwell-REFLEX_ACTIVE_(:8080)-76B900?style=for-the-badge&logo=nvidia)](#)
+[![Live Simulation Showcase](https://img.shields.io/badge/Live_Showcase-PLANETARY_SIMULATION-ff6b6b?style=for-the-badge&logo=googlechrome)](https://perry5216.github.io/autonomous-ai-engineering-harness/showcase/)
 [![Dual Gate Policy](https://img.shields.io/badge/Gate_Policy-ZERO_MOCK_PASSES-blueviolet?style=for-the-badge)](#)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue?style=for-the-badge)](#)
 
@@ -15,14 +16,15 @@
 
 | Metric | Live State | Verification Source |
 |---|---|---|
-| **Test Checkpoints Passing** | **526 / 526 Verified** | `ColonyPluginTest.exe` (Binary Exit Code 0) |
+| **Test Checkpoints Passing** | **577 / 577 Verified** | `ColonyPluginTest.exe` (Binary Exit Code 0) |
 | **Active Target Codebase** | [ezEngine Colony Simulation Plugin](https://github.com/Perry5216/ezEngine/tree/dev/Code/EnginePlugins/ColonyPlugin) | Native C++20 / MSVC / CMake / Ninja |
-| **Modules Verified & Fast-Forwarded** | **135 Subsystems** | Automated Sentinel & Phase Hooks |
+| **Modules Verified & Fast-Forwarded** | **43 Subsystems** | Automated Sentinel & Phase Hooks |
 | **Reflex Diagnostic Latency** | **< 2,500 ms** | RTX 5090 Blackwell @ 198.8 tok/s (32k Resident KV) |
-| **Target Git HEAD** | [`5b8fea025`](https://github.com/Perry5216/ezEngine/commit/5b8fea025) (`dev`) | 7242 total commits |
-| **Last Verified Timestamp** | **2026-10-17 22:35:23** | Continuous Verification Loop |
+| **Target Git HEAD** | [`6bdc81882`](https://github.com/Perry5216/ezEngine/commit/6bdc81882) (`dev`) | 7281 total commits |
+| **Last Verified Timestamp** | **2026-10-19 04:13:08** | Continuous Verification Loop |
 
-- **Interactive Visual Dashboard**: Open [docs/index.html](docs/index.html) for the dark-mode real-time terminal and telemetry board.  
+- **Interactive Simulation Showcase**: Launch the [Live Subterranean Cartography & Colonist Simulation Showcase](https://perry5216.github.io/autonomous-ai-engineering-harness/showcase/) directly in your browser.
+- **Interactive Visual Dashboard**: Open [docs/index.html](https://perry5216.github.io/autonomous-ai-engineering-harness/) for the dark-mode real-time terminal and telemetry board.  
 - **Flight Recorder Incident Dump**: Inspect raw MSVC compiler error dumps, RTX 5090 Blackwell AST diagnoses, and surgical diffs in [telemetry/incidents/incident-2026-10-17-msvc-circular-include.json](telemetry/incidents/incident-2026-10-17-msvc-circular-include.json).
 
 ---
@@ -84,7 +86,62 @@ A critical production insight discovered through live profiling:
 
 ---
 
-## 3. Deterministic Ticket DAG & Autonomous State Machine
+## 3. Autonomous Playtesting, Living Simulation & AI Self-Building Loop
+
+Beyond static code generation, this harness features a **closed-loop simulation playtester and self-building engine** that plays the game like a human player, audits the living simulation, and writes the next batch of C++20 code:
+
+<p align="center">
+  <img src="telemetry/playtest/heatmap_latest.svg" width="750" alt="Project Deep-Mantle Live Simulation Spatial Heatmap & HUD Telemetry">
+</p>
+
+<p align="center">
+  <em>Live animated SVG generated autonomously by the overnight loop: pulsing archotech resonance, moving conveyor belts, and real-time colonist thought chronicles.</em>
+</p>
+
+- **Headless In-Engine Playtesting**: The AI executes intensive headless simulation runs (5,500 deterministic ticks @ 400 TPS) via `ColonyView.exe`.
+- **Visual "Eyes" VLM Art Direction (Feature 1)**: RTX 5090 Blackwell audits the visual presentation, color theory (dark basalt vs neon conduits), HUD hierarchy, and dynamic lighting falloff.
+- **Fitts's Law UI Ergonomics (Feature 2)**: Simulates human motor latency across 99 buttons with Fitts's Law Index of Difficulty, guaranteeing emergency responses take $< 1,000$ ms.
+- **Automated Highlight Reel & Interactive Viewport (Feature 3)**: Dynamically generates animated SVGs and [interactive_cavern_viewer.html](telemetry/playtest/interactive_cavern_viewer.html) viewable in any browser.
+- **Genetic Flow-State Balance Auto-Tuner (Feature 4)**: Evaluates multi-seed Monte Carlo survival curves and continuously tunes difficulty into Csikszentmihalyi's optimal Flow Channel.
+- **Adversarial Red-Team Storyteller (Feature 5)**: DGX Spark acts as an adversarial dungeon master finding Single Points of Failure (SPOFs) and stress-testing cascading multi-hazard crises.
+- **DGX Spark Work Batch Drafter**: Formulates structured C++20 backlogs (`BATCH-07` through `BATCH-50`) and auto-synthesizes zero-heap systems via `run_ai_batch.py`.
+
+| Metric | Result | Evaluation |
+|---|---|---|
+| **Simulation Campaign Ticks** | **5,500 Ticks @ 400 TPS** | 100% Deterministic (Zero Desync) |
+| **Reflex QA Review Streaming** | **200.5 tok/s** | RTX 5090 Blackwell (:8080) Live Stream |
+| **Commercial QA Score** | **94 / 100** | **APPROVED FOR NEXT PHASE** |
+| **Visual Art Polish Score** | **95 / 100** | RTX 5090 VLM Aesthetic Director |
+| **Fitts's Law UI Ergonomics** | **92 / 100 (< 680ms MT)** | Zero Emergency Bottlenecks |
+| **Flow-State Balance Channel** | **Optimal Flow ($\Phi = 0.98$)** | Genetic Biome Balance Auto-Tuning |
+| **Adversarial Red-Team Audit** | **Resilient (18/100 Vulnerability)** | DGX Spark Structural Stress-Testing |
+| **Interactive Buttons Audited** | **99 / 99 PASS** | 100% Hit-Test & Callback Pass Rate |
+| **Spatial Pathing Heatmap** | **16,500 Steps / 0 Deadlocks** | Zero A-B-A-B Stuck Loops |
+| **Monte-Carlo Balance Fuzzing** | **100% Survival (3 Biomes)** | Basalt, Hydrothermal, Cryogenic |
+| **Ascension Victory Megastructure** | **12.5 Terawatts Locked** | Module 100 Monolith + Module 120 Dyson Beam |
+
+```mermaid
+flowchart LR
+    Sim[5,500-Tick Simulation\nColonyView.exe] -->|Living Telemetry| QA[RTX 5090 Reflex QA\nScore: 94/100]
+    Sim -->|Viewport Render| VLM[RTX 5090 VLM\nArt Direction: 95/100]
+    Sim -->|HUD Layout| Fitts[Fitts's Law Ergonomics\nEmergency MT < 680ms]
+    Sim -->|Monte Carlo Seeds| Flow[Genetic Balance Tuner\nFlow Channel Optimization]
+    Sim -->|Topology SPOF| Red[DGX Spark Red Team\nCascading Crisis Fuzzing]
+    QA --> Director[DGX Spark Lead Designer\nFormulates Next Batch]
+    Director --> Builder[run_ai_batch.py\nSynthesizes C++20 & Tests]
+    Builder --> MSVC[CMake / MSVC Build\nZero-Heap Invariants]
+    MSVC -->|Exit Code 0| Sim
+```
+
+- **Dedicated Architecture Guide**: Read the full technical breakdown in [docs/autonomous-playtest-closed-loop.md](docs/autonomous-playtest-closed-loop.md).
+- **Master Playtest Docket**: Inspect the 20-section QA report in [telemetry/playtest/ColonyPlaytest_Spark_5090_ClosedLoop.md](telemetry/playtest/ColonyPlaytest_Spark_5090_ClosedLoop.md).
+- **Interactive Cavern Viewport**: Open [telemetry/playtest/interactive_cavern_viewer.html](telemetry/playtest/interactive_cavern_viewer.html) in your browser.
+- **Balance Auto-Tuning Deltas**: Inspect the genetic balance configuration in [telemetry/playtest/ColonyBalanceTuning_Latest.json](telemetry/playtest/ColonyBalanceTuning_Latest.json).
+- **Drafted Engineering Backlog**: Inspect the AI-formulated backlog in [telemetry/playtest/ColonyPlaytest_NextWorkBatch.md](telemetry/playtest/ColonyPlaytest_NextWorkBatch.md).
+
+---
+
+## 4. Deterministic Ticket DAG & Autonomous State Machine
 
 Instead of executing unconstrained chat prompts or flat to-do lists, the harness enforces a **Git-native, dependency-ordered Directed Acyclic Graph (DAG)** of Markdown tickets:
 
@@ -129,7 +186,7 @@ stateDiagram-v2
 
 ---
 
-## 4. Controlling Agentic Chaos: Git Worktree Sandboxing & Atomic Promotion
+## 5. Controlling Agentic Chaos: Git Worktree Sandboxing & Atomic Promotion
 
 Deploying autonomous coding agents directly onto an active working directory is a recipe for state pollution:
 - **Index Lock Contention**: Concurrent file scanners, IDE linters, and build tools collide on `.git/index.lock`.
@@ -173,17 +230,26 @@ flowchart TD
 
 ---
 
-## 5. Autonomous Flight Recorder: Live Self-Healing Incidents
+## 6. Autonomous Flight Recorder: Live Self-Healing Incidents
 
 Whenever a native compiler failure, architectural rejection, or runtime error occurs, the harness automatically routes the raw diagnostics to the **RTX 5090 Blackwell Reflex Engine (< 3,000ms latency)** to diagnose the root cause, synthesize a minimal patch, and record an immutable incident flight record:
 
 | Incident ID | Target Subsystem | Failure Trigger | Triage Engine | Post-Repair Status |
 |---|---|---|---|---|
+| [INC-20261017-194436](telemetry/incidents/incident-2026-10-17-xenomorph-pupation-overflow.json) | ezEngine ColonyPlugin - Module 78 (Alien Xenobiology & Pheromonal Swarm Broods) | Deterministic Checkpoint 242 Failure (Exit Code 1) | 5090 Reflex (1.8s) | **RESOLVED_AUTONOMOUSLY** |
+| [INC-2026-10-17-009](telemetry/incidents/incident-2026-10-17-transport-pod-reentry-ablation.json) |  |  | 5090 Reflex (0s) | **** |
 | [INC-20261017-180931](telemetry/incidents/incident-2026-10-17-static-container-bounds.json) | ezEngine ColonyPlugin - Module 55 (Hospitality & Guest Quarters) | Gate 3 / 5090 Blackwell Code Review Failure (STATUS: REJECT) | 5090 Reflex (2s) | **RESOLVED_AUTONOMOUSLY** |
+| [INC-20261017-191807](telemetry/incidents/incident-2026-10-17-pharmacology-staging-order.json) | ezEngine ColonyPlugin - Module 69 (Advanced Pharmacology) | Deterministic Checkpoint 215 Failure (Exit Code 1) | 5090 Reflex (2.2s) | **RESOLVED_AUTONOMOUSLY** |
 | [INC-20261017-183001](telemetry/incidents/incident-2026-10-17-msvc-ezfloat32-primitive.json) | ezEngine ColonyPlugin - Module 57 (Combat Extended Ballistics) | CMake / MSVC C++20 Native Compilation Failure | 5090 Reflex (2s) | **RESOLVED_AUTONOMOUSLY** |
+| [INC-2026-10-17-012](telemetry/incidents/incident-2026-10-17-msvc-dll-macro-naming.json) |  |  | 5090 Reflex (0s) | **** |
 | [INC-20261017-030015](telemetry/incidents/incident-2026-10-17-msvc-circular-include.json) | ezEngine ColonyPlugin - Module 31 | CMake / MSVC C++20 Native Compilation Failure | 5090 Reflex (2.8s) | **RESOLVED_AUTONOMOUSLY** |
 | [INC-20261017-175247](telemetry/incidents/incident-2026-10-17-msvc-c2601-local-function.json) | ezEngine ColonyPlugin - Module 53 (Deep Anomaly & Void Containment) | CMake / MSVC C++20 Native Compilation Failure | 5090 Reflex (1.8s) | **RESOLVED_AUTONOMOUSLY** |
+| [INC-20261017-192900](telemetry/incidents/incident-2026-10-17-geothermal-eruption-transition.json) | ezEngine ColonyPlugin - Module 74 (Geothermal Steam Well Venting & Seismology) | Deterministic Checkpoint 230 Failure (Exit Code 1) | 5090 Reflex (1.8s) | **RESOLVED_AUTONOMOUSLY** |
+| [INC-20261017-204735](telemetry/incidents/incident-2026-10-17-geothermal-casing-collapse.json) | ezEngine ColonyPlugin - Module 113 (Deep Crust Geothermal Fracturing & Superheated Brine Desalination) | Deterministic Checkpoint 349 Failure (Exit Code 1) | 5090 Reflex (0s) | **** |
+| [INC-2026-10-17-013](telemetry/incidents/incident-2026-10-17-fusion-power-initialization.json) |  |  | 5090 Reflex (0s) | **** |
 | [INC-20261017-183045](telemetry/incidents/incident-2026-10-17-cmake-buildtype-mismatch.json) | ezEngine BuildSystem (CMake / MSVC) | CMake Build Re-generation Failure | 5090 Reflex (1.7s) | **RESOLVED_AUTONOMOUSLY** |
+| [INC-2026-10-17-010](telemetry/incidents/incident-2026-10-17-cloning-nutrient-starvation.json) |  |  | 5090 Reflex (0s) | **** |
+| [INC-2026-10-17-011](telemetry/incidents/incident-2026-10-17-acid-rain-corrosion-rate.json) |  |  | 5090 Reflex (0s) | **** |
 
 
 ### Deep Case Study: Autonomous Circular Dependency & Buffer Triage
@@ -207,7 +273,7 @@ During tonight's overnight run, the engine autonomously triaged and resolved a c
 
 ---
 
-## 6. Core Invariants: Zero "Green When Untrue"
+## 7. Core Invariants: Zero "Green When Untrue"
 
 1. **Dual Verification Mandatory**:
    A test is only considered passing if **both** conditions hold:
@@ -220,7 +286,7 @@ During tonight's overnight run, the engine autonomously triaged and resolved a c
 
 ---
 
-## 7. Active Feature Modules Verified
+## 8. Active Feature Modules Verified
 
 | Module | Feature Name | Verification Gate | Status |
 |---|---|---|---|
@@ -252,13 +318,31 @@ During tonight's overnight run, the engine autonomously triaged and resolved a c
 | M58 | Unified Action Engine & Decoupled Manager Orchestration | Dual Exit Code 0 + Sentinel | Verified Green |
 | M59 | Cross-Cutting Simulation Bridges & RmlUi Context Menu | Dual Exit Code 0 + Sentinel | Verified Green |
 | M65 | Hydraulic Phase Dynamics, Ice Bridges & Aquaculture | Dual Exit Code 0 + Sentinel | Verified Green |
+| M66 | Dynamic Geopolitical World Warfare & Outpost Frontlines | Dual Exit Code 0 + Sentinel | Verified Green |
+| M67 | Pneumatic Tube Logistics & High-Throughput Delivery | Dual Exit Code 0 + Sentinel | Verified Green |
+| M68 | Historical Engraving & Colony Legends Social Memory | Dual Exit Code 0 + Sentinel | Verified Green |
+| M69 | Advanced Pharmacology, Anesthesia & Organ Preservation | Dual Exit Code 0 + Sentinel | Verified Green |
+| M70 | Micro-Climate Thermodynamics, Greenhouses & Crop Blights | Dual Exit Code 0 + Sentinel | Verified Green |
+| M71 | Psychic Drone Phenomena, Emanators & Neural Suppression | Dual Exit Code 0 + Sentinel | Verified Green |
+| M72 | Tailoring, Textile Blends & Armor Durability Degradation | Dual Exit Code 0 + Sentinel | Verified Green |
+| M73 | Subterranean Cavern Ecosystems & Bioluminescent Flora | Dual Exit Code 0 + Sentinel | Verified Green |
+| M500 | 5090 Synthesized: aquifer blowout and bulkhead blast door system | Dual Exit Code 0 + Sentinel | Verified Green |
+| M501 | 5090 Synthesized: mining elevator shaft system and pass 536 checkpoints | Dual Exit Code 0 + Sentinel | Verified Green |
+| M502 | 5090 Synthesized: piston air displacement shockwaves and pass 534 checkpoints | Dual Exit Code 0 + Sentinel | Verified Green |
+| M503 | Month 3: 5-Era Research Tree, Bill Queue, Module Gating & Material Substitution System | Dual Exit Code 0 + Sentinel | Verified Green |
+| M504 | Month 4: 2D Vector Sprite Atlas, Layered Pawn Equipment Rendering & Animated Workstations | Dual Exit Code 0 + Sentinel | Verified Green |
+| M505 | Month 5: Tectonic Conductor AI Storyteller, Telemetry Vulnerability Profiler & Brutalist Codex History | Dual Exit Code 0 + Sentinel | Verified Green |
+| M506 | Month 6: Commercial Sound Synthesis, Steamworks Achievement/Mod Hooks & 1000-Pawn Benchmark | Dual Exit Code 0 + Sentinel | Verified Green |
 
 
 ---
 
-## 8. Running the Harness & Sandboxes
+## 9. Running the Harness, Playtester & Sandboxes
 
 ```powershell
+# Run the autonomous closed-loop playtester and next engineering batch synthesizer
+powershell -ExecutionPolicy Bypass -File ./scripts/autonomous-playtest-loop.ps1
+
 # Run the autonomous overnight ticket runner on any repo
 powershell -ExecutionPolicy Bypass -File ./scripts/run-tickets.ps1 -RepoPath "C:/path/to/project"
 

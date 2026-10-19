@@ -1,0 +1,78 @@
+{
+  "batch_id": "BATCH-07",
+  "batch_title": "Subterranean Deep-Core Autonomous Expansion & Living Cavern Ecosystem",
+  "target_version": "v1.1.0",
+  "overview": "Deepen subterranean simulation dynamics, fluid physics, and pawn emotional social texture.",
+  "tasks": [
+    {
+      "task_id": "TASK-701",
+      "priority": "P0 - Critical",
+      "domain": "Simulation/FluidDynamics",
+      "title": "Multi-Z Magma & Groundwater Hydrodynamic Simulation",
+      "target_files": [
+        "Code/EnginePlugins/ColonyPlugin/ColonyFluidDynamics.h",
+        "Code/EnginePlugins/ColonyPlugin/ColonyFluidDynamics.cpp"
+      ],
+      "architectural_spec": "Zero-heap 64x64x3 cellular automaton fluid solver tracking pressure, viscosity, and thermal transfer.",
+      "acceptance_criteria": "Water meeting magma creates solid obsidian blocks; flood containment bulkheads prevent drowning.",
+      "player_fun_impact": "Dwarf Fortress-grade catastrophic tension when mining near subterranean water tables or lava pockets.",
+      "estimated_complexity": "Large"
+    },
+    {
+      "task_id": "TASK-702",
+      "priority": "P1 - High",
+      "domain": "Engine/C++20",
+      "title": "Pneumatic Logistics Tube Network & Auto-Sorter Splitters",
+      "target_files": [
+        "Code/EnginePlugins/ColonyPlugin/ColonyConveyorNetwork.h",
+        "Code/EnginePlugins/ColonyPlugin/ColonyConveyorNetwork.cpp"
+      ],
+      "architectural_spec": "High-velocity pressurized pneumatic delivery chutes connecting Z-1 mining shafts to surface stockpiles.",
+      "acceptance_criteria": "Items travel at 8.0 tiles/sec; filter splitters sort iron from plasteel automatically.",
+      "player_fun_impact": "Factorio-style industrial satisfaction watching goods rocket through glass pneumatic tubes.",
+      "estimated_complexity": "Medium"
+    },
+    {
+      "task_id": "TASK-703",
+      "priority": "P1 - High",
+      "domain": "Simulation/Social",
+      "title": "Colonist Social Relationships, Banter & Cavern Recreation Loops",
+      "target_files": [
+        "Code/EnginePlugins/ColonyPlugin/ColonyPawnComponent.h",
+        "Code/EnginePlugins/ColonyPlugin/ColonyPawnComponent.cpp"
+      ],
+      "architectural_spec": "Granular social opinion matrix, shared cavern leisure activities (playing chess, brewing lichen ale).",
+      "acceptance_criteria": "Pawns develop friendships and rivalries; impressiveness of dining rooms grants major mood buffs.",
+      "player_fun_impact": "RimWorld-level emotional attachment to colonists; eliminates spreadsheet sterility completely.",
+      "estimated_complexity": "Medium"
+    },
+    {
+      "task_id": "TASK-704",
+      "priority": "P2 - Quality-of-Life",
+      "domain": "Simulation/Agriculture",
+      "title": "Subterranean Fungal Hydroponics & Bioluminescent Flora Farming",
+      "target_files": [
+        "Code/EnginePlugins/ColonyPlugin/ColonyFarmingSystem.h",
+        "Code/EnginePlugins/ColonyPlugin/ColonyFarmingSystem.cpp"
+      ],
+      "architectural_spec": "Nutrient solution circulation system with automatic growth stages, spore collection, and medicinal herbs.",
+      "acceptance_criteria": "Hydroponic basins produce glow-fungus every 180 ticks; temperature drops pause growth without killing crops.",
+      "player_fun_impact": "Vibrant visual bioluminescent farms replacing drab industrial blocks.",
+      "estimated_complexity": "Medium"
+    },
+    {
+      "task_id": "TASK-705",
+      "priority": "P0 - Critical",
+      "domain": "Graphics/Vulkan",
+      "title": "Dyson Beam Receiver Focal Beam Lens Flare & Atmospheric Particle Ionization",
+      "target_files": [
+        "Code/EnginePlugins/ColonyPlugin/ColonyView/ColonyView.cpp",
+        "Data/Samples/ColonyView/ColonyMap.rcss"
+      ],
+      "architectural_spec": "Real-time Vulkan compute shader rendering orbital laser refraction, ground scorching, and atmospheric heat haze.",
+      "acceptance_criteria": "Engaging Module 120 illuminates entire cavern with dynamic pulsing god-rays at 144+ FPS.",
+      "player_fun_impact": "Awe-inspiring visual payoff for endgame victory, wowing the player at first glance.",
+      "estimated_complexity": "Medium"
+    }
+  ]
+}

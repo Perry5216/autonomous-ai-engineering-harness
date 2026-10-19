@@ -15,3 +15,16 @@ $RECYCLE.BIN/
 *.log
 scratch/
 tmp/
+
+# Proprietary Game Source Protection (Zero Game Code in Harness Showcase)
+*.cpp
+*.cxx
+*.cc
+*.c
+*.h
+*.hpp
+*.inl
+*5090_BATCH*.md
+*BATCH*_TASK*.md
+*BATCH*_MASTER_OUTPUT.md
+

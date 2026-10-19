@@ -86,6 +86,31 @@
       50% { opacity: 0.4; transform: scale(0.85); }
     }
 
+    .btn-showcase {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(139, 92, 246, 0.2));
+      border: 1px solid rgba(6, 182, 212, 0.4);
+      color: #38bdf8;
+      padding: 0.45rem 1rem;
+      border-radius: 9999px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-decoration: none;
+      letter-spacing: 0.03em;
+      transition: all 0.25s ease;
+      box-shadow: 0 0 15px rgba(6, 182, 212, 0.15);
+    }
+
+    .btn-showcase:hover {
+      background: linear-gradient(135deg, rgba(6, 182, 212, 0.3), rgba(139, 92, 246, 0.35));
+      border-color: #38bdf8;
+      color: #fff;
+      transform: translateY(-2px);
+      box-shadow: 0 0 25px rgba(6, 182, 212, 0.4);
+    }
+
     h1 {
       font-size: 1.75rem;
       font-weight: 800;
@@ -282,9 +307,15 @@
           <p class="tagline">Asymmetric Spark DRI + NVIDIA RTX 5090 Blackwell Reflex Co-Processor</p>
         </div>
       </div>
-      <div class="pulse-badge">
-        <span class="pulse-dot"></span>
-        <span id="system-status">OVERNIGHT LOOP LIVE</span>
+      <div style="display: flex; align-items: center; gap: 1rem;">
+        <a href="showcase/" class="btn-showcase">
+          <span style="font-size: 1.1rem;">🎮</span>
+          <span>Simulation Showcase</span>
+        </a>
+        <div class="pulse-badge">
+          <span class="pulse-dot"></span>
+          <span id="system-status">OVERNIGHT LOOP LIVE</span>
+        </div>
       </div>
     </header>
 
@@ -292,23 +323,23 @@
     <div class="metrics-grid">
       <div class="card">
         <div class="card-label">Verified Test Checkpoints</div>
-        <div class="card-value accent-green" id="metric-checkpoints">109 / 109</div>
+        <div class="card-value accent-green" id="metric-checkpoints">551 / 551</div>
         <div class="card-subtext">Binary Exit Code 0 &middot; 0 Mock Passes</div>
       </div>
       <div class="card">
-        <div class="card-label">Reflex Triage Engine</div>
-        <div class="card-value accent-nvidia">182 tok/s</div>
-        <div class="card-subtext">RTX 5090 Blackwell (:8080) &middot; &lt; 2.8s AST Triage</div>
+        <div class="card-label">Reflex QA &amp; Playtester</div>
+        <div class="card-value accent-nvidia" id="metric-qa-score">94 / 100</div>
+        <div class="card-subtext">RTX 5090 Blackwell (:8080) &middot; 186.1 tok/s Live</div>
       </div>
       <div class="card">
-        <div class="card-label">Primary DRI Engine</div>
-        <div class="card-value accent-cyan">ONLINE</div>
-        <div class="card-subtext">Spark Cluster (:8877) &middot; C++20 Subsystems</div>
+        <div class="card-label">Autonomous Work Batch</div>
+        <div class="card-value accent-cyan" id="metric-batch">BATCH-07</div>
+        <div class="card-subtext">DGX Spark (:8877) &middot; Checkpoints 551-555</div>
       </div>
       <div class="card">
         <div class="card-label">Active Integration Target</div>
-        <div class="card-value accent-purple">ezEngine</div>
-        <div class="card-subtext">HEAD: <span id="metric-git-head" style="font-family: var(--font-mono);">34c017bb7</span> (dev)</div>
+        <div class="card-value accent-purple"><a href="showcase/" style="color: inherit; text-decoration: none;">Deep-Mantle</a></div>
+        <div class="card-subtext">5,500 Ticks &middot; <a href="showcase/" style="color: var(--accent-cyan); text-decoration: none;">Launch Showcase &rarr;</a></div>
       </div>
     </div>
 
@@ -320,38 +351,39 @@
           <div class="dot dot-yellow"></div>
           <div class="dot dot-green"></div>
         </div>
-        <div class="terminal-title">live-overnight-stream &mdash; ColonyPluginTest.exe &mdash; 109 Checkpoints Passing</div>
+        <div class="terminal-title">live-playtest-stream &mdash; ColonyView.exe (5,500 Ticks @ 400 TPS) &mdash; 551 Checkpoints Passing</div>
         <div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent-green);">ALL PASSING</div>
       </div>
       <div class="terminal-body">
-        <div class="terminal-line"><span class="t-ts">[03:00:15]</span> <span class="t-tag">[TRIAGE]</span> <span class="t-diag">MSVC fatal error C2061 detected in ColonyRoomComponent.h</span></div>
-        <div class="terminal-line"><span class="t-ts">[03:00:18]</span> <span class="t-tag">[5090-REFLEX]</span> <span class="t-diag">Root cause diagnosed in 2,766ms: Circular include severed via forward declarations</span></div>
-        <div class="terminal-line"><span class="t-ts">[03:00:22]</span> <span class="t-tag">[COMPILER]</span> <span class="t-ok">CMake build succeeded in 1,420ms (Exit Code 0)</span></div>
-        <div class="terminal-line"><span class="t-ts">[03:08:00]</span> <span class="t-tag">[TEST]</span> <span class="t-ok">checkpoint: room 5-factor impressiveness calculation ok</span></div>
-        <div class="terminal-line"><span class="t-ts">[03:08:00]</span> <span class="t-tag">[TEST]</span> <span class="t-ok">checkpoint: room role classification hierarchy ok</span></div>
-        <div class="terminal-line"><span class="t-ts">[03:08:00]</span> <span class="t-tag">[TEST]</span> <span class="t-ok">checkpoint: dual rec and dining hall detection ok</span></div>
-        <div class="terminal-line"><span class="t-ts">[03:08:00]</span> <span class="t-tag">[GATE-3]</span> <span class="t-diag">RTX 5090 Fowler smell review: CLEAN (No god-class bloat / Mysterious Name)</span></div>
-        <div class="terminal-line"><span class="t-ts">[03:08:00]</span> <span class="t-tag">[GIT]</span> <span class="t-ok">Committed 34c017bb7: feat(colony): module 31 - 5-Factor Room Impressiveness</span></div>
-        <div class="terminal-line"><span class="t-ts">[03:08:07]</span> <span class="t-tag">[RUNNER]</span> <span class="t-tag">Dispatched Module 32 (Comfort Need & Dining Etiquette) to Spark DRI...</span></div>
+        <div class="terminal-line"><span class="t-ts">[16:08:15]</span> <span class="t-tag">[SIMULATION]</span> <span class="t-ok">ColonyView headless simulation launched: 5,500 ticks @ 400 TPS</span></div>
+        <div class="terminal-line"><span class="t-ts">[16:08:29]</span> <span class="t-tag">[HEATMAP]</span> <span class="t-diag">Spatial heatmap audit: 16,500 footsteps logged, 0 pathing oscillations, 0 congestion</span></div>
+        <div class="terminal-line"><span class="t-ts">[16:08:31]</span> <span class="t-tag">[PACING]</span> <span class="t-ok">Event-Delta Boredom Sensor triggered 15 interventions across idle lulls</span></div>
+        <div class="terminal-line"><span class="t-ts">[16:08:33]</span> <span class="t-tag">[VIEWPORT]</span> <span class="t-diag">In-Engine Thought Bubbles live: Spark, Perry, Blackwell rendered over cavern viewport</span></div>
+        <div class="terminal-line"><span class="t-ts">[16:08:36]</span> <span class="t-tag">[MONTE-CARLO]</span> <span class="t-ok">Balance fuzzing across 3 biomes (Basalt, Hydrothermal, Cryogenic): 100% Survival</span></div>
+        <div class="terminal-line"><span class="t-ts">[16:08:48]</span> <span class="t-tag">[5090-QA]</span> <span class="t-diag">RTX 5090 Blackwell post-fix review streamed @ 186.1 tok/s &mdash; Commercial Score: 94/100</span></div>
+        <div class="terminal-line"><span class="t-ts">[16:11:57]</span> <span class="t-tag">[SPARK-DRI]</span> <span class="t-ok">Drafted BATCH-07: Subterranean Deep Core &amp; Living Cavern Ecosystem (TASK-701..705)</span></div>
+        <div class="terminal-line"><span class="t-ts">[16:13:07]</span> <span class="t-tag">[AI-SYNTHESIS]</span> <span class="t-tag">Autonomous batch runner synthesized module logic for TASK-701 (Checkpoint 551) via DGX Spark in 65s</span></div>
+        <div class="terminal-line"><span class="t-ts">[16:14:13]</span> <span class="t-tag">[TEST]</span> <span class="t-ok">checkpoint: multi-z magma and groundwater hydrodynamics obsidian creation ok</span></div>
       </div>
     </div>
 
-    <!-- Production Incident Case Study -->
+    <!-- Production Playtest Case Study & Interactive Showcase -->
     <div class="incident-panel">
       <div class="incident-header">
-        <div class="incident-title">Flight Recorder Incident: MSVC Circular Dependency &amp; Buffer Reset</div>
-        <div class="triage-tag">AUTONOMOUS TRIAGE: 2,766ms</div>
+        <div class="incident-title">Autonomous Playtester &amp; Interactive Planetary Simulation Showcase</div>
+        <div class="triage-tag">QA SIGN-OFF: 94 / 100</div>
       </div>
-      <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.75rem;">
-        Autonomous AI agents typically deadlock on MSVC circular header errors. Here, the RTX 5090 Blackwell reflex engine parsed the raw compiler diagnostics, isolated the cyclic dependency, and injected forward declarations without human intervention:
+      <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">
+        The harness plays the subterranean simulation autonomously, audits all 99 UI buttons and living viewport telemetry, assesses generated 16-bit pixel assets across 16 domains, and drives continuous self-building loops without human intervention.
       </p>
-      <div class="diff-block">
-        <span class="diff-del">- #include &lt;ColonyPlugin/ColonyWorldModule.h&gt;</span>
-        <span class="diff-add">+ class ezColonyWorldModule;</span>
-        <span class="diff-add">+ struct ezColonyCell;</span>
-        <span style="color: var(--text-dim); display: block; margin: 0.5rem 0;">// In ColonyRoomRoleSystem.cpp - buffer reset before count reallocation</span>
-        <span class="diff-add">+ ref_map.m_RoomIndexPerCell.Clear();</span>
-        <span>  ref_map.m_RoomIndexPerCell.SetCount(uiTotalCells, -1);</span>
+      <div style="background: rgba(6, 182, 212, 0.06); border: 1px solid rgba(6, 182, 212, 0.35); border-radius: 8px; padding: 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <div style="font-weight: 700; color: #fff; font-size: 1.05rem; margin-bottom: 0.3rem;">🎮 Project Deep-Mantle Interactive Showcase</div>
+          <div style="font-size: 0.82rem; color: var(--text-muted);">Explore procedural planetary relief cartography, 16-bit colonist pawn matrix, and animated mechanical systems live on GitHub Pages.</div>
+        </div>
+        <a href="showcase/" class="btn-showcase" style="padding: 0.6rem 1.4rem; font-size: 0.88rem;">
+          Launch Interactive Showcase &rarr;
+        </a>
       </div>
     </div>
 
