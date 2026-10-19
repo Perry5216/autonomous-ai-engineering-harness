@@ -3978,14 +3978,69 @@
         let showLocalPawns = true;
         let showLocalHazards = false;
         let showLocalOres = false;
-        let localAnimationTick = 0;
-
-        const DEPLOYED_COLONISTS = [
+        let localAnimationTick = 0;        const DEPLOYED_COLONISTS = [
             { arch: 'miner', name: 'Spark Mitchell', role: 'Leader · Miner', x: 10, y: 10, animOffset: 0 },
             { arch: 'engineer', name: 'Garrison Vance', role: 'Machinist', x: 12, y: 10, animOffset: 12 },
             { arch: 'medic', name: 'Dr. Mara Lin', role: 'Doctor', x: 14, y: 10, animOffset: 24 },
             { arch: 'soldier', name: 'Torque Stone', role: 'Security', x: 16, y: 12, animOffset: 36 }
         ];
+
+        let DEPLOYED_BUILDINGS = [
+            { key: "turbine", name: "Geothermal Turbine", x: 8, y: 9, w: 2, h: 2, state: "active" },
+            { key: "smelter", name: "Electric Arc Smelter", x: 15, y: 9, w: 2, h: 2, state: "idle" },
+            { key: "turret", name: "Point-Defense Coil Turret", x: 17, y: 12, w: 1, h: 1, state: "idle" },
+            { key: "hydro", name: "Hydroponics Basalt Basin", x: 8, y: 13, w: 2, h: 1, state: "active" },
+            { key: "tokamak", name: "Compact Tokamak Core", x: 11, y: 14, w: 2, h: 2, state: "active" },
+            { key: "research", name: "Sub-Strata Research Bench", x: 14, y: 13, w: 2, h: 1, state: "active" },
+            { key: "rad_deflector", name: "Rad-Deflector Core", x: 13, y: 9, w: 1, h: 1, state: "active" },
+            { key: "drone_bay", name: "Drone Hangar Bay", x: 17, y: 8, w: 2, h: 2, state: "active" }
+        ];
+
+        let DEPLOYED_FURNITURE = [
+            { key: "furn_table", x: 11, y: 10, w: 2, h: 1, label: "Dining Table" },
+            { key: "furn_bench", x: 11, y: 9, w: 2, h: 0.8, label: "Mess Bench" },
+            { key: "furn_bench", x: 11, y: 11.2, w: 2, h: 0.8, label: "Mess Bench" },
+            { key: "furn_lithophone", x: 14, y: 10, w: 1, h: 1, label: "Lithophone" },
+            { key: "furn_lamp_on", x: 12, y: 8, w: 0.6, h: 1.2, label: "Fluorescent Lamp" },
+            { key: "furn_desk", x: 9, y: 12, w: 1, h: 1, label: "Terminal Desk" },
+            { key: "furn_shelf", x: 9, y: 11, w: 1, h: 1, label: "Storage Shelf" },
+            { key: "furn_lantern", x: 9, y: 8, w: 1, h: 1, label: "Fungal Lantern" }
+        ];
+
+        let DEPLOYED_CONVEYORS = [
+            // Top Row (Eastbound)
+            { type: 'conveyor', dir: 'e', x: 20, y: 10 },
+            { type: 'conveyor', dir: 'e', x: 21, y: 10 },
+            { type: 'conveyor', dir: 'e', x: 22, y: 10 },
+            { type: 'conveyor', dir: 'e', x: 23, y: 10 },
+            // Right Column (Southbound)
+            { type: 'conveyor', dir: 's', x: 23, y: 11 },
+            { type: 'conveyor', dir: 's', x: 23, y: 12 },
+            { type: 'conveyor', dir: 's', x: 23, y: 13 },
+            // Bottom Row (Westbound)
+            { type: 'conveyor', dir: 'w', x: 23, y: 14 },
+            { type: 'conveyor', dir: 'w', x: 22, y: 14 },
+            { type: 'conveyor', dir: 'w', x: 21, y: 14 },
+            { type: 'conveyor', dir: 'w', x: 20, y: 14 },
+            // Left Column (Northbound)
+            { type: 'conveyor', dir: 'n', x: 20, y: 13 },
+            { type: 'conveyor', dir: 'n', x: 20, y: 12 },
+            { type: 'conveyor', dir: 'n', x: 20, y: 11 },
+            // Inserters & Chutes
+            { type: 'inserter', x: 19, y: 10, label: "Smelter Feed" },
+            { type: 'inserter', x: 24, y: 12, label: "Pultrusion Feed" },
+            { type: 'chute', x: 22, y: 14, label: "Vault Chute" }
+        ];
+
+        let CONVEYOR_ITEMS = [
+            { item: "item_iron_ore", progress: 0.1 },
+            { item: "item_steel_ingot", progress: 0.35 },
+            { item: "item_composite_rebar", progress: 0.60 },
+            { item: "item_electronic_component", progress: 0.85 }
+        ];
+
+        let DEPLOYED_FLORA = [];
+        let DEPLOYED_WILDLIFE = [];
 
         function loadLocalColonySector(worldX, worldY) {
             const seed = Math.floor(currentSeed + worldX * 133 + worldY * 7919);
@@ -4012,6 +4067,9 @@
                     let oreType = null;
                     let hasFoliage = null;
 
+                    // Consistent outer cavern perimeter walls (solid bedrock rim)
+                    const isOuterPerimeter = (x <= 1 || x >= LOCAL_MAP_SIZE - 2 || y <= 1 || y >= LOCAL_MAP_SIZE - 2);
+
                     // Biome-specific local geological translation
                     if (biome === "Molten Magma Chasm") {
                         // Sinuous magma channel through the cavern
@@ -4020,7 +4078,7 @@
                         if (distToChannel < 3.2 + Math.sin(x * 0.6) * 1.2) {
                             isLava = true;
                             terrain = "magma";
-                        } else if (elevation > 0.62 || y <= 2 || y >= 29 || x <= 2 || x >= 29) {
+                        } else if (elevation > 0.62 || isOuterPerimeter) {
                             isWall = true;
                             terrain = "obsidian_rock";
                             if (elevation > 0.72) oreType = (x + y) % 2 === 0 ? "gold" : "iron";
@@ -4034,17 +4092,16 @@
                         if (distToChannel < 3.8) {
                             isWater = true;
                             terrain = "river_water";
-                        } else if (elevation > 0.66 || y <= 1 || y >= 30) {
+                        } else if (elevation > 0.66 || isOuterPerimeter) {
                             isWall = true;
                             terrain = "limestone_wall";
                         } else if (distToChannel < 6.0) {
                             terrain = "alluvial_mud";
-                            if (moisture > 0.55) hasFoliage = "healroot";
                         } else {
                             terrain = "loam_soil";
                         }
                     } else if (biome === "Cryo-Glacial Permafrost Shelf") {
-                        if (elevation > 0.64 || y <= 2 || y >= 29 || x <= 1) {
+                        if (elevation > 0.64 || isOuterPerimeter) {
                             isWall = true;
                             terrain = "cryo_slate_wall";
                         } else if (moisture > 0.48) {
@@ -4054,20 +4111,17 @@
                             terrain = "permafrost_gravel";
                         }
                     } else if (biome === "Bioluminescent Fungal Canopy") {
-                        if (elevation > 0.68 || y <= 2 || y >= 29 || x <= 2 || x >= 29) {
+                        if (elevation > 0.68 || isOuterPerimeter) {
                             isWall = true;
                             terrain = "calcite_wall";
                         } else {
                             terrain = "spore_humus";
-                            if (moisture > 0.52 && (x % 3 === 0 || y % 4 === 0)) {
-                                hasFoliage = (x + y) % 2 === 0 ? "giant_purple_mushroom" : "glowing_emerald_cap";
-                            }
                         }
                     } else if (biome === "Ancient Precursor Vault Ruins") {
                         // Geometric bunker architecture
                         const isCorridor = (x >= 12 && x <= 19) || (y >= 12 && y <= 19);
                         const isRoomWall = ((x % 8 === 0 || y % 8 === 0) && !isCorridor);
-                        if (isRoomWall || y <= 2 || y >= 29 || x <= 2 || x >= 29) {
+                        if (isRoomWall || isOuterPerimeter) {
                             isWall = true;
                             terrain = "precursor_plasteel_wall";
                             if (elevation > 0.7) oreType = "plasteel";
@@ -4076,7 +4130,7 @@
                             terrain = "precursor_alloy_floor";
                         }
                     } else if (biome === "Geothermal Sulfur Fumaroles") {
-                        if (elevation > 0.63) {
+                        if (elevation > 0.63 || isOuterPerimeter) {
                             isWall = true;
                             terrain = "pumice_wall";
                             oreType = "sulfur";
@@ -4086,7 +4140,7 @@
                             terrain = "sulfur_crust";
                         }
                     } else { // Basalt Bedrock Caverns
-                        if (elevation > 0.58 || y <= 2 || y >= 29 || x <= 2 || x >= 29) {
+                        if (elevation > 0.58 || isOuterPerimeter) {
                             isWall = true;
                             terrain = "basalt_wall";
                             if (elevation > 0.72) oreType = "titanium";
@@ -4096,17 +4150,30 @@
                         }
                     }
 
-                    // Preserve clear colony landing zone at (8..17, 8..15)
-                    if (x >= 8 && x <= 18 && y >= 8 && y <= 15) {
+                    // Preserve clear colony compound (Landing Zone, Habitation Quarters, & Factory Logistics Bay)
+                    const isLandingZone = (x >= 7 && x <= 18 && y >= 7 && y <= 16);
+                    const isFactoryBay = (x >= 19 && x <= 25 && y >= 9 && y <= 15);
+                    const isColonyCompound = isLandingZone || isFactoryBay;
+
+                    if (isColonyCompound) {
                         isWall = false;
                         isLava = false;
-                        if (terrain === "magma") terrain = "scorched_basalt";
-                        if (terrain === "obsidian_rock" || terrain === "basalt_wall" || terrain === "cryo_slate_wall" || terrain === "precursor_plasteel_wall") {
-                            terrain = (biome === "Ancient Precursor Vault Ruins") ? "precursor_alloy_floor" : "excavated_basalt";
+                        isWater = false;
+                        oreType = null;
+                        hasFoliage = null;
+
+                        if (isFactoryBay || biome === "Ancient Precursor Vault Ruins") {
+                            terrain = "precursor_alloy_floor";
+                            isAlloy = true;
+                        } else {
+                            if (terrain === "magma") terrain = "scorched_basalt";
+                            else if (terrain === "obsidian_rock" || terrain === "basalt_wall" || terrain === "cryo_slate_wall" || terrain === "precursor_plasteel_wall" || terrain === "pumice_wall" || terrain === "limestone_wall" || terrain === "calcite_wall") {
+                                terrain = "excavated_basalt";
+                            }
                         }
                     }
 
-// Determine autotile wall prefix and floor wear variant
+                    // Determine autotile wall prefix and floor wear variant
                     let autoPrefix = null;
                     if (isWall) {
                         if (biome === "Ancient Precursor Vault Ruins" || terrain.includes("plasteel")) {
@@ -4153,6 +4220,209 @@
                     };
                 }
             }
+
+            // Procedurally spawn Flora and Fauna strictly on open, walkable cavern floors
+            const prng = (function(s) {
+                let t = s >>> 0;
+                return function() {
+                    t = (t + 0x6D2B79F5) | 0;
+                    let r = Math.imul(t ^ (t >>> 15), 1 | t);
+                    r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r;
+                    return ((r >>> 0) / 4294967296);
+                };
+            })(seed + 104729);
+
+            DEPLOYED_FLORA = [];
+            DEPLOYED_WILDLIFE = [];
+            const occupiedTiles = new Set();
+
+            // Mark colony buildings and furniture as occupied
+            DEPLOYED_BUILDINGS.forEach(b => {
+                for (let dy = 0; dy < b.h; dy++) {
+                    for (let dx = 0; dx < b.w; dx++) {
+                        occupiedTiles.add(`${b.x + dx},${b.y + dy}`);
+                    }
+                }
+            });
+            DEPLOYED_FURNITURE.forEach(f => {
+                for (let dy = 0; dy < (f.h || 1); dy++) {
+                    for (let dx = 0; dx < (f.w || 1); dx++) {
+                        occupiedTiles.add(`${f.x + dx},${f.y + dy}`);
+                    }
+                }
+            });
+            DEPLOYED_CONVEYORS.forEach(c => {
+                occupiedTiles.add(`${c.x},${c.y}`);
+            });
+
+            // Collect all candidate open floor cells outside the colony compound
+            const openFloorCandidates = [];
+            for (let y = 3; y < LOCAL_MAP_SIZE - 3; y++) {
+                for (let x = 3; x < LOCAL_MAP_SIZE - 3; x++) {
+                    const inColony = (x >= 7 && x <= 18 && y >= 7 && y <= 16) || (x >= 19 && x <= 25 && y >= 9 && y <= 15);
+                    if (inColony) continue;
+
+                    const cell = localColonyGrid[y][x];
+                    if (!cell.isWall && !cell.isLava && !cell.isWater) {
+                        openFloorCandidates.push({ x, y });
+                    }
+                }
+            }
+
+            // Shuffle open floor candidates deterministically
+            for (let i = openFloorCandidates.length - 1; i > 0; i--) {
+                const j = Math.floor(prng() * (i + 1));
+                const tmp = openFloorCandidates[i];
+                openFloorCandidates[i] = openFloorCandidates[j];
+                openFloorCandidates[j] = tmp;
+            }
+
+            // Define biome-specific flora species list
+            const floraToSpawn = [];
+            if (biome === "Bioluminescent Fungal Canopy") {
+                floraToSpawn.push(
+                    { key: "foliage_spore_tree", w: 2, h: 2, count: 5 },
+                    { key: "foliage_healroot", w: 1, h: 1, count: 5 },
+                    { key: "foliage_berry_bush", w: 1, h: 1, count: 4 }
+                );
+            } else if (biome === "Cryo-Glacial Permafrost Shelf") {
+                floraToSpawn.push(
+                    { key: "foliage_crystal_pine", w: 1, h: 2, count: 7 },
+                    { key: "foliage_healroot", w: 1, h: 1, count: 4 }
+                );
+            } else if (biome === "Molten Magma Chasm") {
+                floraToSpawn.push(
+                    { key: "foliage_crystal_pine", w: 1, h: 2, count: 3 },
+                    { key: "foliage_berry_bush", w: 1, h: 1, count: 3 }
+                );
+            } else if (biome === "Subterranean Aquifer Basin") {
+                floraToSpawn.push(
+                    { key: "foliage_healroot", w: 1, h: 1, count: 6 },
+                    { key: "foliage_berry_bush", w: 1, h: 1, count: 4 },
+                    { key: "foliage_spore_tree", w: 2, h: 2, count: 2 }
+                );
+            } else if (biome === "Geothermal Sulfur Fumaroles") {
+                floraToSpawn.push(
+                    { key: "foliage_healroot", w: 1, h: 1, count: 4 },
+                    { key: "foliage_crystal_pine", w: 1, h: 2, count: 3 },
+                    { key: "foliage_berry_bush", w: 1, h: 1, count: 3 }
+                );
+            } else { // Basalt Bedrock Caverns & Ancient Precursor Vault Ruins
+                floraToSpawn.push(
+                    { key: "foliage_spore_tree", w: 2, h: 2, count: 3 },
+                    { key: "foliage_crystal_pine", w: 1, h: 2, count: 4 },
+                    { key: "foliage_healroot", w: 1, h: 1, count: 4 },
+                    { key: "foliage_berry_bush", w: 1, h: 1, count: 3 }
+                );
+            }
+
+            // Spawn flora on verified non-wall, non-liquid tiles
+            floraToSpawn.forEach(fType => {
+                let placed = 0;
+                for (let c = 0; c < openFloorCandidates.length && placed < fType.count; c++) {
+                    const cand = openFloorCandidates[c];
+                    // Validate that all cells covered by this flora are open walkable floors
+                    let canPlace = true;
+                    for (let dy = 0; dy < fType.h; dy++) {
+                        for (let dx = 0; dx < fType.w; dx++) {
+                            const tx = cand.x + dx;
+                            const ty = cand.y + dy;
+                            if (tx >= LOCAL_MAP_SIZE - 2 || ty >= LOCAL_MAP_SIZE - 2) { canPlace = false; break; }
+                            const tCell = localColonyGrid[ty][tx];
+                            if (tCell.isWall || tCell.isLava || tCell.isWater || occupiedTiles.has(`${tx},${ty}`)) {
+                                canPlace = false;
+                                break;
+                            }
+                        }
+                        if (!canPlace) break;
+                    }
+
+                    if (canPlace) {
+                        for (let dy = 0; dy < fType.h; dy++) {
+                            for (let dx = 0; dx < fType.w; dx++) {
+                                occupiedTiles.add(`${cand.x + dx},${cand.y + dy}`);
+                            }
+                        }
+                        DEPLOYED_FLORA.push({
+                            key: fType.key,
+                            x: cand.x,
+                            y: cand.y,
+                            w: fType.w,
+                            h: fType.h
+                        });
+                        placed++;
+                    }
+                }
+            });
+
+            // Biome-specific wildlife roster
+            const faunaRoster = [];
+            if (biome === "Molten Magma Chasm") {
+                faunaRoster.push(
+                    { species: "boar", name: "Tectonic Magma Boar", state: "WILD" },
+                    { species: "wolf", name: "Obsidian Wolf", state: "HUNTING" },
+                    { species: "muffalo", name: "Cinder Muffalo", state: "DOMESTICATED" }
+                );
+            } else if (biome === "Cryo-Glacial Permafrost Shelf") {
+                faunaRoster.push(
+                    { species: "muffalo", name: "Woolly Cryo Muffalo", state: "DOMESTICATED" },
+                    { species: "deer", name: "Glacial Frost Stag", state: "GRAZING" },
+                    { species: "wolf", name: "Snow Chitin Wolf", state: "HUNTING" }
+                );
+            } else if (biome === "Subterranean Aquifer Basin") {
+                faunaRoster.push(
+                    { species: "deer", name: "River Basin Deer", state: "GRAZING" },
+                    { species: "boar", name: "Alluvial Mud Boar", state: "WILD" },
+                    { species: "muffalo", name: "Deep Aquifer Muffalo", state: "DOMESTICATED" }
+                );
+            } else if (biome === "Bioluminescent Fungal Canopy") {
+                faunaRoster.push(
+                    { species: "muffalo", name: "Deep Spore Muffalo", state: "DOMESTICATED" },
+                    { species: "deer", name: "Cavern Fungal Deer", state: "GRAZING" },
+                    { species: "boar", name: "Mycelium Boar", state: "WILD" },
+                    { species: "wolf", name: "Chitin Cave Wolf", state: "HUNTING" }
+                );
+            } else {
+                faunaRoster.push(
+                    { species: "muffalo", name: "Deep Muffalo #1", state: "DOMESTICATED" },
+                    { species: "deer", name: "Cavern Deer", state: "GRAZING" },
+                    { species: "boar", name: "Tectonic Boar", state: "WILD" },
+                    { species: "wolf", name: "Chitin Wolf", state: "HUNTING" }
+                );
+            }
+
+            // Spawn animals on open floor cells with verified clearance
+            let faunaId = 1;
+            faunaRoster.forEach(spec => {
+                for (let c = openFloorCandidates.length - 1; c >= 0; c--) {
+                    const cand = openFloorCandidates[c];
+                    if (occupiedTiles.has(`${cand.x},${cand.y}`)) continue;
+
+                    // Ensure at least 2 adjacent tiles are also open so animal has room to roam
+                    const nCell = localColonyGrid[cand.y - 1] && localColonyGrid[cand.y - 1][cand.x];
+                    const sCell = localColonyGrid[cand.y + 1] && localColonyGrid[cand.y + 1][cand.x];
+                    const eCell = localColonyGrid[cand.y] && localColonyGrid[cand.y][cand.x + 1];
+                    const wCell = localColonyGrid[cand.y] && localColonyGrid[cand.y][cand.x - 1];
+
+                    const openNeighbors = [nCell, sCell, eCell, wCell].filter(cl => cl && !cl.isWall && !cl.isLava).length;
+                    if (openNeighbors >= 2) {
+                        const vx = (prng() > 0.5 ? 1 : -1) * (0.008 + prng() * 0.008);
+                        const vy = (prng() > 0.5 ? 1 : -1) * (0.005 + prng() * 0.008);
+                        DEPLOYED_WILDLIFE.push({
+                            id: faunaId++,
+                            species: spec.species,
+                            name: spec.name,
+                            state: spec.state,
+                            x: cand.x + 0.25,
+                            y: cand.y + 0.25,
+                            vx: vx,
+                            vy: vy
+                        });
+                        occupiedTiles.add(`${cand.x},${cand.y}`);
+                        break;
+                    }
+                }
+            });
 
             colonyCollisionSystem.syncSceneColliders();
             renderLocalColony();
@@ -4956,11 +5226,11 @@
 
                 // Physical Supply Crates & Cargo Containers deployed in landing zone
                 const crates = [
-                    { x: 10, y: 11, item: "item_composite_rebar" },
-                    { x: 10, y: 12, item: "item_steel_ingot" },
-                    { x: 11, y: 11, item: "item_plasteel_plate" },
-                    { x: 12, y: 11, item: "item_nanite_medicine" },
-                    { x: 13, y: 11, item: "item_electronic_component" }
+                    { x: 9, y: 10, item: "item_steel_ingot" },
+                    { x: 9, y: 11, item: "item_composite_rebar" },
+                    { x: 10, y: 12, item: "item_plasteel_plate" },
+                    { x: 12, y: 12, item: "item_nanite_medicine" },
+                    { x: 13, y: 12, item: "item_electronic_component" }
                 ];
                 crates.forEach(cr => {
                     const cx = cr.x * cellSize - offsetX;
@@ -5140,10 +5410,58 @@
                 const faunaFrame = Math.floor(localAnimationTick / 8) % 4;
                 DEPLOYED_WILDLIFE.forEach(animal => {
                     // Slight wandering motion
-                    animal.x += animal.vx;
-                    animal.y += animal.vy;
-                    if (animal.x < 3 || animal.x > 29) animal.vx *= -1;
-                    if (animal.y < 3 || animal.y > 28) animal.vy *= -1;
+                    // Collision-aware wandering motion
+                    const rad = (animal.species === 'muffalo' ? 0.65 : 0.45);
+                    const nextX = animal.x + animal.vx;
+                    const nextY = animal.y + animal.vy;
+
+                    // Test X-axis movement
+                    let blockedX = false;
+                    const testX = (animal.vx > 0) ? nextX + rad : nextX - rad;
+                    const cellX1 = Math.floor(testX);
+                    const cellY1 = Math.floor(animal.y - rad * 0.4);
+                    const cellY2 = Math.floor(animal.y + rad * 0.4);
+
+                    for (let cy = cellY1; cy <= cellY2; cy++) {
+                        if (cellX1 < 1 || cellX1 >= LOCAL_MAP_SIZE - 1 || cy < 1 || cy >= LOCAL_MAP_SIZE - 1 ||
+                            !localColonyGrid[cy] || !localColonyGrid[cy][cellX1] ||
+                            localColonyGrid[cy][cellX1].isWall || localColonyGrid[cy][cellX1].isLava) {
+                            blockedX = true;
+                            break;
+                        }
+                    }
+
+                    if (blockedX) {
+                        animal.vx = -animal.vx + (Math.random() - 0.5) * 0.003;
+                    } else {
+                        animal.x = nextX;
+                    }
+
+                    // Test Y-axis movement
+                    let blockedY = false;
+                    const testY = (animal.vy > 0) ? nextY + rad : nextY - rad;
+                    const cellX3 = Math.floor(animal.x - rad * 0.4);
+                    const cellX4 = Math.floor(animal.x + rad * 0.4);
+                    const cellY3 = Math.floor(testY);
+
+                    for (let cx = cellX3; cx <= cellX4; cx++) {
+                        if (cx < 1 || cx >= LOCAL_MAP_SIZE - 1 || cellY3 < 1 || cellY3 >= LOCAL_MAP_SIZE - 1 ||
+                            !localColonyGrid[cellY3] || !localColonyGrid[cellY3][cx] ||
+                            localColonyGrid[cellY3][cx].isWall || localColonyGrid[cellY3][cx].isLava) {
+                            blockedY = true;
+                            break;
+                        }
+                    }
+
+                    if (blockedY) {
+                        animal.vy = -animal.vy + (Math.random() - 0.5) * 0.003;
+                    } else {
+                        animal.y = nextY;
+                    }
+
+                    // Strict boundary clamp
+                    animal.x = Math.max(2.2, Math.min(LOCAL_MAP_SIZE - 3.2, animal.x));
+                    animal.y = Math.max(2.2, Math.min(LOCAL_MAP_SIZE - 3.2, animal.y));
 
                     const ax = animal.x * cellSize - offsetX;
                     const ay = animal.y * cellSize - offsetY;
@@ -5857,77 +6175,9 @@
             }
         };
 
-        // Deployed structures stationed on the local colony grid
-                // Deployed Furniture Placed in Habitation Rooms
-        const DEPLOYED_FURNITURE = [
-            { key: "furn_table", x: 11, y: 10, w: 2, h: 1, label: "Dining Table" },
-            { key: "furn_bench", x: 11, y: 9, w: 2, h: 0.8, label: "Mess Bench" },
-            { key: "furn_bench", x: 11, y: 11.2, w: 2, h: 0.8, label: "Mess Bench" },
-            { key: "furn_lithophone", x: 14, y: 10, w: 1, h: 1, label: "Lithophone" },
-            { key: "furn_lamp_on", x: 12, y: 8, w: 0.6, h: 1.2, label: "Fluorescent Lamp" },
-            { key: "furn_desk", x: 9, y: 13, w: 1, h: 1, label: "Terminal Desk" },
-            { key: "furn_shelf", x: 9, y: 11, w: 1, h: 1, label: "Storage Shelf" },
-            { key: "furn_lantern", x: 9, y: 9, w: 1, h: 1, label: "Fungal Lantern" }
-        ];
+        // (DEPLOYED_FURNITURE, DEPLOYED_CONVEYORS, DEPLOYED_FLORA, DEPLOYED_WILDLIFE initialized at scope header)
 
-        // Deployed Factory Conveyor Belt Loop [20..24, 10..14]
-        const DEPLOYED_CONVEYORS = [
-            // Top Row (Eastbound)
-            { type: 'conveyor', dir: 'e', x: 20, y: 10 },
-            { type: 'conveyor', dir: 'e', x: 21, y: 10 },
-            { type: 'conveyor', dir: 'e', x: 22, y: 10 },
-            { type: 'conveyor', dir: 'e', x: 23, y: 10 },
-            // Right Column (Southbound)
-            { type: 'conveyor', dir: 's', x: 23, y: 11 },
-            { type: 'conveyor', dir: 's', x: 23, y: 12 },
-            { type: 'conveyor', dir: 's', x: 23, y: 13 },
-            // Bottom Row (Westbound)
-            { type: 'conveyor', dir: 'w', x: 23, y: 14 },
-            { type: 'conveyor', dir: 'w', x: 22, y: 14 },
-            { type: 'conveyor', dir: 'w', x: 21, y: 14 },
-            { type: 'conveyor', dir: 'w', x: 20, y: 14 },
-            // Left Column (Northbound)
-            { type: 'conveyor', dir: 'n', x: 20, y: 13 },
-            { type: 'conveyor', dir: 'n', x: 20, y: 12 },
-            { type: 'conveyor', dir: 'n', x: 20, y: 11 },
-            // Inserters & Chutes
-            { type: 'inserter', x: 19, y: 10, label: "Smelter Feed" },
-            { type: 'inserter', x: 24, y: 12, label: "Pultrusion Feed" },
-            { type: 'chute', x: 22, y: 14, label: "Vault Chute" }
-        ];
-
-        // Cargo Items Active Along the Conveyor Track
-        const CONVEYOR_ITEMS = [
-            { item: "item_iron_ore", progress: 0.1 },
-            { item: "item_steel_ingot", progress: 0.35 },
-            { item: "item_composite_rebar", progress: 0.60 },
-            { item: "item_electronic_component", progress: 0.85 }
-        ];
-
-        // Subterranean Flora on the Sector
-        const DEPLOYED_FLORA = [
-            { key: "foliage_spore_tree", x: 5, y: 18, w: 2, h: 2 },
-            { key: "foliage_spore_tree", x: 6, y: 22, w: 2, h: 2 },
-            { key: "foliage_spore_tree", x: 27, y: 20, w: 2, h: 2 },
-            { key: "foliage_crystal_pine", x: 2, y: 4, w: 1, h: 2 },
-            { key: "foliage_crystal_pine", x: 3, y: 7, w: 1, h: 2 },
-            { key: "foliage_crystal_pine", x: 28, y: 4, w: 1, h: 2 },
-            { key: "foliage_healroot", x: 6, y: 12, w: 1, h: 1 },
-            { key: "foliage_healroot", x: 7, y: 14, w: 1, h: 1 },
-            { key: "foliage_healroot", x: 26, y: 15, w: 1, h: 1 },
-            { key: "foliage_berry_bush", x: 7, y: 19, w: 1, h: 1 },
-            { key: "foliage_berry_bush", x: 8, y: 22, w: 1, h: 1 }
-        ];
-
-        // Living Subterranean Wildlife with 4-Frame Walk Cycles
-        const DEPLOYED_WILDLIFE = [
-            { id: 1, species: "muffalo", name: "Deep Muffalo #1", state: "DOMESTICATED", x: 5.2, y: 20.8, vx: 0.015, vy: 0 },
-            { id: 2, species: "deer", name: "Cavern Deer", state: "GRAZING", x: 26.5, y: 6.2, vx: -0.01, vy: 0.005 },
-            { id: 3, species: "boar", name: "Tectonic Boar", state: "WILD", x: 4.8, y: 5.5, vx: 0.01, vy: 0.008 },
-            { id: 4, species: "wolf", name: "Chitin Wolf", state: "HUNTING", x: 28.2, y: 23.5, vx: -0.012, vy: -0.006 }
-        ];
-
-        // =========================================================================
+// =========================================================================
         // EMERGENT THOUGHT BUBBLES & ENVIRONMENTAL HAZARD DRILLS ENGINE
         // =========================================================================
         let showThoughtBubbles = true;
@@ -6362,19 +6612,9 @@
             document.getElementById("room-stat-mood").innerText = data.mood;
         }
 
-        const DEPLOYED_BUILDINGS = [
+        // (DEPLOYED_BUILDINGS initialized at scope header)
 
-            { key: "turbine", x: 8, y: 9, w: 2, h: 2, state: "active" },
-            { key: "smelter", x: 15, y: 9, w: 2, h: 2, state: "idle" },
-            { key: "turret", x: 17, y: 12, w: 1, h: 1, state: "idle" },
-            { key: "hydro", x: 8, y: 13, w: 2, h: 1, state: "active" },
-            { key: "tokamak", x: 11, y: 15, w: 2, h: 2, state: "active" },
-            { key: "research", x: 14, y: 13, w: 2, h: 1, state: "active" },
-            { key: "rad_deflector", x: 13, y: 9, w: 1, h: 1, state: "active" },
-            { key: "drone_bay", x: 17, y: 8, w: 2, h: 2, state: "active" }
-        ];
-
-        function selectBuildable(key) {
+function selectBuildable(key) {
             selectedBuildableKey = key;
             document.querySelectorAll(".buildable-card").forEach(c => c.classList.remove("active"));
             const card = document.getElementById(`card-bld-${key}`);
