@@ -1,35 +1,35 @@
 {
-  "batch_id": "BATCH-39",
+  "batch_id": "BATCH-40",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "Finalize the simulation loop by implementing deterministic state hashing for save/load integrity, optimizing the tick-based physics solver for zero-allocation stability, and compressing the storyteller event log into a bit-packed format to reduce memory footprint during long-running sessions.",
+  "overview": "Finalize the simulation loop by implementing deterministic state hashing for save/load integrity, optimizing the tick-based physics solver for zero-allocation stability, and compressing the storyteller event log into a bit-packed format for rapid replay.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Implement Zero-Heap Deterministic State Hashing",
+      "title": "Implement Zero-Heap Deterministic State Hasher",
       "target_files": [
-        "Source/Runtime/Core/StateHash.h",
-        "Source/Runtime/Core/StateHash.cpp"
+        "src/engine/core/StateHasher.h",
+        "src/engine/core/StateHasher.cpp"
       ],
-      "architectural_spec": "Use std::span<const uint8_t> for input. Implement FNV-1a 64-bit hash using constexpr loops. No dynamic allocation. Return uint64_t. Handle endianness explicitly via std::endian::native check. Ensure stable ordering for struct members.",
-      "acceptance_criteria": "Hash value is identical across x86_64 and ARM64 for same input. 0 heap allocations during hash computation. <10ns per 64-byte block.",
-      "player_fun_impact": "Instant save/load verification, preventing corrupted state errors in long campaigns.",
+      "architectural_spec": "Use std::span for input data. Implement FNV-1a 64-bit hash in constexpr. No dynamic allocation. Cache last hash in a static thread_local variable for O(1) comparison. Handle endianness explicitly via std::endian::native.",
+      "acceptance_criteria": "Hash is stable across 1000 runs. 0 heap allocations. <10ns per hash operation.",
+      "player_fun_impact": "Instant save/load verification, preventing 'corrupt save' errors.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Optimize Tick Solver with Fixed-Point Arithmetic",
+      "title": "Optimize Tick-Based Collision Solver with SIMD",
       "target_files": [
-        "Source/Runtime/Simulation/PhysicsSolver.h",
-        "Source/Runtime/Simulation/PhysicsSolver.cpp"
+        "src/simulation/physics/CollisionSolver.h",
+        "src/simulation/physics/CollisionSolver.cpp"
       ],
-      "architectural_spec": "Replace float with int64_t fixed-point (scale 1000). Implement iterative Gauss-Seidel solver for constraint resolution. Max 4 iterations. Use std::array for contact manifolds. No virtual calls in hot loop.",
-      "acceptance_criteria": "Deterministic results across all platforms. No NaN propagation. 1000 entities solved in <0.5ms on i7-12700.",
-      "player_fun_impact": "Stable physics behavior in large colonies, eliminating 'jitter' in stacked objects.",
+      "architectural_spec": "Use std::array<CollisionPair, 1024> for static pool. Implement 4-wide SIMD intersection tests using <immintrin.h>. Unroll loops for 4-element batches. No virtual functions in hot path.",
+      "acceptance_criteria": "10,000 collisions resolved in <1ms. No cache misses in hot loop.",
+      "player_fun_impact": "Smoother frame rates during large-scale colony events.",
       "estimated_complexity": "Small"
     },
     {
@@ -38,12 +38,12 @@
       "domain": "Storyteller/AI",
       "title": "Bit-Packed Event Log Compression",
       "target_files": [
-        "Source/Runtime/Storyteller/EventLog.h",
-        "Source/Runtime/Storyteller/EventLog.cpp"
+        "src/storyteller/EventLog.h",
+        "src/storyteller/EventLog.cpp"
       ],
-      "architectural_spec": "Define enum class EventType : uint8_t. Pack timestamp (uint32_t) and type (uint8_t) into uint64_t. Use std::vector<uint64_t> for storage. Implement decode function using bitwise shifts. No string storage in hot path.",
-      "acceptance_criteria": "Memory usage reduced by 60% compared to struct-based log. Decode speed >10M events/sec.",
-      "player_fun_impact": "Faster UI rendering for event history, smoother scrolling in long games.",
+      "architectural_spec": "Define enum class EventType : uint8_t. Pack timestamp (32-bit) and type (8-bit) into 64-bit uint. Use std::bit_cast for serialization. Decompress via bitwise shifts.",
+      "acceptance_criteria": "Log size reduced by 75%. Decompression speed > 1GB/s.",
+      "player_fun_impact": "Faster UI rendering for event history.",
       "estimated_complexity": "Atomic"
     }
   ]
