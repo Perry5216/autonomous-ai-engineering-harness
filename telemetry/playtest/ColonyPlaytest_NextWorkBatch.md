@@ -1,122 +1,57 @@
-# Project Deep-Mantle :: Engineering Work Batch: BATCH-58
+# Project Deep-Mantle :: Engineering Work Batch: BATCH-59
 
-## Ultra-Endgame Ascension & Deterministic State Finalization (Target: `v1.2.0`)
+## Subterranean Deep-Mantle High-Fun Depth Architecture (Target: `v1.2.0`)
 
 - **Architect**: `DGX Spark Cluster Lead Systems Engineer`
 - **QA Verifier**: `RTX 5090 Blackwell Reflex QA Director`
-- **Date**: `2026-10-19 17:40:06`
+- **Date**: `2026-10-19 17:41:00`
 
 ### Batch Overview
-This batch finalizes the simulation loop by implementing deterministic state hashing for save/load integrity, optimizing the Monte Carlo convergence check for the 5,500-tick milestone, and establishing the final ascension protocol for colonist psychology. All tasks are atomic, self-contained, and require zero cascading header dependencies.
+Implement top-priority gameplay depth systems synthesized from Dwarf Fortress hydrodynamics, colonist strange moods, and subterranean acoustic geophone warning grids.
 
 ---
 
 ### Prioritized Engineering Tasks
 
-#### [TASK-801] Implement Deterministic State Hashing for Save/Load Integrity (`P0 - Critical`)
+#### [TASK-801] Multi-Z Magma & Groundwater Hydrodynamic Simulation (Dwarf Fortress Physics) (`P0 - Critical`)
 
-- **Domain**: `Engine/C++20`
-- **Estimated Complexity**: `Atomic`
+- **Domain**: `Simulation/FluidDynamics`
+- **Estimated Complexity**: `Large`
 - **Target Files**:
-  - `src/Engine/Core/StateHasher.h`
-  - `src/Engine/Core/StateHasher.cpp`
+  - `Code/EnginePlugins/ColonyPlugin/ColonyFluidDynamics.h`
+  - `Code/EnginePlugins/ColonyPlugin/ColonyFluidDynamics.cpp`
 - **Architectural Specification**:
-  struct StateHasher {
-    static constexpr uint64_t kPrime = 1099511628211ULL;
-    uint64_t hash = 14695981039346656037ULL;
-
-    constexpr void Add(uint64_t value) noexcept {
-        hash ^= value;
-        hash *= kPrime;
-    }
-
-    constexpr void Add(const char* str) noexcept {
-        while (*str) {
-            hash ^= static_cast<uint64_t>(*str++);
-            hash *= kPrime;
-        }
-    }
-
-    constexpr uint64_t GetHash() const noexcept {
-        return hash;
-    }
-};
-
-// Usage in SimulationLoop:
-// StateHasher hasher;
-// hasher.Add(tickCount);
-// hasher.Add(colonistCount);
-// finalHash = hasher.GetHash();
+  Zero-heap 64x64x3 cellular automaton fluid solver tracking pressure, viscosity, and thermal transfer across Z-levels. Water meeting magma triggers an exothermic reaction depositing solid obsidian blocks; hydrostatic head pressure above 3.5 bar damages non-reinforced airlocks.
 - **Acceptance Criteria**:
-  ['StateHasher produces identical 64-bit hashes for identical simulation states across 1000 runs.', 'Zero heap allocations during hashing process.', 'Compilation time < 50ms for the header.']
+  Fluid volume is strictly conserved; water-magma boundary generates solid obsidian; high hydrostatic pressure busts non-reinforced doors; zero heap allocation during fluid tick.
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Guarantees 100% reproducible saves, eliminating 'ghost' desyncs in long-running campaigns.
+  Dwarf Fortress-grade catastrophic tension when mining near subterranean aquifers or lava pockets, forcing quick emergency bulkhead closures or magma-channeling traps.
 
-#### [TASK-802] Optimize Monte Carlo Convergence Check for 5,500-Tick Milestone (`P1 - High`)
+#### [TASK-802] Colonist Strange Moods & Masterwork Relic Forging (DF / RimWorld Hybrid) (`P1 - High`)
 
-- **Domain**: `Simulation/Physics`
-- **Estimated Complexity**: `Atomic`
+- **Domain**: `Pawns/Psychology`
+- **Estimated Complexity**: `Medium`
 - **Target Files**:
-  - `src/Simulation/MonteCarlo/ConvergenceChecker.h`
+  - `Code/EnginePlugins/ColonyPlugin/ColonyStrangeMoodSystem.h`
+  - `Code/EnginePlugins/ColonyPlugin/ColonyStrangeMoodSystem.cpp`
 - **Architectural Specification**:
-  struct ConvergenceChecker {
-    static constexpr int kWindowSize = 100;
-    float window[kWindowSize];
-    int index = 0;
-    int count = 0;
-
-    void Update(float value) noexcept {
-        window[index] = value;
-        index = (index + 1) % kWindowSize;
-        if (count < kWindowSize) ++count;
-    }
-
-    bool IsConverged(float epsilon = 1e-6f) const noexcept {
-        if (count < kWindowSize) return false;
-        float minVal = window[0];
-        float maxVal = window[0];
-        for (int i = 1; i < kWindowSize; ++i) {
-            if (window[i] < minVal) minVal = window[i];
-            if (window[i] > maxVal) maxVal = window[i];
-        }
-        return (maxVal - minVal) < epsilon;
-    }
-};
+  Colonists undergo rare psychiatric inspiration ('Fey', 'Secretive', or 'Possessed'). The colonist claims a crafting workshop, gathers esoteric materials (obsidian, crystal pine, titanium rebar), and enters an unstoppable crafting trance. Success produces a Masterwork Relic with procedurally generated historical engravings providing +15 Colony Mood aura; failure results in melancholy or berserk breakdown.
 - **Acceptance Criteria**:
-  ['Convergence detected within 100 ticks of stabilization.', 'No dynamic memory allocation in Update or IsConverged.', 'Handles edge case of count < kWindowSize correctly.']
+  Trigger rate scales with colonist skill and room impressiveness; colonist locks out other workers from workbench; completed artifact generates permanent immutable history description; zero heap allocation.
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Faster resolution of physics simulations, reducing perceived lag in endgame scenarios.
+  The ultimate Dwarf Fortress dopamine loop: scrambling to find rare minerals demanded by an inspired artisan before their timer expires, yielding legendary relics that commemorate colony milestones.
 
-#### [TASK-803] Finalize Colonist Psychology Ascension Protocol (`P2 - Quality-of-Life`)
+#### [TASK-803] Subterranean Acoustic Geophone Grid & Overburden Seismic Warning (`P1 - High`)
 
-- **Domain**: `Storyteller/AI`
-- **Estimated Complexity**: `Atomic`
+- **Domain**: `Geotechnical/Sensory`
+- **Estimated Complexity**: `Medium`
 - **Target Files**:
-  - `src/Storyteller/Psychology/AscensionState.h`
+  - `Code/EnginePlugins/ColonyPlugin/ColonyAcousticGeophoneSystem.h`
+  - `Code/EnginePlugins/ColonyPlugin/ColonyAcousticGeophoneSystem.cpp`
 - **Architectural Specification**:
-  enum class AscensionState : uint8_t {
-    kPreAscension = 0,
-    kStabilizing = 1,
-    kComplete = 2
-};
-
-struct PsychologySnapshot {
-    AscensionState state;
-    uint16_t tick;
-    uint8_t colonistCount;
-
-    constexpr bool IsFinalized() const noexcept {
-        return state == AscensionState::kComplete;
-    }
-
-    constexpr uint32_t Pack() const noexcept {
-        return (static_cast<uint32_t>(state) << 24) |
-               (static_cast<uint32_t>(tick) << 8) |
-               static_cast<uint32_t>(colonistCount);
-    }
-};
+  Geophone acoustic sensor components installed along cavern walls measure micro-seismic vibrations and rock strain before roof failure. When overburden stress exceeds 85%, geophones emit audible acoustic clicks and pulsing amber HUD ripples 400 ticks before collapse, giving pawns a tangible evacuation window.
 - **Acceptance Criteria**:
-  ['Snapshot packs into a single 32-bit integer without loss of precision for standard campaign lengths.', 'State transitions are strictly monotonic.', 'Zero virtual function overhead.']
+  Sensor detects stress within 16-tile spherical radius; dispatches UI acoustic ripple alert to ColonyMap HUD before collapse occurs; triangulates epicenter across 3+ sensors; zero heap allocation.
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Instantaneous load times for endgame states, providing a seamless conclusion to the campaign.
+  Replaces sudden unfair cave-in deaths with visceral sensory dread and actionable triage: hearing the ominous creaking of rock in the darkness and seeing the HUD geophone pulse, giving players a thrilling 10-second countdown to pull miners out or rush support pillars in.
 
