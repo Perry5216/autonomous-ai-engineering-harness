@@ -1,61 +1,64 @@
 {
-  "batch_id": "BATCH-53",
+  "batch_id": "BATCH-54",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Finalization",
   "target_version": "v1.2.0",
-  "overview": "This batch finalizes the simulation loop by implementing deterministic state hashing for save/load integrity, optimizing the tick-based physics resolution for zero-allocation stability, and compressing the storyteller narrative state into a fixed-size ring buffer. These steps ensure 100% coverage of the endgame phase with minimal memory footprint and maximal determinism.",
+  "overview": "This batch finalizes the simulation loop by implementing deterministic state hashing for save/load integrity, optimizing the tick-based physics integration for 100% Monte Carlo survival, and compressing colonist psychological state into a bit-packed format for rapid serialization. These steps ensure zero-deadlock stability and sub-millisecond frame times in the endgame phase.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Implement Zero-Heap Deterministic State Hasher",
+      "title": "Deterministic State Hashing for Save/Load Integrity",
       "target_files": [
-        "src/Engine/Core/StateHasher.h",
-        "src/Engine/Core/StateHasher.cpp"
+        "src/engine/core/StateHasher.h",
+        "src/engine/core/StateHasher.cpp"
       ],
-      "architectural_spec": "struct StateHasher {\n    uint64_t hash = 0;\n    constexpr void update(uint64_t val) {\n        hash ^= val;\n        hash *= 0x100000001b3ULL;\n    }\n    constexpr void finalize() {\n        hash ^= hash >> 33;\n        hash *= 0xff51afd7ed558ccdULL;\n        hash ^= hash >> 33;\n    }\n};\n// Usage: Update with tick count, entity IDs, and physics vectors.\n// No dynamic allocation. Pure arithmetic.",
+      "architectural_spec": "Implement a zero-heap, fixed-size hash structure using C++20 concepts. Use a 64-bit FNV-1a variant for speed. The hasher must traverse the active simulation state (entities, physics, psychology) in a strict topological order to ensure determinism. No dynamic allocations; use std::array for intermediate buffers. The hash must be computed in O(N) where N is the number of active entities, with N <= 10,000. Ensure the hash is stable across different CPU architectures by using little-endian serialization for all primitive types.",
       "acceptance_criteria": [
-        "Hash value is identical across 1000 runs with same seed.",
-        "No heap allocations during hashing.",
-        "Compile time evaluation supported for static states."
+        "Hash computation completes in < 0.5ms for 10,000 entities.",
+        "Identical simulation states produce identical 64-bit hashes.",
+        "No heap allocations during hash computation.",
+        "Unit tests verify hash stability across 100 random seeds."
       ],
-      "player_fun_impact": "Ensures save/load consistency and enables fast-forward determinism checks.",
+      "player_fun_impact": "Ensures save games are perfectly reproducible, eliminating 'desync' bugs in long-running simulations.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Optimize Tick-Based Collision Resolution with Fixed Arrays",
+      "title": "Optimized Tick-Based Integration for 100% Survival",
       "target_files": [
-        "src/Simulation/Physics/CollisionResolver.h",
-        "src/Simulation/Physics/CollisionResolver.cpp"
+        "src/simulation/physics/Integrator.h",
+        "src/simulation/physics/Integrator.cpp"
       ],
-      "architectural_spec": "struct CollisionPair {\n    uint32_t idA;\n    uint32_t idB;\n    float depth;\n};\nstruct PhysicsWorld {\n    static constexpr int MAX_PAIRS = 1024;\n    CollisionPair pairs[MAX_PAIRS];\n    int count = 0;\n    void resolve() {\n        for (int i = 0; i < count; ++i) {\n            // Simple impulse resolution\n            pairs[i].depth = 0.0f;\n        }\n        count = 0;\n    }\n};\n// Pre-allocated array. No std::vector.",
+      "architectural_spec": "Refactor the semi-implicit Euler integrator to use a fixed-step accumulator pattern. Implement a 'catch-up' loop that processes multiple fixed steps per frame if the frame time exceeds the step duration, capped at 10 steps to prevent spiral of death. Use SIMD (SSE4.2 or AVX2) for vector operations on position/velocity arrays. Ensure all floating-point operations are performed in double precision for stability, then cast to float for rendering. The integrator must be stateless between calls, relying only on the passed state struct.",
       "acceptance_criteria": [
-        "Resolution completes in < 1ms for 1024 pairs.",
-        "Zero cache misses on sequential access.",
-        "No dynamic memory allocation."
+        "Simulation remains stable at 1000 ticks/second.",
+        "No NaN or Inf values in position/velocity vectors.",
+        "SIMD acceleration reduces integration time by >30%.",
+        "Frame time variance < 1ms."
       ],
-      "player_fun_impact": "Smooth 60fps simulation even with high entity counts.",
+      "player_fun_impact": "Provides a smooth, jitter-free visual experience and ensures physics interactions are consistent regardless of frame rate fluctuations.",
       "estimated_complexity": "Small"
     },
     {
       "task_id": "TASK-803",
       "priority": "P2 - Quality-of-Life",
       "domain": "Storyteller/AI",
-      "title": "Compress Narrative State into Fixed Ring Buffer",
+      "title": "Bit-Packed Colonist Psychological State Compression",
       "target_files": [
-        "src/AI/Storyteller/NarrativeBuffer.h",
-        "src/AI/Storyteller/NarrativeBuffer.cpp"
+        "src/ai/psychology/StatePack.h",
+        "src/ai/psychology/StatePack.cpp"
       ],
-      "architectural_spec": "struct NarrativeEvent {\n    uint32_t id;\n    uint8_t type;\n    float value;\n};\nstruct NarrativeBuffer {\n    static constexpr int SIZE = 64;\n    NarrativeEvent events[SIZE];\n    int head = 0;\n    void push(NarrativeEvent e) {\n        events[head] = e;\n        head = (head + 1) % SIZE;\n    }\n    NarrativeEvent pop() {\n        int idx = (head - 1 + SIZE) % SIZE;\n        return events[idx];\n    }\n};\n// Fixed size, O(1) access.",
+      "architectural_spec": "Define a 128-bit packed structure for colonist psychology. Use bitfields for: Mood (4 bits), Stress Level (4 bits), Task Priority (4 bits), and 12 bits for specific state flags. Implement constexpr functions for packing and unpacking. The structure must fit in a single 16-byte cache line. Provide a static_assert to verify the size is exactly 16 bytes. Implement a fast decompression function that uses bitwise shifts and masks without branching where possible.",
       "acceptance_criteria": [
-        "Buffer wraps correctly after 64 events.",
-        "No heap allocations.",
-        "Access time < 10ns."
+        "sizeof(PsychState) == 16 bytes.",
+        "Pack/Unpack operations are constexpr-evaluable.",
+        "Memory footprint of 10,000 colonists reduced by 50% compared to previous struct.",
+        "No undefined behavior in bitfield access."
       ],
-      "player_fun_impact": "Fast narrative context retrieval for AI decisions.",
+      "player_fun_impact": "Reduces memory bandwidth usage, leading to faster load times and better cache performance in large colonies.",
       "estimated_complexity": "Atomic"
     }
   ]
