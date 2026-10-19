@@ -1,64 +1,49 @@
 {
-  "batch_id": "BATCH-17",
+  "batch_id": "BATCH-18",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "This batch finalizes the simulation core by implementing deterministic state serialization for ultra-endgame scenarios and optimizing the Monte Carlo convergence logic. The focus is on reducing memory footprint during long-running simulations (5,500+ ticks) and ensuring strict determinism in the final state snapshot, closing the last gaps in the 'Deep-Mantle' architecture.",
+  "overview": "Finalize simulation coverage by implementing deterministic state hashing for rapid save/load verification and optimizing colonist psychological state transitions for ultra-endgame stability. These atomic tasks close the final gaps in simulation determinism and AI responsiveness without introducing cascading dependencies.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Implement Zero-Copy Deterministic State Snapshot",
+      "title": "Implement Deterministic State Hashing for Save Verification",
       "target_files": [
-        "src/engine/core/StateSnapshot.h",
-        "src/engine/core/StateSnapshot.cpp"
+        "Source/Engine/Core/StateHash.h",
+        "Source/Engine/Core/StateHash.cpp"
       ],
-      "architectural_spec": "1. Define struct `SnapshotHeader` with `uint64_t tick`, `uint32_t checksum`, `uint32_t version`.\n2. Implement `class StateSnapshot` using `std::span<const uint8_t>` for zero-copy access.\n3. Add `static_assert` for trivially copyable types in header.\n4. Implement `Serialize()` returning `std::span<const uint8_t>`.\n5. Implement `Deserialize()` using `memcpy` into pre-allocated buffers.\n6. Ensure no dynamic allocation in hot path; use `std::array` for fixed-size fields.\n7. Add `constexpr` constructors for header initialization.\n8. Verify alignment with `alignas(8)`.\n9. Include `#pragma once` and C++20 `import` compatible headers.\n10. Ensure `noexcept` on all serialization methods.",
-      "acceptance_criteria": [
-        "Snapshot serialization completes in < 100ns for 1KB data.",
-        "Zero heap allocations during snapshot creation.",
-        "Checksum matches FNV-1a 64-bit standard.",
-        "All tests pass with `-fsanitize=address` clean."
-      ],
-      "player_fun_impact": "Faster save/load times and reduced memory usage for long campaigns.",
+      "architectural_spec": "1. Define struct StateHashContext with fixed-size arrays for component IDs and values.\n2. Implement constexpr function ComputeStateHash(const StateHashContext&) using FNV-1a algorithm.\n3. Ensure no dynamic allocation; use std::array for storage.\n4. Integrate with existing SaveSystem via template specialization.\n5. Validate hash consistency across 1000 Monte Carlo runs.\n6. Handle endianness explicitly using std::endian::native.\n7. Provide inline operator== for fast comparison.\n8. Document memory layout for cache-line alignment.\n9. Add static_assert for struct size <= 64 bytes.\n10. Include unit tests for collision resistance.",
+      "acceptance_criteria": "1. Hash computation completes in < 1 microsecond for 1000 entities.\n2. Zero heap allocations during hashing.\n3. 100% match rate between serialized and recomputed hashes.\n4. All unit tests pass with 0 warnings.",
+      "player_fun_impact": "Faster save/load cycles and reliable state verification, reducing perceived lag in ultra-endgame scenarios.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Optimize Monte Carlo Convergence for 5k+ Ticks",
+      "title": "Optimize Collision Resolution for Static Geometry",
       "target_files": [
-        "src/simulation/mc/ConvergenceOptimizer.h",
-        "src/simulation/mc/ConvergenceOptimizer.cpp"
+        "Source/Engine/Physics/CollisionResolver.h",
+        "Source/Engine/Physics/CollisionResolver.cpp"
       ],
-      "architectural_spec": "1. Create `struct MCState` with `double mean`, `double variance`, `uint32_t count`.\n2. Implement Welford's online algorithm for variance calculation.\n3. Add `constexpr` update function `Update(MCState& state, double value)`.\n4. Implement `IsConverged(const MCState& state, double epsilon)`.\n5. Use `std::numbers::pi` for any geometric constants.\n6. Ensure all operations are `noexcept`.\n7. Add `static_assert` for epsilon precision (1e-9).\n8. Implement batch update for vector inputs using `std::span`.\n9. Cache last 10 states for trend analysis in `struct TrendCache`.\n10. Ensure thread-safe read-only access via `const` methods.",
-      "acceptance_criteria": [
-        "Convergence detected within 100 iterations for standard distributions.",
-        "Memory usage per MCState is exactly 24 bytes.",
-        "No floating-point drift after 10,000 updates.",
-        "Unit tests cover edge cases: NaN, Inf, zero variance."
-      ],
-      "player_fun_impact": "More accurate and faster simulation results for complex colony scenarios.",
+      "architectural_spec": "1. Precompute bounding boxes for static geometry at load time.\n2. Use AABB intersection tests before detailed collision checks.\n3. Implement spatial partitioning grid with fixed cell size.\n4. Store collision results in a ring buffer for frame reuse.\n5. Minimize branch mispredictions with sorted entity lists.\n6. Use std::span for contiguous memory access.\n7. Avoid virtual calls in hot path via template specialization.\n8. Profile with 10,000 static entities.\n9. Ensure deterministic ordering of collision events.\n10. Add debug counters for cache misses.",
+      "acceptance_criteria": "1. Collision resolution time reduced by 40% for static scenes.\n2. Deterministic output order maintained.\n3. No memory leaks in ring buffer implementation.\n4. Passes all existing physics regression tests.",
+      "player_fun_impact": "Smoother frame rates in complex static environments, enhancing immersion during exploration.",
       "estimated_complexity": "Small"
     },
     {
       "task_id": "TASK-803",
       "priority": "P2 - Quality-of-Life",
       "domain": "Storyteller/AI",
-      "title": "Add Deterministic Event Log Compression",
+      "title": "Streamline Colonist Psychological State Transitions",
       "target_files": [
-        "src/storyteller/EventLog.h",
-        "src/storyteller/EventLog.cpp"
+        "Source/Engine/AI/ColonistPsychology.h",
+        "Source/Engine/AI/ColonistPsychology.cpp"
       ],
-      "architectural_spec": "1. Define `enum class EventType : uint8_t` with 10 core types.\n2. Create `struct Event` with `uint32_t tick`, `EventType type`, `uint16_t payload`.\n3. Implement `class EventLog` with fixed-size `std::array<Event, 1024>`.\n4. Add `Push(Event)` with circular buffer logic.\n5. Implement `GetRecent(uint32_t count)` returning `std::span<const Event>`.\n6. Add `Checksum()` using XOR of all fields.\n7. Ensure `Event` is 8 bytes packed.\n8. Implement `Clear()` resetting index to 0.\n9. Add `constexpr` helpers for type-to-string mapping.\n10. Verify no virtual functions in `Event` or `EventLog`.",
-      "acceptance_criteria": [
-        "Event log fits in 8KB cache line aligned memory.",
-        "Push operation is O(1) with no allocations.",
-        "Checksum is stable across runs.",
-        "All 10 event types are correctly serialized."
-      ],
-      "player_fun_impact": "Smaller save files and faster log retrieval for UI display.",
+      "architectural_spec": "1. Define enum class PsychState with 8 core states.\n2. Implement transition table as constexpr std::array.\n3. Use bitwise operations for state combination.\n4. Cache last 3 states for quick history lookup.\n5. Reduce state update frequency to every 10 ticks.\n6. Ensure no dynamic allocation in transition logic.\n7. Provide inline getters for state values.\n8. Validate state machine completeness.\n9. Add trace logging for state changes.\n10. Benchmark against previous implementation.",
+      "acceptance_criteria": "1. State transitions complete in < 50 nanoseconds.\n2. No undefined states in 10,000 simulation ticks.\n3. Memory footprint reduced by 20%.\n4. All AI behavior tests pass.",
+      "player_fun_impact": "More responsive colonist behaviors and clearer psychological feedback in UI.",
       "estimated_complexity": "Atomic"
     }
   ]
