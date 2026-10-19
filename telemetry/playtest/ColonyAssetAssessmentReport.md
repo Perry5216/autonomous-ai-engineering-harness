@@ -1,6 +1,6 @@
 # Project Deep-Mantle: Autonomous Asset Assessment Report
 
-**Generated:** 2026-10-19 06:36:56 UTC  
+**Generated:** 2026-10-19 06:43:23 UTC  
 **Evaluated By:** Operator's Local AI Cluster (DGX Spark :8877 & RTX 5090 Blackwell :8080)  
 **RTX 5090 Role Transition:** `ROLE_ENTER` -> `ROLE_EXIT` Clean VRAM Hand-off  
 **Total Assets Evaluated:** 52  
@@ -11,75 +11,90 @@
 
 Hello. As the Lead Visual Designer and Gameplay Architect for **Project Deep-Mantle**, I have analyzed the asset domains and the core simulation parameters. Below is my decisive evaluation and architectural roadmap.
 
-### 1. Visual & Spatial Consistency Evaluation
-**Does this make sense?**
-**Yes, but with strict constraints required for 16-bit orthographic clarity.**
+### 1. Visual & Spatial Evaluation: Does this make sense?
 
-*   **Perspective Strategy:** The top-down orthographic view is the correct choice for a dense logistics simulation. It minimizes occlusion and maximizes information density. However, to prevent the "flat card" look common in low-res pixel art, we must enforce **Layered Parallax within the 16-bit grid**:
-    *   **Layer 0 (Ground):** Flat, high-contrast tiles (Conveyors, Floors).
-    *   **Layer 1 (Mid-ground):** Objects with 1-pixel drop shadows to separate them from Layer 0.
-    *   **Layer 2 (Foreground):** Tall objects (Spore Trees, Turbines) must have a distinct "cap" or highlight to indicate height without breaking the orthographic plane.
-*   **Pixel Scaling:** At 16-bit resolution, **anti-aliasing must be disabled**. Use hard-edged pixels.
-    *   *Rule:* All objects must align to the 16x16 or 32x32 grid. No sub-pixel positioning.
-    *   *Contrast:* Use a limited palette (e.g., 16–32 colors) with high luminance contrast between interactive elements (yellow/white) and background (dark blues/greys).
+**Verdict:** Yes, but only if strict **Isometric Orthographic Projection** rules are applied. The current asset list is coherent for a 16-bit aesthetic, but spatial consistency is the highest risk factor.
+
+*   **Perspective Alignment:**
+    *   **Standard:** Use a **2:1 Isometric Grid** (classic 16-bit style). This minimizes aliasing on the DGX Spark/RTX 5090 cluster while maintaining crisp pixel art.
+    *   **Z-Ordering:** Strict back-to-front rendering is required.
+        *   *Layer 1:* Ground Tiles (Conveyors, Floor).
+        *   *Layer 2:* Static Structures (Dining Table, Smelter).
+        *   *Layer 3:* Dynamic Entities (Drones, Muffalo, Pawns).
+        *   *Layer 4:* UI Overlays.
+    *   **Issue:** "Lithophone" and "Terminal Desk" must have identical base footprints (e.g., 2x2 tiles) to prevent visual clutter in dense habitation zones.
+
+*   **16-bit Pixel Scaling:**
+    *   Use **Nearest-Neighbor** interpolation. No bilinear smoothing.
+    *   **Palette Constraint:** Limit to 16–32 colors per sprite sheet to ensure fast GPU texture sampling on the RTX 5090.
+    *   **Consistency Check:**
+        *   *Flora:* Spore Tree and Crystal Pine must share the same trunk width (e.g., 4px) for visual rhythm.
+        *   *Fauna:* Muffalo and Deer must have identical pivot points (center-bottom) for smooth walk-cycle interpolation.
+
 *   **Spatial Consistency:**
-    *   **Drones & Fauna:** Must have consistent pivot points (center-bottom) for walk cycles. The 4-frame walk cycle for Fauna is efficient but must be smooth; frame 1 and 3 should be mirrored or interpolated to avoid "stuttering."
-    *   **Industrial Machinery:** Pultrusion Mill and Smelter must show internal state changes (e.g., glowing core, moving belt) within the same pixel footprint to maintain grid alignment.
+    *   **Conveyors (N/E/S/W):** Must align perfectly with the grid. No sub-pixel offsets.
+    *   **Drone Bay vs. Sentry Rover:** The Drone Bay should be a 3x3 structure; the Sentry Rover a 1x1. This creates a clear visual hierarchy of "Static Infrastructure" vs. "Mobile Unit."
 
-### 2. Gameplay Loop Clarity
-**Is it clear? Will the player understand?**
-**The loop is strong but risks cognitive overload. It must be structured as a "Nested Hierarchy of Needs."**
+---
 
-**The Core Loop (Factorio + RimWorld Hybrid):**
-1.  **Input:** Raw Resources (from Hydroponics/Smelter).
-2.  **Process:** Automated Logistics (Conveyors/Inserters) → Machinery (Pultrusion/Turbine).
-3.  **Output:** Finished Goods (Stored on Shelves).
-4.  **Feedback:** Pawns (Sentry Rovers, Haulers) consume goods to maintain efficiency or unlock upgrades.
+### 2. Gameplay Loop Clarity: Factorio + RimWorld Hybrid
 
-**Clarity Enhancements:**
-*   **Visual Feedback:** When a Conveyor moves, the item must visibly traverse the tile. When a Smelter finishes, a "pop" animation or color flash must occur.
-*   **Pawn AI Transparency:** Use simple icons above Pawns:
-    *   🟢 Green: Idle/Working.
-    *   🟡 Yellow: Waiting for input.
-    *   🔴 Red: Blocked/No Path.
-*   **The "Rogue Subversion Loop":** This is the key differentiator. It must be a **visible, non-linear path** in the UI. Show a progress bar for "Subversion Level" that unlocks new drone types or faster conveyors. This gives the player a sense of progression beyond just "more items."
+**Verdict:** The loop is clear but risks cognitive overload. We must enforce a **Three-Tiered Priority System** for the player.
 
-### 3. Asset Refinement & Quantization
-**Where does it look "AI-generated"? What needs replacement?**
+#### Core Loop Structure:
+1.  **Input (Resource):** Gather Spore Trees, Crystal Pines, Berry Bushes.
+2.  **Processing (Industrial):**
+    *   *Pultrusion Mill:* Converts raw wood/crystal into beams.
+    *   *Smelter:* Refines ores.
+    *   *Hydroponics:* Grows food (Berry Bushes).
+3.  **Output (Survival & Expansion):**
+    *   *Habitation:* Place Dining Tables/Stools to feed pawns.
+    *   *Defense:* Deploy Sentry Rovers to protect against Rogue Subversion Loops.
+    *   *Logistics:* Use Inserters/Chutes to move items from Smelter to Storage Shelf.
 
-| Asset Domain | Issue | Solution |
+#### Player Understanding Strategy:
+*   **Visual Cues:**
+    *   **Green Glow:** Active/Powered (e.g., Turbine spinning).
+    *   **Red Pulse:** Low Resource/Warning (e.g., Hydroponics empty).
+    *   **Yellow Blink:** Inserter blocked.
+*   **Pawn Behavior (RimWorld-style):**
+    *   Pawns automatically pathfind to the nearest **Terminal Desk** for research.
+    *   Pawns eat at **Dining Tables** only when hungry (visual hunger bar above head).
+    *   **Muffalo/Deer/Boar/Wolf:** These are not just decor. They are **resource nodes**.
+        *   *Muffalo:* Provides wool (for Lithophone dampening?) and milk.
+        *   *Wolf:* Fast mover, low HP, good for scouting.
+        *   *Boar:* High HP, slow, good for hauling heavy items.
+*   **Clarity Check:** The player sees a **Conveyor Belt** moving items. If it stops, they look for the **Inserter** or **Source**. This is intuitive. The **Drone Bay** acts as a hub for mobile units, creating a clear "dispatch" point.
+
+---
+
+### 3. AI Artifacts & Technical Corrections
+
+**Verdict:** Several assets show typical AI-generation inconsistencies. Here are the required replacements/quantizations:
+
+| Asset | Issue | Correction/Replacement |
 | :--- | :--- | :--- |
-| **1. Drones & Defenses** | "Rogue Subversion Loop" is abstract. | Replace with a **physical object**: A glowing, pulsating crystal node that changes color per level. Drones should have distinct silhouettes: Hauler (boxy), Sentry (angular), Drone Bay (circular). |
-| **2. Habitation** | Lithophone and Lamp may look cluttered. | **Quantize to 16x16.** Lamp: Simple yellow circle with a 1-pixel glow. Lithophone: 3 vertical bars. Remove unnecessary details like wood grain. |
-| **3. Flora** | Spore Tree and Crystal Pine may have too many pixels. | **Reduce to 3-tone shading.** Dark base, mid-tone body, light highlight. No gradients. Berry Bush: 4 red dots on a green blob. |
-| **4. Fauna** | 4-frame walk cycles can look jerky. | **Add a 5th "idle" frame** (breathing animation) for when the animal is stationary. Ensure the Muffalo and Deer have distinct hoof placements to show weight. |
-| **5. Machinery** | Turbine and Smelter may lack state clarity. | **Add state indicators:** Smelter: Orange glow when active, grey when idle. Turbine: Rotating blades (2-frame animation). |
-| **6. Logistics** | Conveyors N/E/S/W may look identical. | **Use directional arrows** in the center of the tile. Inserter: Show a "grab" animation (1-pixel shift) when moving an item. |
+| **Conveyors (N/E/S/W)** | Misaligned pixel grids; seams visible between tiles. | **Quantize to 16x16 px tiles.** Ensure N/E/S/W rotations are exact 90° rotations of a single master sprite. No anti-aliasing. |
+| **Muffalo/Deer Walk Cycles** | Inconsistent frame counts (e.g., 4 frames vs. 3 frames). | **Standardize to 4-frame loop:** 1. Stand, 2. Left Leg Forward, 3. Stand, 4. Right Leg Forward. Ensure pivot point is identical. |
+| **Lithophone** | Complex shape causes pixel bleed. | **Simplify to 3 distinct parts:** Base, Tube, Hammer. Use flat shading. |
+| **Spore Tree** | Foliage too detailed for 16-bit. | **Reduce to 3 color bands:** Dark Green (shadow), Mid Green (mid), Light Green (highlight). No dithering. |
+| **Drone Bay** | Perspective mismatch with other buildings. | **Align to 2:1 Isometric.** Ensure the roof angle matches the Smelter and Pultrusion Mill exactly. |
+| **Rogue Subversion Loop** | Unclear shape. | **Define as a glowing red spiral** (3px thick) on the ground. It is a *status effect* indicator, not a physical object. |
 
-**Perspective Alignment:**
-*   All objects must have a **1-pixel black outline** to separate them from the background.
-*   Shadows must be **1-pixel dark grey** directly below the object, not offset, to maintain orthographic consistency.
+**Technical Note for DGX Spark/RTX 5090:**
+*   Use **Texture Atlas** for all 16-bit sprites to minimize draw calls.
+*   Implement **Sprite Batching** for Conveyors and Inserters (high count).
+*   **Lighting:** Use baked ambient occlusion (AO) maps for static structures. Dynamic lights only for Drones and Lithophone.
 
-### 4. New Depth & Fun Features
-**Maximizing Player Engagement:**
+---
 
-1.  **Dynamic Lighting System (16-bit Style):**
-    *   Lamps create a **2-tile radius** of lighter-colored tiles. This adds visual depth and helps players understand coverage areas without UI overlays.
-    *   *Feature:* "Power Outage" mode – all lights dim to 50% brightness, and animations slow down.
+### 4. New Depth & Fun Features for Engagement
 
-2.  **Pawn Personality Traits (RimWorld-style):**
-    *   Assign 3 traits to each Pawn type:
-        *   **Hauler:** "Fast" (moves 1.5x speed), "Clumsy" (drops items 10% of the time).
-        *   **Sentry:** "Alert" (spots enemies faster), "Noisy" (creates more sound pollution).
-    *   *Impact:* Players must strategically place Pawns based on traits, adding a layer of puzzle-solving.
+To maximize engagement, we add **Synergistic Mechanics** that leverage the existing assets.
 
-3.  **The "Subversion" Mini-Game:**
-    *   When the Rogue Subversion Loop is activated, the screen shifts to a **2-frame animation** of the crystal pulsing.
-    *   *Mechanic:* Players must tap the screen in rhythm with the pulse to "charge" the subversion. Successful taps increase efficiency; misses cause a temporary slowdown. This adds tactile feedback.
-
-4.  **Seasonal/Day-Night Cycle (Simplified):**
-    *   **Day:** Brighter palette, faster drone movement.
-    *
+#### A. **Lithophone Resonance System**
+*   **Mechanic:** The **Lithophone** is not just decor. It emits a frequency.
+*   **Effect:** When placed near **Crystal Pines**, it accelerates their growth by 20%. When near **Spore Trees**, it
 
 ## 2. Domain Asset Telemetry
 
