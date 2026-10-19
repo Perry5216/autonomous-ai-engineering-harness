@@ -1,36 +1,50 @@
 {
-  "batch_id": "BATCH-13",
+  "batch_id": "BATCH-14",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "Finalize simulation coverage by implementing deterministic state compression for long-running campaigns and optimizing the Monte Carlo convergence logic for ultra-endgame scenarios. This batch ensures memory stability and logical consistency after 5,500+ ticks.",
+  "overview": "Finalize simulation coverage by implementing deterministic state compression for long-running campaigns and optimizing the endgame ascension logic. This batch focuses on reducing memory footprint for 5,500+ tick simulations and ensuring zero-latency state restoration for Monte Carlo validation.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Implement Zero-Heap Deterministic State Compressor",
+      "title": "Implement Deterministic State Compression for Long-Running Campaigns",
       "target_files": [
-        "src/engine/core/StateCompressor.h",
-        "src/engine/core/StateCompressor.cpp"
+        "Source/Runtime/Simulation/StateCompression.h",
+        "Source/Runtime/Simulation/StateCompression.cpp"
       ],
-      "architectural_spec": "Use std::array for fixed-size buffers. Implement a static lookup table for common state transitions. Avoid std::vector. Use constexpr for table generation. Ensure all functions are noexcept where possible. Max 60 lines of logic.",
-      "acceptance_criteria": "1. Compresses 5,500 tick states into <1KB. 2. Decompression is bit-exact. 3. No dynamic allocations in hot path.",
-      "player_fun_impact": "Faster load times and stable memory usage for long campaigns.",
+      "architectural_spec": "Use C++20 concepts to define a fixed-size, zero-heap compression scheme for simulation state. Implement a bit-packing algorithm for integer-based state variables (ticks, entity IDs, resource counts). Ensure all operations are constexpr-friendly where possible. The compressor must handle 5,500+ ticks with <1KB overhead per snapshot. No dynamic allocations during compression/decompression cycles.",
+      "acceptance_criteria": "1. Compression ratio > 85% for standard simulation states. 2. Decompression time < 1ms for 5,500-tick state. 3. Zero heap allocations during compression/decompression. 4. All unit tests pass with deterministic output.",
+      "player_fun_impact": "Faster load times and reduced memory usage for long campaigns, enabling smoother gameplay on lower-end hardware.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Optimize Monte Carlo Convergence for Ultra-Endgame",
+      "title": "Optimize Monte Carlo Validation Loop for Endgame States",
       "target_files": [
-        "src/simulation/physics/MonteCarlo.h",
-        "src/simulation/physics/MonteCarlo.cpp"
+        "Source/Runtime/Simulation/MonteCarloValidator.h",
+        "Source/Runtime/Simulation/MonteCarloValidator.cpp"
       ],
-      "architectural_spec": "Implement early-exit conditions for Monte Carlo simulations when variance < 1e-6. Use fixed-point arithmetic for intermediate steps to avoid FP drift. Keep logic self-contained within the struct.",
-      "acceptance_criteria": "1. Simulation completes in <10ms for 5,500 ticks. 2. Variance check triggers correctly. 3. No cascading header dependencies.",
-      "player_fun_impact": "Smoother frame rates during complex endgame calculations.",
+      "architectural_spec": "Refactor the Monte Carlo validation loop to use a fixed-size ring buffer for state snapshots. Implement a branchless comparison algorithm for state equivalence checks. Ensure the validator can process 16,500 footsteps in <10ms total. Use C++20 std::span for zero-copy access to state data. No virtual functions in the hot path.",
+      "acceptance_criteria": "1. Validation of 16,500 footsteps completes in <10ms. 2. Zero deadlocks detected in 100 consecutive runs. 3. Memory usage remains constant regardless of tick count. 4. All validation results are bitwise identical across runs.",
+      "player_fun_impact": "Immediate feedback on simulation correctness, ensuring consistent game behavior across different hardware configurations.",
       "estimated_complexity": "Small"
+    },
+    {
+      "task_id": "TASK-803",
+      "priority": "P2 - Quality-of-Life",
+      "domain": "Storyteller/AI",
+      "title": "Cache Endgame Ascension Events for Instant Replay",
+      "target_files": [
+        "Source/Runtime/Storyteller/AscensionCache.h",
+        "Source/Runtime/Storyteller/AscensionCache.cpp"
+      ],
+      "architectural_spec": "Implement a static cache for the last 10 ascension events using C++20 std::array. Each event is a POD struct with fixed-size fields. Use a simple index-based lookup for O(1) access. Ensure the cache is thread-safe via atomic indices. No dynamic memory allocation. The cache must be serializable to a binary blob for quick restoration.",
+      "acceptance_criteria": "1. Cache hit rate > 95% for repeated ascension queries. 2. Lookup time < 100ns. 3. Thread-safe access verified with 4 concurrent readers. 4. Binary serialization size < 2KB for 10 events.",
+      "player_fun_impact": "Instant access to endgame summaries and event logs, improving the user experience during campaign review.",
+      "estimated_complexity": "Atomic"
     }
   ]
 }
