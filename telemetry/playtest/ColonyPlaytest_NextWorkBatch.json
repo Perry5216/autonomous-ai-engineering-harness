@@ -1,36 +1,50 @@
 {
-  "batch_id": "BATCH-80",
+  "batch_id": "BATCH-81",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "Finalize simulation coverage by implementing deterministic state compression for endgame snapshots and optimizing Monte Carlo convergence logic. This batch ensures 100% reproducibility of the 5,500-tick campaign state with minimal memory footprint, closing all identified gaps in simulation fidelity and automation efficiency.",
+  "overview": "Finalize the simulation loop by implementing deterministic state hashing for save/load integrity, optimizing the tick-based physics solver for zero-allocation stability, and compressing the storyteller's narrative state into a bit-packed format. These steps ensure 100% coverage of the endgame phase with minimal memory footprint.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Implement Zero-Heap Deterministic State Compressor",
+      "title": "Implement Zero-Heap Deterministic State Hasher",
       "target_files": [
-        "src/engine/core/StateCompressor.h",
-        "src/engine/core/StateCompressor.cpp"
+        "Source/Engine/Core/StateHasher.h",
+        "Source/Engine/Core/StateHasher.cpp"
       ],
-      "architectural_spec": "Use std::array<uint8_t, 4096> for static buffer. Implement bitwise packing for tick counters (16-bit), entity IDs (12-bit), and status flags (4-bit). No dynamic allocation. Use constexpr for table generation. Ensure strict little-endian serialization for cross-platform determinism.",
-      "acceptance_criteria": "1. Compresses 5,500-tick state to <2KB. 2. Decompression is bit-exact identical to original. 3. Zero heap allocations during compress/decompress cycle. 4. Passes all 16,500 footstep verification checks.",
-      "player_fun_impact": "Instant save/load times and smaller save files, improving responsiveness in long campaigns.",
+      "architectural_spec": "struct StateHasher {\n    uint64_t hash = 0;\n    void Update(const void* data, size_t size) {\n        const uint8_t* ptr = static_cast<const uint8_t*>(data);\n        for (size_t i = 0; i < size; ++i) {\n            hash ^= ptr[i];\n            hash *= 1099511628211ULL;\n        }\n    }\n    uint64_t GetHash() const { return hash; }\n};",
+      "acceptance_criteria": "1. Hash value is stable across multiple runs for identical state.\n2. No dynamic memory allocation occurs during hashing.\n3. Unit tests verify collision resistance for 10k random states.",
+      "player_fun_impact": "Ensures save/load consistency and prevents desyncs in long-running simulations.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Optimize Monte Carlo Convergence for Endgame States",
+      "title": "Optimize Tick-Based Solver with Fixed-Point Arithmetic",
       "target_files": [
-        "src/simulation/physics/MonteCarloSolver.h",
-        "src/simulation/physics/MonteCarloSolver.cpp"
+        "Source/Simulation/Physics/FixedPointSolver.h",
+        "Source/Simulation/Physics/FixedPointSolver.cpp"
       ],
-      "architectural_spec": "Implement early-exit condition for Monte Carlo iterations when variance < 1e-6. Use fixed-point arithmetic for 16,500 footstep logs. Cache intermediate probability distributions in static thread-local storage. Limit iterations to 1000 max for endgame stability.",
-      "acceptance_criteria": "1. Convergence achieved in <500 iterations for stable endgame states. 2. 100% survival rate maintained across 1000 test runs. 3. No floating-point drift in 5,500-tick simulation.",
-      "player_fun_impact": "Faster simulation ticks and more predictable physics outcomes in complex endgame scenarios.",
+      "architectural_spec": "using Fixed = int64_t;\nconstexpr Fixed SCALE = 1000000;\nstruct Vec3 {\n    Fixed x, y, z;\n    Vec3 operator+(const Vec3& o) const { return {x+o.x, y+o.y, z+o.z}; }\n    Vec3 operator*(Fixed s) const { return {x*s/SCALE, y*s/SCALE, z*s/SCALE}; }\n};\nvoid StepPhysics(Vec3& pos, Vec3& vel, Vec3 acc, Fixed dt) {\n    pos = pos + vel * dt + acc * (dt * dt / 2);\n    vel = vel + acc * dt;\n}",
+      "acceptance_criteria": "1. Physics steps are deterministic across platforms.\n2. No floating-point drift after 10,000 ticks.\n3. Performance benchmark shows >20% speedup over double-precision.",
+      "player_fun_impact": "Provides snappier, more predictable physics interactions in dense scenes.",
       "estimated_complexity": "Small"
+    },
+    {
+      "task_id": "TASK-803",
+      "priority": "P2 - Quality-of-Life",
+      "domain": "Storyteller/AI",
+      "title": "Bit-Packed Narrative State Compression",
+      "target_files": [
+        "Source/Storyteller/NarrativeState.h",
+        "Source/Storyteller/NarrativeState.cpp"
+      ],
+      "architectural_spec": "struct NarrativeState {\n    uint32_t flags : 16;\n    uint16_t tick : 16;\n    uint8_t eventID : 8;\n    uint8_t mood : 8;\n    void Pack(uint8_t* buffer) {\n        buffer[0] = flags & 0xFF;\n        buffer[1] = (flags >> 8) & 0xFF;\n        buffer[2] = tick & 0xFF;\n        buffer[3] = (tick >> 8) & 0xFF;\n        buffer[4] = eventID;\n        buffer[5] = mood;\n    }\n};",
+      "acceptance_criteria": "1. State fits in 6 bytes.\n2. Unpack/Repack cycle preserves all data.\n3. Memory usage reduced by 60% compared to struct padding.",
+      "player_fun_impact": "Faster save/load times and smaller save files for large worlds.",
+      "estimated_complexity": "Atomic"
     }
   ]
 }
