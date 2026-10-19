@@ -1,65 +1,36 @@
 {
-  "batch_id": "BATCH-61",
+  "batch_id": "BATCH-62",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "Finalize the simulation loop by implementing deterministic state hashing for save/load integrity, optimizing the tick-based event queue for zero-allocation processing, and finalizing the colonist psychological state machine for endgame stability.",
+  "overview": "This batch focuses on finalizing the ultra-endgame state by implementing deterministic compression for the 5,500-tick simulation history and optimizing the Monte Carlo survival rate calculation for near-instantaneous replay verification. These steps ensure the simulation remains lightweight and verifiable without cascading dependencies.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Implement Zero-Heap Deterministic State Hashing",
+      "title": "Implement Deterministic Bit-Packed State Compression for Tick History",
       "target_files": [
-        "src/engine/core/StateHash.h",
-        "src/engine/core/StateHash.cpp"
+        "Source/Runtime/Simulation/StateCompression.h",
+        "Source/Runtime/Simulation/StateCompression.cpp"
       ],
-      "architectural_spec": "1. Define struct StateHashContext with fixed-size arrays for stack-based hashing.\n2. Implement FNV-1a 64-bit hash algorithm using constexpr where possible.\n3. Provide inline functions for hashing primitive types (int, float, bool) and fixed-size strings.\n4. Ensure no dynamic memory allocation (no std::vector, no new/delete).\n5. Use std::span for contiguous memory access during hashing.\n6. Add static_asserts for struct sizes to ensure cache-line alignment.\n7. Implement a simple combine function for nested structures.\n8. Ensure all functions are noexcept.\n9. Provide a single entry point: ComputeStateHash(const void* data, size_t size).\n10. Verify determinism across different compiler optimizations (O2, O3).",
-      "acceptance_criteria": [
-        "Hash values are identical across 1000 runs with same input.",
-        "Zero heap allocations during hashing phase.",
-        "Compilation time < 100ms for header inclusion.",
-        "All unit tests pass with 100% coverage."
-      ],
-      "player_fun_impact": "Ensures save/load consistency and prevents desyncs in multiplayer or replay modes.",
+      "architectural_spec": "Use std::array<uint64_t, 1024> for fixed-size storage. Implement a static constexpr function packState(const TickState&) that maps enum values and integer counters into bit-fields within uint64_t. No dynamic allocation. Use std::bit_cast for type punning. Ensure all operations are constexpr-friendly where possible.",
+      "acceptance_criteria": "1. Compression ratio > 85% for 5,500 ticks. 2. Decompression is O(1) per tick. 3. Zero heap allocations during pack/unpack. 4. Unit tests verify bit-exact reconstruction.",
+      "player_fun_impact": "Faster load times for saved games and smoother scrubbing through simulation history.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Optimize Tick-Based Event Queue with Ring Buffer",
+      "title": "Optimize Monte Carlo Survival Rate Calculation with SIMD",
       "target_files": [
-        "src/sim/core/EventQueue.h",
-        "src/sim/core/EventQueue.cpp"
+        "Source/Runtime/Simulation/MonteCarlo.h",
+        "Source/Runtime/Simulation/MonteCarlo.cpp"
       ],
-      "architectural_spec": "1. Define template class RingBuffer<T, N> with fixed capacity N.\n2. Implement push_back and pop_front using index arithmetic (no modulo if possible, use bitmask for power-of-2 N).\n3. Store events as packed structs (EventID, Tick, Data[16]).\n4. Implement ProcessEvents(uint64_t currentTick) that processes all events <= currentTick.\n5. Use std::array for storage to avoid heap fragmentation.\n6. Add inline getters for size and capacity.\n7. Ensure thread-safety via atomic indices if used in parallel contexts, otherwise single-threaded assumption.\n8. Provide a Reset() method for quick state clearing.\n9. Benchmark against std::deque for 10k events.\n10. Ensure no virtual functions in the hot path.",
-      "acceptance_criteria": [
-        "Processing 10,000 events takes < 1ms.",
-        "Memory footprint is exactly N * sizeof(Event) + overhead.",
-        "No memory leaks detected by Valgrind.",
-        "Correct ordering of events maintained."
-      ],
-      "player_fun_impact": "Reduces frame time spikes during heavy simulation phases, improving smoothness.",
+      "architectural_spec": "Utilize std::simd (C++20) for parallel accumulation of survival flags. Process 16,500 footsteps in chunks of 16. Use alignas(64) for data structures. Implement a static constexpr function calculateSurvivalRate(const std::span<const bool>&) that returns a float. Avoid branching in the inner loop.",
+      "acceptance_criteria": "1. Calculation completes in < 1ms for 16,500 entries. 2. Result matches scalar implementation exactly. 3. No dynamic memory allocation. 4. SIMD intrinsics are used via std::simd.",
+      "player_fun_impact": "Instantaneous feedback on simulation stability during gameplay.",
       "estimated_complexity": "Small"
-    },
-    {
-      "task_id": "TASK-803",
-      "priority": "P2 - Quality-of-Life",
-      "domain": "Storyteller/AI",
-      "title": "Finalize Colonist Psychological State Machine",
-      "target_files": [
-        "src/ai/ColonistPsychology.h",
-        "src/ai/ColonistPsychology.cpp"
-      ],
-      "architectural_spec": "1. Define enum class PsychState { Idle, Working, Resting, Panicked, Dead }.\n2. Create struct PsychData with float values for Stress, Happiness, Energy.\n3. Implement UpdatePsychology(PsychData& data, const Environment& env) as a pure function.\n4. Use lookup tables for state transitions to avoid branching.\n5. Clamp all float values to [0.0, 1.0] using std::clamp.\n6. Ensure deterministic output for given inputs.\n7. Add serialization support for PsychData.\n8. Implement a simple decay function for Energy over ticks.\n9. Provide a GetStateDescription() returning a const char*.\n10. Ensure all functions are constexpr-friendly where possible.",
-      "acceptance_criteria": [
-        "State transitions are deterministic and reproducible.",
-        "No floating-point drift after 10,000 ticks.",
-        "Serialization size is exactly 16 bytes per colonist.",
-        "Unit tests cover all state transitions."
-      ],
-      "player_fun_impact": "Provides consistent and predictable colonist behavior, enhancing strategic planning.",
-      "estimated_complexity": "Atomic"
     }
   ]
 }
