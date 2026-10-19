@@ -1,8 +1,8 @@
 {
-  "batch_id": "BATCH-47",
-  "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
+  "batch_id": "BATCH-48",
+  "batch_title": "Deterministic State Compression & Ascension Logic",
   "target_version": "v1.2.0",
-  "overview": "This batch focuses on finalizing the ultra-endgame state by implementing deterministic compression for the 5,500-tick simulation history and optimizing the Monte Carlo survival rate calculation for 100% coverage. The goal is to achieve a zero-deadlock, fully compressed state snapshot that supports instant rewind and deterministic replay without heap fragmentation.",
+  "overview": "This batch finalizes the ultra-endgame simulation by implementing deterministic state compression for long-running campaigns and the final ascension logic. These tasks ensure memory stability over 5,500+ ticks and provide a clean, non-blocking exit strategy for the simulation loop.",
   "tasks": [
     {
       "task_id": "TASK-801",
@@ -10,40 +10,52 @@
       "domain": "Engine/C++20",
       "title": "Implement Zero-Heap Deterministic State Compressor",
       "target_files": [
-        "Source/Runtime/Simulation/StateCompressor.h",
-        "Source/Runtime/Simulation/StateCompressor.cpp"
+        "src/engine/core/StateCompressor.h",
+        "src/engine/core/StateCompressor.cpp"
       ],
-      "architectural_spec": "Use std::array for fixed-size buffers. Implement a bitwise packing algorithm for tick states (position, velocity, health) into 64-bit integers. No dynamic allocation. Use constexpr for table lookups. Ensure all operations are noexcept.",
-      "acceptance_criteria": "1. Compress 5,500 ticks into <1MB. 2. Decompress in <1ms. 3. Zero heap allocations during compression/decompression. 4. Bit-exact match with original state.",
-      "player_fun_impact": "Instant save/load times and smaller save files for faster iteration.",
+      "architectural_spec": "Use std::array<uint8_t, 4096> for static buffers. Implement a simple run-length encoding (RLE) for tick states. No dynamic allocation. Use constexpr for buffer sizes. Ensure all operations are noexcept. The compressor must handle 5,500 ticks within 4KB static memory by collapsing identical consecutive states.",
+      "acceptance_criteria": [
+        "Memory usage remains constant at 4KB regardless of tick count.",
+        "Decompression speed is O(N) with N being the number of unique states.",
+        "All unit tests pass with 0 heap allocations reported by the profiler."
+      ],
+      "player_fun_impact": "Faster load times for long campaigns and stable memory usage on low-end devices.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Optimize Monte Carlo Survival Rate Calculation",
+      "title": "Finalize Ascension State Machine Transition",
       "target_files": [
-        "Source/Runtime/Simulation/MonteCarlo.h",
-        "Source/Runtime/Simulation/MonteCarlo.cpp"
+        "src/simulation/AscensionManager.h",
+        "src/simulation/AscensionManager.cpp"
       ],
-      "architectural_spec": "Implement a fixed-point arithmetic engine for survival probability. Use SIMD intrinsics (SSE4.2) for batch processing of 16,500 footsteps. Cache intermediate results in a static array. Avoid floating-point division in the inner loop.",
-      "acceptance_criteria": "1. Calculate survival rate for 16,500 steps in <0.5ms. 2. 100% accuracy match with reference double-precision results. 3. No cache misses in the hot loop.",
-      "player_fun_impact": "Faster simulation ticks and more responsive UI updates during endgame.",
+      "architectural_spec": "Define a strict enum class for AscensionStates { Idle, Processing, Complete }. Implement a state machine that transitions from Processing to Complete only when all 16,500 footsteps are logged. Use std::variant for state data to avoid heap fragmentation. Ensure thread-safe transitions using std::atomic<int>.",
+      "acceptance_criteria": [
+        "State transitions are atomic and lock-free.",
+        "No deadlocks occur during the transition from tick 5500 to Ascension Complete.",
+        "The manager correctly reports 'Complete' status after the final tick."
+      ],
+      "player_fun_impact": "Provides a clear, immediate end-of-game signal without hanging the simulation loop.",
       "estimated_complexity": "Small"
     },
     {
       "task_id": "TASK-803",
       "priority": "P2 - Quality-of-Life",
       "domain": "Storyteller/AI",
-      "title": "Add Deterministic Replay Checksum Validation",
+      "title": "Generate Deterministic Ascension Summary",
       "target_files": [
-        "Source/Runtime/Storyteller/ReplayValidator.h",
-        "Source/Runtime/Storyteller/ReplayValidator.cpp"
+        "src/storyteller/SummaryGenerator.h",
+        "src/storyteller/SummaryGenerator.cpp"
       ],
-      "architectural_spec": "Implement a rolling CRC32 checksum for each tick's state. Store checksums in a std::array<uint32_t, 5500>. Provide a constexpr function to validate the entire sequence against a master checksum. Handle edge cases for empty sequences.",
-      "acceptance_criteria": "1. Validate 5,500 ticks in <0.1ms. 2. Detect any single-bit flip in the state history. 3. Zero dependencies on external libraries.",
-      "player_fun_impact": "Reliable save-game integrity checks and faster debugging of simulation desyncs.",
+      "architectural_spec": "Create a struct AscensionSummary with fixed-size char arrays for stats. Populate it with tick count, footstep count, and survival rate. Use std::format (C++20) for string generation into a static buffer. No dynamic string allocations.",
+      "acceptance_criteria": [
+        "Summary is generated in <1ms.",
+        "Output is identical across runs for the same seed.",
+        "No heap allocations during summary generation."
+      ],
+      "player_fun_impact": "Instant, consistent end-game statistics display.",
       "estimated_complexity": "Atomic"
     }
   ]

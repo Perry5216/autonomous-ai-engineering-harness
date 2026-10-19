@@ -1,13 +1,13 @@
-# Project Deep-Mantle :: Engineering Work Batch: BATCH-47
+# Project Deep-Mantle :: Engineering Work Batch: BATCH-48
 
-## Ultra-Endgame Ascension & Deterministic State Compression (Target: `v1.2.0`)
+## Deterministic State Compression & Ascension Logic (Target: `v1.2.0`)
 
 - **Architect**: `DGX Spark Cluster Lead Systems Engineer`
 - **QA Verifier**: `RTX 5090 Blackwell Reflex QA Director`
-- **Date**: `2026-10-19 16:00:37`
+- **Date**: `2026-10-19 16:08:31`
 
 ### Batch Overview
-This batch focuses on finalizing the ultra-endgame state by implementing deterministic compression for the 5,500-tick simulation history and optimizing the Monte Carlo survival rate calculation for 100% coverage. The goal is to achieve a zero-deadlock, fully compressed state snapshot that supports instant rewind and deterministic replay without heap fragmentation.
+This batch finalizes the ultra-endgame simulation by implementing deterministic state compression for long-running campaigns and the final ascension logic. These tasks ensure memory stability over 5,500+ ticks and provide a clean, non-blocking exit strategy for the simulation loop.
 
 ---
 
@@ -18,40 +18,40 @@ This batch focuses on finalizing the ultra-endgame state by implementing determi
 - **Domain**: `Engine/C++20`
 - **Estimated Complexity**: `Atomic`
 - **Target Files**:
-  - `Source/Runtime/Simulation/StateCompressor.h`
-  - `Source/Runtime/Simulation/StateCompressor.cpp`
+  - `src/engine/core/StateCompressor.h`
+  - `src/engine/core/StateCompressor.cpp`
 - **Architectural Specification**:
-  Use std::array for fixed-size buffers. Implement a bitwise packing algorithm for tick states (position, velocity, health) into 64-bit integers. No dynamic allocation. Use constexpr for table lookups. Ensure all operations are noexcept.
+  Use std::array<uint8_t, 4096> for static buffers. Implement a simple run-length encoding (RLE) for tick states. No dynamic allocation. Use constexpr for buffer sizes. Ensure all operations are noexcept. The compressor must handle 5,500 ticks within 4KB static memory by collapsing identical consecutive states.
 - **Acceptance Criteria**:
-  1. Compress 5,500 ticks into <1MB. 2. Decompress in <1ms. 3. Zero heap allocations during compression/decompression. 4. Bit-exact match with original state.
+  ['Memory usage remains constant at 4KB regardless of tick count.', 'Decompression speed is O(N) with N being the number of unique states.', 'All unit tests pass with 0 heap allocations reported by the profiler.']
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Instant save/load times and smaller save files for faster iteration.
+  Faster load times for long campaigns and stable memory usage on low-end devices.
 
-#### [TASK-802] Optimize Monte Carlo Survival Rate Calculation (`P1 - High`)
+#### [TASK-802] Finalize Ascension State Machine Transition (`P1 - High`)
 
 - **Domain**: `Simulation/Physics`
 - **Estimated Complexity**: `Small`
 - **Target Files**:
-  - `Source/Runtime/Simulation/MonteCarlo.h`
-  - `Source/Runtime/Simulation/MonteCarlo.cpp`
+  - `src/simulation/AscensionManager.h`
+  - `src/simulation/AscensionManager.cpp`
 - **Architectural Specification**:
-  Implement a fixed-point arithmetic engine for survival probability. Use SIMD intrinsics (SSE4.2) for batch processing of 16,500 footsteps. Cache intermediate results in a static array. Avoid floating-point division in the inner loop.
+  Define a strict enum class for AscensionStates { Idle, Processing, Complete }. Implement a state machine that transitions from Processing to Complete only when all 16,500 footsteps are logged. Use std::variant for state data to avoid heap fragmentation. Ensure thread-safe transitions using std::atomic<int>.
 - **Acceptance Criteria**:
-  1. Calculate survival rate for 16,500 steps in <0.5ms. 2. 100% accuracy match with reference double-precision results. 3. No cache misses in the hot loop.
+  ['State transitions are atomic and lock-free.', 'No deadlocks occur during the transition from tick 5500 to Ascension Complete.', "The manager correctly reports 'Complete' status after the final tick."]
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Faster simulation ticks and more responsive UI updates during endgame.
+  Provides a clear, immediate end-of-game signal without hanging the simulation loop.
 
-#### [TASK-803] Add Deterministic Replay Checksum Validation (`P2 - Quality-of-Life`)
+#### [TASK-803] Generate Deterministic Ascension Summary (`P2 - Quality-of-Life`)
 
 - **Domain**: `Storyteller/AI`
 - **Estimated Complexity**: `Atomic`
 - **Target Files**:
-  - `Source/Runtime/Storyteller/ReplayValidator.h`
-  - `Source/Runtime/Storyteller/ReplayValidator.cpp`
+  - `src/storyteller/SummaryGenerator.h`
+  - `src/storyteller/SummaryGenerator.cpp`
 - **Architectural Specification**:
-  Implement a rolling CRC32 checksum for each tick's state. Store checksums in a std::array<uint32_t, 5500>. Provide a constexpr function to validate the entire sequence against a master checksum. Handle edge cases for empty sequences.
+  Create a struct AscensionSummary with fixed-size char arrays for stats. Populate it with tick count, footstep count, and survival rate. Use std::format (C++20) for string generation into a static buffer. No dynamic string allocations.
 - **Acceptance Criteria**:
-  1. Validate 5,500 ticks in <0.1ms. 2. Detect any single-bit flip in the state history. 3. Zero dependencies on external libraries.
+  ['Summary is generated in <1ms.', 'Output is identical across runs for the same seed.', 'No heap allocations during summary generation.']
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Reliable save-game integrity checks and faster debugging of simulation desyncs.
+  Instant, consistent end-game statistics display.
 
