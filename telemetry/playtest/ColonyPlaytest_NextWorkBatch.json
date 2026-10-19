@@ -1,50 +1,64 @@
 {
-  "batch_id": "BATCH-59",
-  "batch_title": "Subterranean Deep-Mantle High-Fun Depth Architecture",
+  "batch_id": "BATCH-60",
+  "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "Implement top-priority gameplay depth systems synthesized from Dwarf Fortress hydrodynamics, colonist strange moods, and subterranean acoustic geophone warning grids.",
+  "overview": "Following the successful completion of BATCH-59, the simulation has achieved stable high-depth operation. This batch focuses on the final optimization of the endgame state to ensure deterministic reproducibility and minimal memory footprint for long-running sessions. We are closing the gap between raw simulation data and efficient archival storage, while finalizing the psychological model for colonist adaptation to deep-mantle conditions.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
-      "domain": "Simulation/FluidDynamics",
-      "title": "Multi-Z Magma & Groundwater Hydrodynamic Simulation (Dwarf Fortress Physics)",
+      "domain": "Engine/C++20",
+      "title": "Implement Zero-Copy Deterministic State Hasher",
       "target_files": [
-        "Code/EnginePlugins/ColonyPlugin/ColonyFluidDynamics.h",
-        "Code/EnginePlugins/ColonyPlugin/ColonyFluidDynamics.cpp"
+        "src/engine/core/StateHasher.h",
+        "src/engine/core/StateHasher.cpp"
       ],
-      "architectural_spec": "Zero-heap 64x64x3 cellular automaton fluid solver tracking pressure, viscosity, and thermal transfer across Z-levels. Water meeting magma triggers an exothermic reaction depositing solid obsidian blocks; hydrostatic head pressure above 3.5 bar damages non-reinforced airlocks.",
-      "acceptance_criteria": "Fluid volume is strictly conserved; water-magma boundary generates solid obsidian; high hydrostatic pressure busts non-reinforced doors; zero heap allocation during fluid tick.",
-      "player_fun_impact": "Dwarf Fortress-grade catastrophic tension when mining near subterranean aquifers or lava pockets, forcing quick emergency bulkhead closures or magma-channeling traps.",
-      "estimated_complexity": "Large"
+      "architectural_spec": "Create a constexpr-friendly struct `StateHasher` using `std::span<const uint8_t>` for input. Implement a custom FNV-1a variant optimized for 64-bit integers. Use `std::bit_cast` for type-punning. No dynamic allocation. The hasher must process the entire simulation state buffer in a single pass. Include a static assertion for endianness. Provide a `finalize()` method returning `uint64_t`. Ensure all operations are noexcept. Integrate with the existing `TickManager` to hash state every 100 ticks.",
+      "acceptance_criteria": [
+        "Hasher produces identical `uint64_t` for identical state buffers across 1000 runs.",
+        "Zero heap allocations during hashing phase.",
+        "Compilation time < 50ms for the header.",
+        "Unit tests cover edge cases: empty buffer, single byte, max uint64."
+      ],
+      "player_fun_impact": "Ensures save/load consistency and enables rapid state comparison for debugging and replay systems.",
+      "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
-      "domain": "Pawns/Psychology",
-      "title": "Colonist Strange Moods & Masterwork Relic Forging (DF / RimWorld Hybrid)",
+      "domain": "Simulation/Physics",
+      "title": "Optimize Deep-Mantle Pressure Gradient Calculation",
       "target_files": [
-        "Code/EnginePlugins/ColonyPlugin/ColonyStrangeMoodSystem.h",
-        "Code/EnginePlugins/ColonyPlugin/ColonyStrangeMoodSystem.cpp"
+        "src/simulation/physics/PressureModel.h",
+        "src/simulation/physics/PressureModel.cpp"
       ],
-      "architectural_spec": "Colonists undergo rare psychiatric inspiration ('Fey', 'Secretive', or 'Possessed'). The colonist claims a crafting workshop, gathers esoteric materials (obsidian, crystal pine, titanium rebar), and enters an unstoppable crafting trance. Success produces a Masterwork Relic with procedurally generated historical engravings providing +15 Colony Mood aura; failure results in melancholy or berserk breakdown.",
-      "acceptance_criteria": "Trigger rate scales with colonist skill and room impressiveness; colonist locks out other workers from workbench; completed artifact generates permanent immutable history description; zero heap allocation.",
-      "player_fun_impact": "The ultimate Dwarf Fortress dopamine loop: scrambling to find rare minerals demanded by an inspired artisan before their timer expires, yielding legendary relics that commemorate colony milestones.",
-      "estimated_complexity": "Medium"
+      "architectural_spec": "Refactor the pressure gradient calculation to use a precomputed lookup table for depth-to-pressure conversion. Define a `constexpr` array of 1024 entries mapping depth indices to pressure values. Implement a linear interpolation function `lerp` for intermediate depths. Use `std::array` for the lookup table. The main calculation function should take `uint16_t depth_index` and return `float pressure`. Remove all floating-point divisions in the hot path by using reciprocal constants. Ensure the table is generated at compile-time using `constexpr` loops.",
+      "acceptance_criteria": [
+        "Lookup table generated at compile time.",
+        "Calculation time per tick reduced by >40% compared to BATCH-59.",
+        "No runtime initialization of the lookup table.",
+        "Accuracy within 1e-6 of reference values."
+      ],
+      "player_fun_impact": "Smoother frame rates during deep exploration sequences, reducing stutter in high-depth zones.",
+      "estimated_complexity": "Small"
     },
     {
       "task_id": "TASK-803",
-      "priority": "P1 - High",
-      "domain": "Geotechnical/Sensory",
-      "title": "Subterranean Acoustic Geophone Grid & Overburden Seismic Warning",
+      "priority": "P2 - Quality-of-Life",
+      "domain": "Storyteller/AI",
+      "title": "Compact Colonist Psychological State Bitfield",
       "target_files": [
-        "Code/EnginePlugins/ColonyPlugin/ColonyAcousticGeophoneSystem.h",
-        "Code/EnginePlugins/ColonyPlugin/ColonyAcousticGeophoneSystem.cpp"
+        "src/ai/colonist/PsychState.h"
       ],
-      "architectural_spec": "Geophone acoustic sensor components installed along cavern walls measure micro-seismic vibrations and rock strain before roof failure. When overburden stress exceeds 85%, geophones emit audible acoustic clicks and pulsing amber HUD ripples 400 ticks before collapse, giving pawns a tangible evacuation window.",
-      "acceptance_criteria": "Sensor detects stress within 16-tile spherical radius; dispatches UI acoustic ripple alert to ColonyMap HUD before collapse occurs; triangulates epicenter across 3+ sensors; zero heap allocation.",
-      "player_fun_impact": "Replaces sudden unfair cave-in deaths with visceral sensory dread and actionable triage: hearing the ominous creaking of rock in the darkness and seeing the HUD geophone pulse, giving players a thrilling 10-second countdown to pull miners out or rush support pillars in.",
-      "estimated_complexity": "Medium"
+      "architectural_spec": "Define a `struct PsychState` using `uint32_t` bitfields for core attributes: `mood` (4 bits), `energy` (4 bits), `hunger` (4 bits), `thirst` (4 bits), `status_flags` (16 bits). Implement `constexpr` getters and setters using bitwise operations. Add a `to_string()` method that formats the state into a compact 16-character string for UI display. Ensure the struct is trivially copyable and fits within 4 bytes. Provide a `merge` function to combine two states using bitwise OR for flags and average for numeric values.",
+      "acceptance_criteria": [
+        "Struct size is exactly 4 bytes.",
+        "All getters/setters are `constexpr` and `noexcept`.",
+        "UI display string is always 16 characters long.",
+        "No padding bytes in the struct."
+      ],
+      "player_fun_impact": "Faster UI updates and clearer, more concise status indicators for colonists.",
+      "estimated_complexity": "Atomic"
     }
   ]
 }
