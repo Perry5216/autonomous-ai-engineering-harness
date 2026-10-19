@@ -4966,11 +4966,36 @@
                     const cx = cr.x * cellSize - offsetX;
                     const cy = cr.y * cellSize - offsetY;
                     if (cx >= 0 && cx <= cw && cy >= 0 && cy <= ch) {
+                        const s = cellSize * 0.65;
+                        const ox = cx + (cellSize - s) * 0.5;
+                        const oy = cy + (cellSize - s) * 0.5;
+
+                        // Tactile drop shadow
+                        localCtx.fillStyle = "rgba(0, 0, 0, 0.55)";
+                        localCtx.fillRect(ox + 1, oy + s - 2, s, 3);
+
+                        // Crate body
                         localCtx.fillStyle = cr.col;
-                        localCtx.fillRect(cx + cellSize * 0.2, cy + cellSize * 0.2, cellSize * 0.6, cellSize * 0.6);
-                        localCtx.strokeStyle = "#000";
+                        localCtx.fillRect(ox, oy, s, s - 2);
+
+                        // Specular top rim
+                        localCtx.fillStyle = "rgba(255, 255, 255, 0.45)";
+                        localCtx.fillRect(ox, oy, s, 2);
+
+                        // Metal corner reinforcement brackets
+                        localCtx.fillStyle = "#0f172a";
+                        localCtx.fillRect(ox, oy, 2.5, 2.5);
+                        localCtx.fillRect(ox + s - 2.5, oy, 2.5, 2.5);
+                        localCtx.fillRect(ox, oy + s - 4.5, 2.5, 2.5);
+                        localCtx.fillRect(ox + s - 2.5, oy + s - 4.5, 2.5, 2.5);
+
+                        // Stencil center cargo strap
+                        localCtx.fillStyle = "rgba(0, 0, 0, 0.35)";
+                        localCtx.fillRect(ox + 2.5, oy + (s - 2) * 0.4, s - 5, 2);
+
+                        localCtx.strokeStyle = "rgba(0, 0, 0, 0.8)";
                         localCtx.lineWidth = 1;
-                        localCtx.strokeRect(cx + cellSize * 0.2, cy + cellSize * 0.2, cellSize * 0.6, cellSize * 0.6);
+                        localCtx.strokeRect(ox, oy, s, s - 2);
                     }
                 });
 
