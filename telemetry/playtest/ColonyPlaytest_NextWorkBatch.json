@@ -1,49 +1,49 @@
 {
-  "batch_id": "BATCH-36",
+  "batch_id": "BATCH-37",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "This batch focuses on finalizing the simulation loop by implementing deterministic state hashing for save/load integrity, optimizing the tick-based physics solver for 100% Monte Carlo survival, and refining the storyteller AI's endgame narrative pacing. These atomic tasks ensure zero deadlocks and perfect reproducibility in the 5,500+ tick campaign.",
+  "overview": "Finalize the simulation loop by implementing deterministic state hashing for rapid save/load verification and optimizing the tick-based event queue for zero-allocation processing. These steps ensure the 5,500-tick campaign state is reproducible and memory-efficient, closing the final gaps in system stability and performance.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Implement Deterministic State Hashing for Save/Load Integrity",
+      "title": "Implement Deterministic State Hashing for Save Verification",
       "target_files": [
-        "Source/Engine/Core/StateHasher.h",
-        "Source/Engine/Core/StateHasher.cpp"
+        "Source/Runtime/Core/StateHash.h",
+        "Source/Runtime/Core/StateHash.cpp"
       ],
-      "architectural_spec": "1. Define `struct StateHash` with `uint64_t value`.\n2. Implement `constexpr uint64_t FNV1aHash(const char* data, size_t len)`.\n3. Create `class DeterministicState` with `std::array<uint64_t, 16> m_hashes`.\n4. Add `void UpdateHash(const void* data, size_t len)` using FNV1a.\n5. Ensure no heap allocations; use `std::span` for data access.\n6. Provide `bool operator==(const DeterministicState&) const`.\n7. Add `std::string_view ToString() const` for debug output.\n8. Integrate into `TickSystem::Update()` post-physics.\n9. Validate against 5,500 tick reference logs.\n10. Zero cascading headers; include only `<cstdint>`, `<array>`, `<string_view>`.",
-      "acceptance_criteria": "1. Hash value is identical across 100 Monte Carlo runs.\n2. No heap allocations during hashing.\n3. Compile time < 50ms for header inclusion.\n4. Passes all 16,500 footstep log comparisons.",
-      "player_fun_impact": "Guarantees perfect save/load reproducibility, eliminating 'ghost' desyncs in long campaigns.",
+      "architectural_spec": "1. Define `struct StateHash` with `uint64_t m_Hash`.\n2. Implement `ComputeHash(const SimulationState& state)` using FNV-1a 64-bit algorithm.\n3. Iterate through `state.m_Ticks`, `state.m_Colonists`, and `state.m_Resources`.\n4. Use `std::span` for contiguous memory access to minimize cache misses.\n5. Ensure no dynamic allocation during hash computation.\n6. Return `StateHash` by value.\n7. Add `operator==` for quick comparison.\n8. Integrate into `SaveSystem::VerifyIntegrity`.\n9. Handle null pointers in state structs gracefully.\n10. Unit test with known 5,500-tick snapshot.",
+      "acceptance_criteria": "Hash computation completes in <1ms for 5,500 ticks. Identical states produce identical hashes. No heap allocations during hashing.",
+      "player_fun_impact": "Instant save/load verification, reducing perceived load times and ensuring save integrity.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Optimize Tick-Based Physics Solver for Zero Deadlocks",
+      "title": "Zero-Allocation Tick Event Queue Optimization",
       "target_files": [
-        "Source/Simulation/Physics/TickSolver.h",
-        "Source/Simulation/Physics/TickSolver.cpp"
+        "Source/Runtime/Simulation/EventQueue.h",
+        "Source/Runtime/Simulation/EventQueue.cpp"
       ],
-      "architectural_spec": "1. Define `struct PhysicsState` with `float pos[3]`, `float vel[3]`.\n2. Implement `void StepPhysics(PhysicsState& state, float dt)`.\n3. Use `std::array<PhysicsState, 1024>` for static pool.\n4. Add `bool IsStable(const PhysicsState& s)` with epsilon 1e-6.\n5. Implement `void ResolveCollisions(std::span<PhysicsState>)`.\n6. Ensure no recursion in collision resolution.\n7. Add `uint32_t GetTickCount()` for debug.\n8. Integrate with `StateHasher` from TASK-801.\n9. Validate 100% survival rate in 5,500 ticks.\n10. Zero heap allocations; use `std::span` for iteration.",
-      "acceptance_criteria": "1. 0 deadlocks in 5,500 ticks.\n2. 100% Monte Carlo survival rate.\n3. Physics step time < 0.1ms per 1024 entities.\n4. No floating-point drift beyond 1e-6.",
-      "player_fun_impact": "Smooth, predictable physics behavior with no stuttering or entity tunneling.",
+      "architectural_spec": "1. Replace `std::vector<Event>` with `std::array<Event, 1024>`.\n2. Implement circular buffer logic with `m_Head` and `m_Tail` indices.\n3. Use `std::optional<Event>` for slot storage.\n4. `PushEvent` uses modulo arithmetic for index wrapping.\n5. `PopEvent` returns `std::optional<Event>`.\n6. Pre-allocate all events in a static pool.\n7. Remove `std::vector` dependencies from header.\n8. Ensure `constexpr` support for array size.\n9. Benchmark against previous vector implementation.\n10. Verify no fragmentation in memory profiler.",
+      "acceptance_criteria": "Memory footprint reduced by 40%. No heap allocations during tick processing. 100% deterministic order.",
+      "player_fun_impact": "Smoother frame rates during high-density simulation phases.",
       "estimated_complexity": "Small"
     },
     {
       "task_id": "TASK-803",
       "priority": "P2 - Quality-of-Life",
       "domain": "Storyteller/AI",
-      "title": "Refine Endgame Narrative Pacing for 5,500+ Ticks",
+      "title": "Compact Colonist Psychology State Serialization",
       "target_files": [
-        "Source/Storyteller/EndgamePacer.h",
-        "Source/Storyteller/EndgamePacer.cpp"
+        "Source/Runtime/AI/ColonistState.h",
+        "Source/Runtime/AI/ColonistState.cpp"
       ],
-      "architectural_spec": "1. Define `enum class Phase { Early, Mid, Late, Ascension }`.\n2. Implement `Phase GetPhase(uint32_t tick)` with thresholds 1000, 3000, 5000.\n3. Create `struct NarrativeEvent` with `std::string_view text`.\n4. Add `void EmitEvent(Phase p)` with static `std::array` of events.\n5. Ensure no dynamic string allocation; use `std::string_view`.\n6. Integrate with `TickSolver` tick count.\n7. Add `bool IsAscensionComplete()` for final state.\n8. Validate against 16,500 footstep logs.\n9. Zero heap allocations; use `std::span` for event lists.\n10. Include only `<cstdint>`, `<array>`, `<string_view>`.",
-      "acceptance_criteria": "1. Correct phase transition at ticks 1000, 3000, 5000.\n2. No heap allocations during event emission.\n3. All 16,500 footstep logs match expected narrative beats.\n4. Ascension phase triggers exactly at tick 5500.",
-      "player_fun_impact": "Clear, timely narrative cues that enhance immersion without lag.",
+      "architectural_spec": "1. Pack `m_Hunger`, `m_Energy`, `m_Mood` into `uint8_t` fields.\n2. Use bitfields for boolean flags (`m_IsWorking`, `m_IsIdle`).\n3. Implement `SerializeToBuffer` using `memcpy` for struct.\n4. Implement `DeserializeFromBuffer` with static_assert size checks.\n5. Remove virtual functions from `ColonistState`.\n6. Ensure alignment is 1 byte (`#pragma pack(1)`).\n7. Add `static_assert(sizeof(ColonistState) == 8)`.\n8. Update `SaveSystem` to use new struct.\n9. Test with 16,500 footsteps log.\n10. Verify backward compatibility with v1.1.0 saves.",
+      "acceptance_criteria": "Struct size is exactly 8 bytes. Serialization is 2x faster. All 16,500 footsteps reconstruct correctly.",
+      "player_fun_impact": "Faster save file loading and smaller save file sizes.",
       "estimated_complexity": "Atomic"
     }
   ]
