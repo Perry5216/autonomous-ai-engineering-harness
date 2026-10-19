@@ -1,8 +1,8 @@
 {
-  "batch_id": "BATCH-44",
+  "batch_id": "BATCH-45",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "Finalize the simulation loop by implementing deterministic state hashing for save/load integrity, optimizing the tick-based physics solver for 100% Monte Carlo survival, and compressing the colonist psychology state machine into a bit-packed structure to reduce memory footprint during long-run simulations.",
+  "overview": "Finalize simulation coverage by implementing deterministic state hashing for save/load integrity, optimizing colonist psychology state transitions for zero-allocation performance, and establishing a compact tick-based event log for endgame analysis.",
   "tasks": [
     {
       "task_id": "TASK-801",
@@ -13,38 +13,50 @@
         "src/engine/core/StateHasher.h",
         "src/engine/core/StateHasher.cpp"
       ],
-      "architectural_spec": "1. Define `struct StateHash` using `std::array<uint64_t, 4>` for 256-bit output.\n2. Implement `FNV1a` variant with 64-bit mixing for speed.\n3. Use `constexpr` functions for compile-time hash calculation of static data.\n4. Ensure no dynamic allocation; use stack-based buffers.\n5. Integrate with `ez::World` snapshot mechanism.\n6. Validate against known test vectors.\n7. Handle endianness explicitly via `std::endian`.\n8. Provide `operator==` for hash comparison.\n9. Add `to_string()` for debug output.\n10. Ensure thread-safety via immutable snapshots.",
-      "acceptance_criteria": "1. Hash computation completes in <1ms for 10k entities.\n2. Identical states produce identical hashes.\n3. No heap allocations during hashing.\n4. Unit tests pass for 1000 random states.",
-      "player_fun_impact": "Faster save/load times and reliable state restoration.",
+      "architectural_spec": "struct StateHasher {\n    static constexpr uint64_t kPrime = 1099511628211ULL;\n    uint64_t hash = 14695981039346656037ULL;\n    \n    void update(uint64_t value) {\n        hash ^= value;\n        hash *= kPrime;\n    }\n    \n    void update(const float& f) {\n        uint64_t bits;\n        memcpy(&bits, &f, sizeof(float));\n        update(bits);\n    }\n    \n    void update(const int& i) {\n        update(static_cast<uint64_t>(i));\n    }\n    \n    uint64_t finalize() const {\n        return hash;\n    }\n};",
+      "acceptance_criteria": [
+        "Hash function is deterministic across platforms.",
+        "No heap allocations during hashing.",
+        "Unit tests verify hash consistency for identical state sequences."
+      ],
+      "player_fun_impact": "Ensures reliable save/load functionality, preventing corruption in long-running simulations.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Optimize Tick-Based Physics Solver for 100% Monte Carlo Survival",
+      "title": "Optimize Colonist Psychology State Transitions with Zero-Allocation Enums",
       "target_files": [
-        "src/simulation/physics/Solver.h",
-        "src/simulation/physics/Solver.cpp"
+        "src/simulation/psychology/ColonistState.h",
+        "src/simulation/psychology/ColonistState.cpp"
       ],
-      "architectural_spec": "1. Refactor `Solver::step()` to use fixed-point arithmetic (`int64_t`).\n2. Precompute inverse masses in `Entity` struct.\n3. Use `std::span` for contiguous memory access.\n4. Implement spatial partitioning grid with 16x16 cells.\n5. Resolve collisions using iterative Gauss-Seidel method.\n6. Limit iterations to 4 for stability.\n7. Cache contact points in `ContactCache`.\n8. Avoid virtual calls in hot loop.\n9. Use `__restrict__` pointers for aliasing hints.\n10. Profile with `std::chrono::high_resolution_clock`.",
-      "acceptance_criteria": "1. 10k entities simulated in <5ms.\n2. Zero deadlocks in 5,500 ticks.\n3. Deterministic results across runs.\n4. Memory usage <1MB for 10k entities.",
-      "player_fun_impact": "Smoother frame rates and consistent physics behavior.",
-      "estimated_complexity": "Small"
+      "architectural_spec": "enum class ColonistState : uint8_t {\n    Idle = 0,\n    Working = 1,\n    Eating = 2,\n    Sleeping = 3,\n    Panicked = 4,\n    Dead = 5\n};\n\nstruct PsychologyState {\n    ColonistState current;\n    uint32_t tick_entered;\n    \n    void transition(ColonistState next, uint32_t tick) {\n        current = next;\n        tick_entered = tick;\n    }\n    \n    bool is_active() const {\n        return current != ColonistState::Dead;\n    }\n};",
+      "acceptance_criteria": [
+        "State transitions are O(1) with no dynamic memory.",
+        "Enum values are stable across compilations.",
+        "Integration tests confirm correct state propagation in 5,500-tick simulation."
+      ],
+      "player_fun_impact": "Improves simulation speed and responsiveness, allowing for larger colony sizes without lag.",
+      "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-803",
       "priority": "P2 - Quality-of-Life",
       "domain": "Storyteller/AI",
-      "title": "Bit-Packed Colonist Psychology State Machine",
+      "title": "Compact Tick-Based Event Log for Endgame Analysis",
       "target_files": [
-        "src/ai/psychology/StatePack.h",
-        "src/ai/psychology/StatePack.cpp"
+        "src/storyteller/EventLog.h",
+        "src/storyteller/EventLog.cpp"
       ],
-      "architectural_spec": "1. Define `enum class Mood : uint8_t` with 8 states.\n2. Pack `Mood`, `Energy`, `Hunger` into `uint32_t`.\n3. Use `std::bit_cast` for type punning.\n4. Implement `unpack()` and `pack()` as `constexpr`.\n5. Store 1000 colonists in 4KB array.\n6. Update logic uses bitwise ops for speed.\n7. No dynamic memory for state storage.\n8. Integrate with `TickSystem`.\n9. Provide `debug_print()` for inspection.\n10. Ensure alignment to 4 bytes.",
-      "acceptance_criteria": "1. 1000 colonists stored in 4KB.\n2. Update time <0.1ms for 1000 entities.\n3. No fragmentation in memory.\n4. All states correctly unpacked.",
-      "player_fun_impact": "Reduced memory footprint and faster AI updates.",
-      "estimated_complexity": "Atomic"
+      "architectural_spec": "struct EventEntry {\n    uint32_t tick;\n    uint8_t type;\n    uint16_t data;\n};\n\nclass EventLog {\n    static constexpr size_t kMaxEvents = 10000;\n    EventEntry events[kMaxEvents];\n    size_t count = 0;\n    \npublic:\n    void log(uint32_t tick, uint8_t type, uint16_t data) {\n        if (count < kMaxEvents) {\n            events[count++] = {tick, type, data};\n        }\n    }\n    \n    size_t size() const { return count; }\n    const EventEntry& get(size_t index) const { return events[index]; }\n};",
+      "acceptance_criteria": [
+        "Log capacity is fixed at 10,000 entries.",
+        "No heap allocations; uses static array.",
+        "Events are retrieved in chronological order."
+      ],
+      "player_fun_impact": "Provides concise, readable summaries of simulation events for quick review and debugging.",
+      "estimated_complexity": "Small"
     }
   ]
 }
