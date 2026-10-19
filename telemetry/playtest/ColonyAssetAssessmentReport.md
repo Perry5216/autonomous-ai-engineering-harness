@@ -1,6 +1,6 @@
 # Project Deep-Mantle: Autonomous Asset Assessment Report
 
-**Generated:** 2026-10-19 19:34:29 UTC  
+**Generated:** 2026-10-19 19:46:12 UTC  
 **Evaluated By:** Operator's Local AI Cluster (DGX Spark :8877 & RTX 5090 Blackwell :8080)  
 **RTX 5090 Role Transition:** `ROLE_ENTER` -> `ROLE_EXIT` Clean VRAM Hand-off  
 **Total Assets Evaluated:** 52  
@@ -9,72 +9,74 @@
 
 ## 1. Operator AI Cognitive Assessment & Feature Directives
 
-Hello. As the Lead Visual Designer and Gameplay Architect for **Project Deep-Mantle**, I have analyzed the asset domains and the core simulation parameters. Below is my decisive evaluation and architectural roadmap.
+Here is the architectural and visual audit for **Project Deep-Mantle**, executed from the perspective of the Lead Visual Designer and Gameplay Architect on the DGX Spark & RTX 5090 cluster.
 
-### 1. Visual & Spatial Consistency Evaluation
-**Does this make sense?**
-**Yes, but with strict constraints required for readability.**
+### 1. Visual Coherence & Spatial Consistency Audit
+**Verdict:** The current asset list is logically sound but visually fragmented. It requires strict quantization to achieve a cohesive "Deep-Mantle" aesthetic.
 
-*   **Top-Down Orthographic Perspective:** This is the optimal choice for a dense, grid-based simulation. It eliminates parallax errors and allows for precise 1:1 mapping between logical grid coordinates and pixel positions.
-    *   *Critique:* The current list mixes static objects (Lithophone) with dynamic entities (Muffalo). In a top-down view, **Z-axis layering** is critical.
-    *   *Correction:* Ensure all "Canopies" (Spore Tree) and "Machinery" (Turbine) have clear **shadow casting** or **depth offsets** (e.g., 2px vertical offset for shadows) to distinguish height differences. Without this, a "Healroot" (low) and a "Turbine" (high) will visually merge, causing player confusion.
+*   **Top-Down Orthographic Perspective:**
+    *   **Status:** **Optimal.** The 6 domains are perfectly suited for a 2D top-down view. This minimizes occlusion issues common in 3D isometric views for dense factory layouts.
+    *   **Action:** Enforce a strict **16x16 or 32x32 pixel grid** for all assets. No fractional pixels. All objects must align to the grid center.
+    *   **Depth Cueing:** Since we are using orthographic projection, depth must be conveyed via **layered parallax** (background cave walls vs. foreground machinery) and **z-index sorting** based on Y-coordinate.
+
 *   **16-bit Pixel Scaling:**
-    *   *Standard:* Use a base resolution of **32x32** or **64x64** per tile.
-    *   *Consistency Check:*
-        *   **Drones (Domain 1):** Must be 16x16 or 32x32. If they are 16x16, they must be centered in a 32x32 tile to avoid "floating" artifacts.
-        *   **Fauna (Domain 4):** 4-frame walk cycles are efficient but require **sub-pixel interpolation** disabled in the engine to prevent blurring.
-        *   **Furniture (Domain 2):** "Lithophone" and "Terminal Desk" must share the same **baseline alignment** (bottom of the sprite aligned to the bottom of the tile grid) to maintain a clean horizon line.
-*   **Spatial Consistency Verdict:** The domains are logically grouped, but **visual hierarchy** is missing.
-    *   *Action:* Implement a **3-tier depth system**:
-        1.  **Floor Layer:** Conveyors, Chutes, Mess Bench.
-        2.  **Object Layer:** Drones, Fauna, Furniture.
-        3.  **Canopy/Effect Layer:** Spore Tree, Crystal Pine, Turbine Steam.
+    *   **Status:** **Consistent.** The asset list suggests a low-poly, high-contrast style.
+    *   **Action:** Use a **4-color palette per domain** to reduce cognitive load.
+        *   *Domain 1 (Drones):* Cyan/White/Black (Tech)
+        *   *Domain 2 (Habitation):* Warm Amber/Beige/Brown (Organic/Comfort)
+        *   *Domain 3 (Flora):* Green/Teal/White (Bioluminescent)
+        *   *Domain 4 (Fauna):* Earth Tones (Brown/Grey)
+        *   *Domain 5 (Machinery):* Orange/Steel Grey/Black (Industrial)
+        *   *Domain 6 (Logistics):* Yellow/Black (High Contrast for visibility)
 
-### 2. Gameplay Loop Clarity & Understanding
-**Is it clear? Will the player understand?**
-**Yes, if the "Factorio-RimWorld" hybrid is structured as a 3-Phase Cycle.**
+*   **Spatial Consistency:**
+    *   **Issue:** "Lithophone" and "Terminal Desk" are static; "Muffalo" and "Drones" are dynamic.
+    *   **Fix:** Implement **sprite-sheet animation** for all moving entities (4-frame walk cycles for fauna, 2-frame idle for drones). Static objects must have **drop shadows** (1-pixel offset) to separate them from the background grid.
 
-The player will understand the loop if it follows this **Decisive Flow**:
+### 2. Gameplay Loop Clarity & Player Comprehension
+**Verdict:** The loop is **clear but potentially overwhelming** without staged introduction. It successfully merges Factorio’s automation with RimWorld’s survival.
 
-1.  **Phase 1: Extraction & Processing (Factorio Core)**
-    *   *Input:* Raw resources from Subterranean Flora/Fauna.
-    *   *Process:* Industrial Machinery (Pultrusion Mill, Smelter) converts raw → intermediate.
-    *   *Logistics:* Conveyors/Inserters move items.
-    *   *Clarity:* Use **color-coded item icons** (e.g., Green for Flora, Blue for Mineral, Yellow for Processed).
+*   **The Core Loop:**
+    1.  **Extract:** Use **Industrial Machinery** (Pultrusion Mill, Smelter) to process raw cave resources.
+    2.  **Sustain:** Feed **Habitation Furniture** (Lithophone for morale, Mess Bench for food) to **Fauna** (Muffalo/Deer) and **Drones**.
+    3.  **Expand:** Use **Factory Logistics** (Conveyors, Inserters) to connect distant **Subterranean Flora** (Healroot for health, Berry Bush for food) to the central hub.
+    4.  **Defend:** **Sentry Rovers** and **Turrets** protect against cave-ins or rogue subversion loops.
 
-2.  **Phase 2: Maintenance & Expansion (RimWorld Core)**
-    *   *Input:* Processed items + Energy.
-    *   *Process:* Habitation Furniture upgrades colony stats (e.g., Lithophone boosts morale, Terminal Desk unlocks tech).
-    *   *Clarity:* Show **progress bars** directly on the furniture sprites (e.g., a glowing ring around the Terminal Desk when research is active).
+*   **Player Understanding Strategy:**
+    *   **Visual Language:** Use **color-coded connectors**. Yellow for power, Blue for data, Green for organic matter. This allows instant recognition of system status.
+    *   **Minimalist UI:** A single, persistent HUD showing:
+        *   **Power Grid Status** (Pulsing light intensity)
+        *   **Colony Morale** (Lithophone resonance level)
+        *   **Resource Stockpile** (Bar graph)
+    *   **Tutorialization:** The first 3 minutes should be a **linear, non-skippable** sequence:
+        1.  Place a Conveyor.
+        2.  Connect a Smelter.
+        3.  Feed a Muffalo.
+        4.  Activate a Sentry.
 
-3.  **Phase 3: Defense & Adaptation (Hybrid)**
-    *   *Input:* Threats (Rogue Subversion Loop) + Resource Surplus.
-    *   *Process:* Sentry Rovers and Turrets defend. Drones optimize paths.
-    *   *Clarity:* **Real-time overlay** showing drone paths (dashed lines) and turret coverage (semi-transparent circles).
+### 3. AI-Generated Artifacts & Replacement Strategy
+**Verdict:** Several assets exhibit typical AI-generated inconsistencies. Here is the replacement/quantization plan:
 
-**Player Understanding Guarantee:**
-*   **Onboarding:** Start with **1 Conveyor, 1 Smelter, 1 Muffalo**. No more.
-*   **Feedback:** Every action must have a **1-frame visual pop** (e.g., item enters Smelter → sprite flashes white → item exits).
-*   **UI:** Minimalist. Only show **Current Phase** and **Critical Alerts** (e.g., "Power Low," "Wolf Attack").
-
-### 3. AI Artifacts & Technical Replacements
-**Where does it look AI-generated? What needs replacement?**
-
-| Domain | Issue | Replacement/Quantization Strategy |
+| Asset | Issue | Solution |
 | :--- | :--- | :--- |
-| **1. Drones** | **Inconsistent Lighting:** AI often generates multiple light sources per sprite. | **Quantize to 3 Colors:** Base, Highlight, Shadow. Use **flat shading** with no gradients. Ensure all drones face the same direction (e.g., North) for uniformity. |
-| **2. Furniture** | **Perspective Drift:** AI may render tables with slight isometric tilt. | **Force Orthographic:** Snap all sprites to a **32x32 grid**. Use **pixel-perfect alignment** for legs and tops. Replace "Lithophone" with a **simple geometric shape** (e.g., a rectangle with 3 dots) to reduce noise. |
-| **3. Flora** | **Over-detailing:** Spore Trees may have too many leaves. | **Simplify to 3 Layers:** Trunk, Main Canopy, Accent. Use **dithering** for texture instead of complex patterns. Ensure "Crystal Pine" has **sharp, angular edges** to contrast with "Healroot" (rounded). |
-| **4. Fauna** | **Walk Cycle Jitter:** 4-frame cycles may have inconsistent stride lengths. | **Manual Keyframe Alignment:** Ensure Frame 1 and Frame 3 are identical (mirrored). Frame 2 and 4 are the intermediate steps. **No sub-pixel movement.** |
-| **5. Machinery** | **Ambiguous Parts:** Turbine blades may blur into the background. | **High-Contrast Outlines:** Add a **1px black outline** to all machinery. Use **distinct silhouettes** (e.g., Turbine = Circle, Smelter = Square, Turret = Triangle). |
-| **6. Logistics** | **Directional Confusion:** N/E/S/W conveyors may look identical. | **Arrow Integration:** Embed **small arrows** directly into the conveyor sprite (not as a separate layer). Use **color coding:** Blue = Input, Yellow = Output. |
+| **Lithophone** | Often appears as a generic rectangle. | **Replace** with a **crystalline, faceted sprite** that emits a soft glow. Use **3-frame animation** for resonance (pulse intensity). |
+| **Muffalo/Deer** | 4-frame walk cycles often have inconsistent stride lengths. | **Quantize** to **2-frame walk cycles** (Left/Right foot down) for smoother interpolation. Ensure **pixel-perfect alignment** of hooves to the grid. |
+| **Conveyors N/E/S/W** | Directional arrows are often misaligned or blurry. | **Replace** with **high-contrast, 1-pixel wide arrows** on a solid background. Use **dithering** for the belt texture to simulate movement without animation overhead. |
+| **Spore Tree** | Complex branching leads to aliasing. | **Simplify** to a **3-layer sprite**: Base (trunk), Mid (branches), Top (glowing spores). Use **nearest-neighbor scaling** to preserve crisp edges. |
+| **Rogue Subversion Loop** | Often rendered as a messy scribble. | **Replace** with a **clean, geometric spiral** (3 concentric circles) with a **pulsing center dot**. This ensures readability at small scales. |
 
-**Perspective Alignment Fix:**
-*   **Baseline Rule:** All objects must sit on the **bottom 25%** of the tile.
-*   **Shadow Rule:** All shadows must be **1px offset** to the bottom-right.
+*   **Perspective Alignment:** All assets must be **centered on the 16x16 grid**. No off-center sprites. Use **1-pixel black outlines** for all foreground objects to separate them from the cave background.
 
-### 4. New Depth & Fun Features for Engagement
-To maximize engagement, add these **3 Decisive Features** to the loop:
+### 4. New Depth & Fun Features for Maximum Engagement
+**Verdict:** To elevate the loop beyond standard automation, integrate **emergent systems** and **tactile feedback**.
+
+1.  **Bioluminescent Day/Night Cycle (Dynamic Lighting):**
+    *   **Feature:** The cave’s ambient light shifts from **Cool Blue** (Day) to **Deep Purple** (Night).
+    *   **Gameplay Impact:** **Spore Trees** glow brighter at night, increasing **Healroot** yield. **Sentry Rovers** switch to **infrared mode** (different sprite) for better detection. This forces players to **time their expansions**.
+
+2.  **Resonance-Based Morale System (Lithophone Mechanic):**
+    *   **Feature:** The **Lithophone** is not just a decoration. It **tunes** the colony’s efficiency.
+    *   **Gameplay Impact:** Players must **sequence** the Lithophone’s notes (1-4) to match the **current resource bottleneck**. E.g., If power is low, play Note 1 to boost turbine speed. If food is low, play
 
 ## 2. Domain Asset Telemetry
 
