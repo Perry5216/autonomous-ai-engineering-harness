@@ -4729,18 +4729,18 @@
 
         let activeTerrainBrush = null;
         const TERRAIN_BRUSH_DEFS = {
-            floor_basalt: { name: "Basalt Flagstone", isWall: false, walkSpeed: 100, tempOffset: 0 },
-            floor_plating: { name: "Plasteel Plating", isWall: false, walkSpeed: 110, tempOffset: 0, isAlloy: true },
-            floor_grate: { name: "Catwalk Grate", isWall: false, walkSpeed: 100, tempOffset: 0 },
-            floor_hazard: { name: "Hazard Caution Stripes", isWall: false, walkSpeed: 105, tempOffset: 0 },
-            floor_cryo: { name: "Cryo Permafrost", isWall: false, walkSpeed: 80, isIce: true, tempOffset: -18 },
-            floor_spore: { name: "Spore Humus Turf", isWall: false, walkSpeed: 95, tempOffset: -2 },
-            floor_sulfur: { name: "Sulfur Crust", isWall: false, walkSpeed: 90, tempOffset: 12 },
-            wall_basalt: { name: "Basalt Rock Wall", isWall: true, walkSpeed: 0 },
-            wall_granite: { name: "Granite Wall", isWall: true, walkSpeed: 0 },
-            wall_obsidian: { name: "Obsidian Rock Wall", isWall: true, walkSpeed: 0 },
-            wall_cryo: { name: "Cryo Slate Wall", isWall: true, walkSpeed: 0, isIce: true },
-            wall_blast: { name: "Plasteel Blast Wall", isWall: true, walkSpeed: 0, isAlloy: true },
+            floor_basalt: { name: "Basalt Flagstone", isWall: false, walkSpeed: 100, tempOffset: 0, floorPrefix: "floor_basalt" },
+            floor_plating: { name: "Plasteel Plating", isWall: false, walkSpeed: 110, tempOffset: 0, isAlloy: true, floorPrefix: "floor_plating" },
+            floor_grate: { name: "Catwalk Grate", isWall: false, walkSpeed: 100, tempOffset: 0, floorPrefix: "floor_grate" },
+            floor_hazard: { name: "Hazard Caution Stripes", isWall: false, walkSpeed: 105, tempOffset: 0, floorPrefix: "floor_hazard" },
+            floor_cryo: { name: "Cryo Permafrost", isWall: false, walkSpeed: 80, isIce: true, tempOffset: -18, floorPrefix: "floor_cryo" },
+            floor_spore: { name: "Spore Humus Turf", isWall: false, walkSpeed: 95, tempOffset: -2, floorPrefix: "floor_spore" },
+            floor_sulfur: { name: "Sulfur Crust", isWall: false, walkSpeed: 90, tempOffset: 12, floorPrefix: "floor_sulfur" },
+            wall_basalt: { name: "Basalt Rock Wall", isWall: true, walkSpeed: 0, autoPrefix: "wall_basalt" },
+            wall_granite: { name: "Granite Wall", isWall: true, walkSpeed: 0, autoPrefix: "wall_granite" },
+            wall_obsidian: { name: "Obsidian Rock Wall", isWall: true, walkSpeed: 0, autoPrefix: "wall_obsidian" },
+            wall_cryo: { name: "Cryo Slate Wall", isWall: true, walkSpeed: 0, isIce: true, autoPrefix: "wall_cryo" },
+            wall_blast: { name: "Plasteel Blast Wall", isWall: true, walkSpeed: 0, isAlloy: true, autoPrefix: "wall_plasteel" },
             // 16-Connected Autotile Networks
             wall_basalt_auto: { name: "Basalt Autotile Wall (16-Connected)", isWall: true, walkSpeed: 0, isAuto: true, autoPrefix: "wall_basalt" },
             wall_blast_auto: { name: "Plasteel Autotile Wall (16-Connected)", isWall: true, walkSpeed: 0, isAuto: true, isAlloy: true, autoPrefix: "wall_plasteel" },
@@ -4826,9 +4826,19 @@
             cell.isWater = !!def.isWater;
             cell.isIce = !!def.isIce;
             cell.isAlloy = !!def.isAlloy;
-            if (def.isAuto) {
+            const floorVar = (gx * 7 + gy * 13 + currentSeed) % 4;
+            if (def.floorPrefix) {
+                if (def.floorPrefix === "floor_grate") cell.floorSpriteKey = "floor_grate";
+                else cell.floorSpriteKey = def.floorPrefix + "_v" + floorVar;
+            } else if (!def.isWall) {
+                cell.floorSpriteKey = "floor_basalt_v" + floorVar;
+            }
+            if (def.autoPrefix) {
                 cell.isAuto = true;
                 cell.autoPrefix = def.autoPrefix;
+            } else if (def.isWall) {
+                cell.isAuto = true;
+                cell.autoPrefix = "wall_basalt";
             } else {
                 delete cell.isAuto;
                 delete cell.autoPrefix;
@@ -4845,7 +4855,8 @@
                 DEPLOYED_WILDLIFE.push({ id: Date.now(), species: spec, name: def.name, state: 'WILD', x: gx, y: gy, vx: 0.01, vy: 0.01 });
             }
             if (def.oreType) cell.oreType = def.oreType;
-            if (def.tempOffset) cell.temp += def.tempOffset;
+            if (def.tempOffset) cell.temp = (parseFloat(cell.temp || 0) + def.tempOffset).toFixed(1);
+            colonyCollisionSystem.syncSceneColliders();
             updateLocalInspectBox(gx, gy);
             renderLocalColony();
         }
@@ -5011,79 +5022,37 @@
                                 localCtx.drawImage(shoreImg, px, py, cellSize + 0.5, cellSize + 0.5);
                             }
                         }
-                    } else {
-                        // Excavated Cavern Floor Tiles: High-Detail Tactile Surfaces
-                        const seed = (x * 37 + y * 59 + currentSeed) % 100;
-                        const isAlloyFloor = (cell.isAlloy || cell.terrain.includes("alloy") || cell.terrain.includes("plating"));
-                        const isSulfurFloor = cell.terrain.includes("sulfur");
-                        const isSporeFloor = (cell.terrain.includes("spore") || cell.terrain.includes("humus"));
-                        const isIceFloor = (cell.isIce || cell.terrain.includes("cryo") || cell.terrain.includes("ice"));
-
-                        if (isAlloyFloor) {
-                            // Industrial Precursor Hull Plating: Riveted Steel Slabs with Diamond/Weld Seam
-                            localCtx.fillStyle = "#1e293b";
-                            localCtx.fillRect(px, py, cellSize, cellSize);
-                            localCtx.fillStyle = "#27354a";
-                            localCtx.fillRect(px + 1, py + 1, cellSize - 2, cellSize - 2);
-                            localCtx.strokeStyle = "rgba(56, 189, 248, 0.35)";
-                            localCtx.lineWidth = 1;
-                            localCtx.strokeRect(px + 1, py + 1, cellSize - 2, cellSize - 2);
-                            localCtx.fillStyle = "#38bdf8";
-                            localCtx.fillRect(px + 2, py + 2, 1.5, 1.5);
-                            localCtx.fillRect(px + cellSize - 3.5, py + 2, 1.5, 1.5);
-                            localCtx.fillRect(px + 2, py + cellSize - 3.5, 1.5, 1.5);
-                            localCtx.fillRect(px + cellSize - 3.5, py + cellSize - 3.5, 1.5, 1.5);
-                        } else if (isSulfurFloor) {
-                            // Geothermal Sulfur Crust: Polygonal Desiccation Cracks & Yellow-Gold Nodules
-                            localCtx.fillStyle = "#854d0e";
-                            localCtx.fillRect(px, py, cellSize, cellSize);
-                            localCtx.fillStyle = "#a16207";
-                            localCtx.fillRect(px + 1, py + 1, cellSize - 2, cellSize - 2);
-                            localCtx.fillStyle = "#eab308";
-                            localCtx.fillRect(px + 3, py + 3, cellSize * 0.4, cellSize * 0.35);
-                            localCtx.fillStyle = "#facc15";
-                            localCtx.fillRect(px + 4, py + 4, cellSize * 0.2, cellSize * 0.2);
-                            localCtx.strokeStyle = "#422006";
-                            localCtx.lineWidth = 1;
-                            localCtx.beginPath();
-                            localCtx.moveTo(px, py + cellSize * 0.5);
-                            localCtx.lineTo(px + cellSize * 0.5, py + cellSize * 0.4);
-                            localCtx.lineTo(px + cellSize, py + cellSize * 0.6);
-                            localCtx.stroke();
-                        } else if (isSporeFloor) {
-                            // Bioluminescent Fungal Humus: Velvet Purple Turf + Glowing Mycelium
-                            localCtx.fillStyle = "#2e1065";
-                            localCtx.fillRect(px, py, cellSize, cellSize);
-                            localCtx.fillStyle = "#3b1261";
-                            localCtx.fillRect(px + 1, py + 1, cellSize - 2, cellSize - 2);
-                            const glowPulse = Math.sin((localAnimationTick * 0.08) + x * 0.6 + y * 0.4) * 0.3 + 0.7;
-                            localCtx.fillStyle = `rgba(168, 85, 247, ${glowPulse})`;
-                            localCtx.fillRect(px + 3, py + 4, 2, 2);
-                            localCtx.fillStyle = `rgba(52, 211, 153, ${glowPulse})`;
-                            localCtx.fillRect(px + cellSize - 5, py + cellSize - 5, 2, 2);
-                        } else if (isIceFloor) {
-                            // Cryo Permafrost: Glacial Ice Depth & Crystalline Stress Cracks
-                            localCtx.fillStyle = "#0c4a6e";
-                            localCtx.fillRect(px, py, cellSize, cellSize);
-                            localCtx.fillStyle = "#0369a1";
-                            localCtx.fillRect(px + 1, py + 1, cellSize - 2, cellSize - 2);
-                            localCtx.strokeStyle = "#7dd3fc";
-                            localCtx.lineWidth = 1;
-                            localCtx.beginPath();
-                            localCtx.moveTo(px + 2, py + cellSize - 3);
-                            localCtx.lineTo(px + cellSize * 0.6, py + cellSize * 0.4);
-                            localCtx.lineTo(px + cellSize - 2, py + 2);
-                            localCtx.stroke();
+                    } else if (cell.terrain === "acid_pool" || cell.terrain === "liquid_sludge") {
+                        const frame = Math.floor(localAnimationTick / 8) % 4;
+                        const fluidImg = TILE_SPRITE_CACHE[`liquid_sludge_${frame}`];
+                        if (fluidImg && fluidImg.complete && fluidImg.naturalWidth > 0) {
+                            localCtx.drawImage(fluidImg, px, py, cellSize + 0.5, cellSize + 0.5);
                         } else {
-                            // Authentic 16-Bit Pixel Art Basalt Floor (8 seamless variants)
-                            const fIdx = (x * 7 + y * 13 + currentSeed) % 8;
-                            const floorImg = TILE_SPRITE_CACHE[`floor_basalt_${fIdx}`] || TILE_SPRITE_CACHE["floor_basalt"];
-                            if (floorImg && floorImg.complete && floorImg.naturalWidth > 0) {
-                                localCtx.drawImage(floorImg, px, py, cellSize + 0.5, cellSize + 0.5);
-                            } else {
-                                localCtx.fillStyle = "#1e2432";
-                                localCtx.fillRect(px, py, cellSize + 0.5, cellSize + 0.5);
-                            }
+                            localCtx.fillStyle = "#65a30d";
+                            localCtx.fillRect(px, py, cellSize + 0.5, cellSize + 0.5);
+                        }
+                    } else {
+                        // Excavated Cavern Floor Tiles: Authentic 16-Bit Seamless Pixel Art
+                        const floorSpriteKey = cell.floorSpriteKey || `floor_basalt_v${(x * 7 + y * 13 + currentSeed) % 4}`;
+                        const floorImg = TILE_SPRITE_CACHE[floorSpriteKey] ||
+                                         TILE_SPRITE_CACHE[floorSpriteKey.replace("_v", "_")] ||
+                                         TILE_SPRITE_CACHE[cell.terrain] ||
+                                         TILE_SPRITE_CACHE[`floor_basalt_${(x * 7 + y * 13 + currentSeed) % 8}`] ||
+                                         TILE_SPRITE_CACHE["floor_basalt"];
+                        if (floorImg && floorImg.complete && floorImg.naturalWidth > 0) {
+                            localCtx.drawImage(floorImg, px, py, cellSize + 0.5, cellSize + 0.5);
+                        } else {
+                            localCtx.fillStyle = terrainColors[cell.terrain] || "#1e2432";
+                            localCtx.fillRect(px, py, cellSize + 0.5, cellSize + 0.5);
+                        }
+
+                        // Bioluminescent Fungal Canopy Mycelium Glow Pulse on Spore Turf
+                        if (cell.terrain.includes("spore") || cell.terrain.includes("humus") || (cell.floorSpriteKey && cell.floorSpriteKey.includes("spore"))) {
+                            const glowPulse = Math.sin((localAnimationTick * 0.08) + x * 0.6 + y * 0.4) * 0.3 + 0.7;
+                            localCtx.fillStyle = `rgba(168, 85, 247, ${glowPulse * 0.75})`;
+                            localCtx.fillRect(px + 4, py + 5, 2, 2);
+                            localCtx.fillStyle = `rgba(52, 211, 153, ${glowPulse * 0.85})`;
+                            localCtx.fillRect(px + cellSize - 6, py + cellSize - 6, 2, 2);
                         }
 
                         // Inner Concave Corner Overlays (Seamlessly softens 90-degree room corners)
@@ -5093,10 +5062,14 @@
                         const hasRockE = (x < LOCAL_MAP_SIZE - 1 && localColonyGrid[y][x+1].isWall);
 
                         let cornerPrefix = "wall_basalt";
-                        if (currentSectorBiome.includes("Vault")) cornerPrefix = "wall_plasteel";
+                        if (hasRockN && localColonyGrid[y-1][x].autoPrefix) cornerPrefix = localColonyGrid[y-1][x].autoPrefix;
+                        else if (hasRockS && localColonyGrid[y+1][x].autoPrefix) cornerPrefix = localColonyGrid[y+1][x].autoPrefix;
+                        else if (hasRockW && localColonyGrid[y][x-1].autoPrefix) cornerPrefix = localColonyGrid[y][x-1].autoPrefix;
+                        else if (hasRockE && localColonyGrid[y][x+1].autoPrefix) cornerPrefix = localColonyGrid[y][x+1].autoPrefix;
+                        else if (currentSectorBiome.includes("Vault")) cornerPrefix = "wall_plasteel";
                         else if (currentSectorBiome.includes("Magma")) cornerPrefix = "wall_obsidian";
                         else if (currentSectorBiome.includes("Cryo")) cornerPrefix = "wall_cryo";
-                        else if (currentSectorBiome.includes("Sulfur")) cornerPrefix = "wall_granite";
+                        else if (currentSectorBiome.includes("Sulfur") || currentSectorBiome.includes("Aquifer")) cornerPrefix = "wall_granite";
 
                         if (hasRockN && hasRockW) {
                             const cImg = TILE_SPRITE_CACHE[`${cornerPrefix}_corner_tl`] || TILE_SPRITE_CACHE["wall_basalt_corner_tl"];
@@ -5126,6 +5099,19 @@
                             localCtx.fillStyle = "rgba(4, 5, 7, 0.35)";
                             localCtx.fillRect(px, py, 2.5, cellSize + 0.5);
                         }
+
+                        // 16-Connected Logistics Networks (Steam Pipes & Superconductor Conduits)
+                        if (cell.isAuto && (cell.autoPrefix === "pipe_steam" || cell.autoPrefix === "conduit_power")) {
+                            const pN = (y > 0 && localColonyGrid[y-1][x].autoPrefix === cell.autoPrefix);
+                            const pE = (x < LOCAL_MAP_SIZE - 1 && localColonyGrid[y][x+1].autoPrefix === cell.autoPrefix);
+                            const pS = (y < LOCAL_MAP_SIZE - 1 && localColonyGrid[y+1][x].autoPrefix === cell.autoPrefix);
+                            const pW = (x > 0 && localColonyGrid[y][x-1].autoPrefix === cell.autoPrefix);
+                            const pMask = (pN ? 1 : 0) | (pE ? 2 : 0) | (pS ? 4 : 0) | (pW ? 8 : 0);
+                            const overlayImg = TILE_SPRITE_CACHE[`${cell.autoPrefix}_${pMask}`];
+                            if (overlayImg && overlayImg.complete && overlayImg.naturalWidth > 0) {
+                                localCtx.drawImage(overlayImg, px, py, cellSize + 0.5, cellSize + 0.5);
+                            }
+                        }
                     }
 
                     // Tactical Floor Grid: STRICTLY on excavated floor, NEVER on rock (optional overlay)
@@ -5154,8 +5140,11 @@
 
                     // Underneath boundary walls, composite seamless floor first so transparent 45-deg cuts show floor
                     if (!hasN || !hasS || !hasE || !hasW) {
-                        const fIdx = (x * 7 + y * 13 + currentSeed) % 8;
-                        const floorImg = TILE_SPRITE_CACHE[`floor_basalt_${fIdx}`] || TILE_SPRITE_CACHE["floor_basalt"];
+                        const floorSpriteKey = cell.floorSpriteKey || `floor_basalt_v${(x * 7 + y * 13 + currentSeed) % 4}`;
+                        const floorImg = TILE_SPRITE_CACHE[floorSpriteKey] ||
+                                         TILE_SPRITE_CACHE[floorSpriteKey.replace("_v", "_")] ||
+                                         TILE_SPRITE_CACHE[`floor_basalt_${(x * 7 + y * 13 + currentSeed) % 8}`] ||
+                                         TILE_SPRITE_CACHE["floor_basalt"];
                         if (floorImg && floorImg.complete && floorImg.naturalWidth > 0) {
                             localCtx.drawImage(floorImg, px, py, cellSize + 0.5, cellSize + 0.5);
                         }
@@ -5164,12 +5153,15 @@
                     // 16-Bit Autotile Bitmask: Bit 0=N, Bit 1=E, Bit 2=S, Bit 3=W
                     const mask = (hasN ? 1 : 0) | (hasE ? 2 : 0) | (hasS ? 4 : 0) | (hasW ? 8 : 0);
 
-                    // Determine wall theme prefix
-                    let wallPrefix = "wall_basalt";
-                    if (cell.terrain.includes("plasteel")) wallPrefix = "wall_plasteel";
-                    else if (cell.terrain.includes("obsidian")) wallPrefix = "wall_obsidian";
-                    else if (cell.terrain.includes("cryo")) wallPrefix = "wall_cryo";
-                    else if (cell.terrain.includes("granite")) wallPrefix = "wall_granite";
+                    // Determine wall theme prefix (prioritize cell.autoPrefix, then biomes)
+                    let wallPrefix = cell.autoPrefix;
+                    if (!wallPrefix) {
+                        if (cell.terrain.includes("plasteel")) wallPrefix = "wall_plasteel";
+                        else if (cell.terrain.includes("obsidian")) wallPrefix = "wall_obsidian";
+                        else if (cell.terrain.includes("cryo")) wallPrefix = "wall_cryo";
+                        else if (cell.terrain.includes("granite") || cell.terrain.includes("pumice") || cell.terrain.includes("limestone")) wallPrefix = "wall_granite";
+                        else wallPrefix = "wall_basalt";
+                    }
 
                     const wallImg = TILE_SPRITE_CACHE[`${wallPrefix}_${mask}`] || TILE_SPRITE_CACHE[`wall_basalt_${mask}`] || TILE_SPRITE_CACHE["wall_basalt"];
                     if (wallImg && wallImg.complete && wallImg.naturalWidth > 0) {
