@@ -3976,6 +3976,7 @@
         const localCanvas = document.getElementById("local-colony-canvas");
         const localCtx = localCanvas.getContext("2d");
 
+        let sfxEnabled = true;
         let LOCAL_MAP_SIZE = 32; // 32x32 Outpost or 48x48 Expedition
         let localColonyGrid = [];
         let localZoom = 1; // 1x, 2x, 4x
@@ -4051,6 +4052,13 @@
         let DEPLOYED_BUILDINGS = [];
         let DEPLOYED_FURNITURE = [];
         let DEPLOYED_CONVEYORS = [];
+
+        const DEPLOYED_DRONES = [
+            { key: "agronomy", spritePrefix: "drone_agronomy", name: "Aero-Harvest", x: 8.5, y: 13.5, baseX: 8.5, baseY: 13.5, state: "active", status: "SEEDING HYDRO", altitude: 1.2 },
+            { key: "sanitation", spritePrefix: "drone_sanitation", name: "Slag-Sweeper", x: 12.0, y: 10.5, baseX: 12.0, baseY: 10.5, state: "active", status: "SCRUBBING SLAG", altitude: 0.6 },
+            { key: "hauler", spritePrefix: "drone_hauler", name: "Sky-Skiff", x: 15.5, y: 10.0, baseX: 15.5, baseY: 10.0, state: "active", status: "HAULING STEEL", altitude: 1.6 },
+            { key: "sentry", spritePrefix: "drone_sentry_rover", name: "Tread-Warden", x: 18.0, y: 13.0, baseX: 18.0, baseY: 13.0, state: "active", status: "PERIMETER PATROL", altitude: 0 }
+        ];
 
         function rebuildColonyCompoundLayout() {
             const off = getCompoundOffset();
@@ -4578,7 +4586,6 @@
         // TACTILE WEB AUDIO API RETRO SOUND SYNTHESIZER
         // =========================================================================
         let audioCtx = null;
-        let sfxEnabled = true;
 
         function getAudioContext() {
             if (!audioCtx) {
@@ -6641,12 +6648,7 @@
             }
         };
 
-        const DEPLOYED_DRONES = [
-            { key: "agronomy", spritePrefix: "drone_agronomy", name: "Aero-Harvest", x: 8.5, y: 13.5, baseX: 8.5, baseY: 13.5, state: "active", status: "SEEDING HYDRO", altitude: 1.2 },
-            { key: "sanitation", spritePrefix: "drone_sanitation", name: "Slag-Sweeper", x: 12.0, y: 10.5, baseX: 12.0, baseY: 10.5, state: "active", status: "SCRUBBING SLAG", altitude: 0.6 },
-            { key: "hauler", spritePrefix: "drone_hauler", name: "Sky-Skiff", x: 15.5, y: 10.0, baseX: 15.5, baseY: 10.0, state: "active", status: "HAULING STEEL", altitude: 1.6 },
-            { key: "sentry", spritePrefix: "drone_sentry_rover", name: "Tread-Warden", x: 18.0, y: 13.0, baseX: 18.0, baseY: 13.0, state: "active", status: "PERIMETER PATROL", altitude: 0 }
-        ];
+        // DEPLOYED_DRONES declared above with colony entities (line ~4055)
 
         function triggerPrecursorPulse() {
             playTactileSound('alarm');
