@@ -1,65 +1,36 @@
 {
-  "batch_id": "BATCH-79",
+  "batch_id": "BATCH-80",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "This batch finalizes the simulation loop by implementing deterministic state hashing for save/load integrity and optimizing the Monte Carlo convergence logic for the endgame phase. These changes ensure that the 5,500-tick simulation remains reproducible across different hardware configurations and reduce memory footprint during the final ascension phase.",
+  "overview": "Finalize simulation coverage by implementing deterministic state compression for endgame snapshots and optimizing Monte Carlo convergence logic. This batch ensures 100% reproducibility of the 5,500-tick campaign state with minimal memory footprint, closing all identified gaps in simulation fidelity and automation efficiency.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Implement Deterministic State Hashing for Save/Load Integrity",
+      "title": "Implement Zero-Heap Deterministic State Compressor",
       "target_files": [
-        "Source/Runtime/Simulation/StateHash.h",
-        "Source/Runtime/Simulation/StateHash.cpp"
+        "src/engine/core/StateCompressor.h",
+        "src/engine/core/StateCompressor.cpp"
       ],
-      "architectural_spec": "1. Define a struct `DeterministicHash` using `std::array<uint64_t, 4>` for 256-bit output.\n2. Implement `ComputeStateHash(const SimulationState& state)` using a custom FNV-1a variant optimized for C++20 `constexpr` evaluation where possible.\n3. Ensure all floating-point values are normalized to fixed-point integers before hashing to avoid platform-specific FP rounding differences.\n4. Use `std::bit_cast` for type-punning in the hash loop to maintain strict aliasing compliance.\n5. Provide a `VerifyHash` function that compares the computed hash against the stored header hash.\n6. No dynamic allocation; use stack-based arrays for intermediate hash states.\n7. Include unit tests for hash collision resistance on known state vectors.",
-      "acceptance_criteria": [
-        "Hash computation completes in < 10 microseconds for a full 5,500-tick state.",
-        "Identical simulation runs produce identical 256-bit hashes.",
-        "No heap allocations occur during hash computation.",
-        "Unit tests pass for 100 random state vectors."
-      ],
-      "player_fun_impact": "Ensures save games are perfectly reproducible, allowing for reliable debugging and speedrun verification.",
+      "architectural_spec": "Use std::array<uint8_t, 4096> for static buffer. Implement bitwise packing for tick counters (16-bit), entity IDs (12-bit), and status flags (4-bit). No dynamic allocation. Use constexpr for table generation. Ensure strict little-endian serialization for cross-platform determinism.",
+      "acceptance_criteria": "1. Compresses 5,500-tick state to <2KB. 2. Decompression is bit-exact identical to original. 3. Zero heap allocations during compress/decompress cycle. 4. Passes all 16,500 footstep verification checks.",
+      "player_fun_impact": "Instant save/load times and smaller save files, improving responsiveness in long campaigns.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Optimize Monte Carlo Convergence for Endgame Phase",
+      "title": "Optimize Monte Carlo Convergence for Endgame States",
       "target_files": [
-        "Source/Runtime/Simulation/MonteCarlo.h",
-        "Source/Runtime/Simulation/MonteCarlo.cpp"
+        "src/simulation/physics/MonteCarloSolver.h",
+        "src/simulation/physics/MonteCarloSolver.cpp"
       ],
-      "architectural_spec": "1. Refactor `MonteCarloStep` to use a fixed-size ring buffer for the last 100 iterations.\n2. Implement a `ConvergenceCheck` that calculates the standard deviation of the last 10 results.\n3. If std_dev < 1e-6, mark the simulation as 'Converged' and skip further iterations.\n4. Use `std::accumulate` with `std::plus<>` for summing results to leverage C++20 template improvements.\n5. Store results in a `std::array<double, 100>` to avoid vector reallocations.\n6. Add a `GetConvergenceRate()` method returning the number of iterations saved due to early exit.\n7. Ensure thread-safety for the ring buffer using `std::atomic` for the write index.",
-      "acceptance_criteria": [
-        "Simulation terminates within 5% of the maximum iteration count for converged states.",
-        "Memory usage for Monte Carlo state remains constant regardless of iteration count.",
-        "Convergence detection accuracy is within 1e-6 of the reference value.",
-        "No data races detected in multi-threaded execution."
-      ],
-      "player_fun_impact": "Faster simulation ticks during the endgame, reducing load times and improving responsiveness.",
+      "architectural_spec": "Implement early-exit condition for Monte Carlo iterations when variance < 1e-6. Use fixed-point arithmetic for 16,500 footstep logs. Cache intermediate probability distributions in static thread-local storage. Limit iterations to 1000 max for endgame stability.",
+      "acceptance_criteria": "1. Convergence achieved in <500 iterations for stable endgame states. 2. 100% survival rate maintained across 1000 test runs. 3. No floating-point drift in 5,500-tick simulation.",
+      "player_fun_impact": "Faster simulation ticks and more predictable physics outcomes in complex endgame scenarios.",
       "estimated_complexity": "Small"
-    },
-    {
-      "task_id": "TASK-803",
-      "priority": "P2 - Quality-of-Life",
-      "domain": "Storyteller/AI",
-      "title": "Compact Footstep Log Serialization",
-      "target_files": [
-        "Source/Runtime/Storyteller/FootstepLog.h",
-        "Source/Runtime/Storyteller/FootstepLog.cpp"
-      ],
-      "architectural_spec": "1. Define a packed struct `FootstepEntry` with `uint16_t tick`, `uint8_t type`, and `uint8_t id`.\n2. Implement a `SerializeFootsteps` function that writes entries directly to a `std::span<uint8_t>`.\n3. Use bit-packing for the `type` and `id` fields if they fit within 8 bits each.\n4. Provide a `DeserializeFootsteps` function that reconstructs the vector from the span.\n5. Add a `GetLastNSteps(int n)` method that returns a view of the last N entries without copying.\n6. Ensure the serialization format is versioned with a 1-byte header.\n7. Include a checksum in the footer for integrity verification.",
-      "acceptance_criteria": [
-        "Serialized size is reduced by at least 40% compared to the previous format.",
-        "Deserialization is O(N) and completes in < 1ms for 16,500 entries.",
-        "Checksum verification fails gracefully on corrupted data.",
-        "No memory leaks detected in serialization/deserialization cycles."
-      ],
-      "player_fun_impact": "Smaller save files and faster loading times for long-running simulations.",
-      "estimated_complexity": "Atomic"
     }
   ]
 }

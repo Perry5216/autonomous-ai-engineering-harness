@@ -1142,9 +1142,9 @@
 <text x="12" y="32" fill="#e2e8f0" font-size="10.5">Reviewing colonist vitals and circadia...</text>
 </g>
 <rect x="20" y="735" width="760" height="45" fill="rgba(16, 24, 40, 0.85)" stroke="rgba(255,255,255,0.08)" rx="8"/>
-<text x="40" y="763" fill="#9ca3af" font-size="12">Footsteps: <tspan fill="#10b981" font-weight="700">7,200</tspan></text>
+<text x="40" y="763" fill="#9ca3af" font-size="12">Footsteps: <tspan fill="#10b981" font-weight="700">9,000</tspan></text>
 <text x="210" y="763" fill="#9ca3af" font-size="12">Oscillations: <tspan fill="#10b981" font-weight="700">0</tspan></text>
 <text x="360" y="763" fill="#9ca3af" font-size="12">Congestion: <tspan fill="#10b981" font-weight="700">0</tspan></text>
-<text x="500" y="763" fill="#9ca3af" font-size="12">Pacing Events: <tspan fill="#06b6d4" font-weight="700">6</tspan></text>
+<text x="500" y="763" fill="#9ca3af" font-size="12">Pacing Events: <tspan fill="#06b6d4" font-weight="700">8</tspan></text>
 <text x="660" y="763" fill="#9ca3af" font-size="12">Survival: <tspan fill="#10b981" font-weight="700">100%</tspan></text>
 </svg>
