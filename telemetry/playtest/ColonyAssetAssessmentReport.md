@@ -1,6 +1,6 @@
 # Project Deep-Mantle: Autonomous Asset Assessment Report
 
-**Generated:** 2026-10-19 11:08:43 UTC  
+**Generated:** 2026-10-19 11:15:38 UTC  
 **Evaluated By:** Operator's Local AI Cluster (DGX Spark :8877 & RTX 5090 Blackwell :8080)  
 **RTX 5090 Role Transition:** `ROLE_ENTER` -> `ROLE_EXIT` Clean VRAM Hand-off  
 **Total Assets Evaluated:** 52  
@@ -9,85 +9,105 @@
 
 ## 1. Operator AI Cognitive Assessment & Feature Directives
 
-Hello. As the Lead Visual Designer and Gameplay Architect for **Project Deep-Mantle**, I have analyzed the asset domains and the core simulation parameters. Below is my decisive evaluation and architectural roadmap.
+# Project Deep-Mantle: Visual & Gameplay Architecture Review
 
-### 1. Visual & Spatial Evaluation: Does this make sense?
+## 1. Visual Coherence & Spatial Consistency Evaluation
 
-**Verdict:** Yes, the structure is logically sound, but it requires strict **Z-axis layering** and **pixel-grid alignment** to avoid visual noise.
+**Verdict:** The current asset taxonomy is logically sound but suffers from **scale inconsistency** and **perspective ambiguity** in the proposed 16-bit orthographic framework.
 
-*   **Top-Down Orthographic Perspective:** This is the correct choice for a cluster-based simulation (DGX/RTX 5090). It minimizes perspective distortion, allowing for precise grid-based placement of industrial machinery (Domain 5) and logistics (Domain 6). The orthographic view ensures that a Conveyor Belt (N/E/S/W) connects seamlessly to an Inserter without parallax errors.
-*   **16-bit Pixel Scaling:** This is optimal for performance on the DGX Spark. 16-bit assets allow for crisp, non-antialiased edges that render efficiently.
-    *   *Constraint:* All assets must adhere to a strict **16x16** or **32x32** base grid.
-    *   *Consistency Check:*
-        *   **Domain 1 (Drones):** Must be 16x16. Small footprint, high visibility.
-        *   **Domain 2 (Furniture):** Must be 16x16 or 32x32 depending on the "Mess Bench" length. Ensure the "Lithophone" and "Terminal Desk" share the same height baseline to prevent floating artifacts.
-        *   **Domain 3 (Flora):** Spore Trees and Crystal Pines need distinct silhouette profiles. Use dithering for canopy depth to maintain the 16-bit aesthetic without losing readability.
-        *   **Domain 4 (Fauna):** 4-frame walk cycles are standard. Ensure the Muffalo and Wolf have distinct stride lengths relative to their grid size to convey weight and speed.
-        *   **Domain 5 & 6 (Industrial/Logistics):** These are the most critical for alignment. Conveyors must snap perfectly to the 16px grid. The "Turret" and "Smelter" must have clear, high-contrast outlines to distinguish them from static furniture.
+### Top-Down Orthographic Perspective
+*   **Strengths:** The 6-domain split is clean. Orthographic projection is ideal for Factorio-style grid-based logic.
+*   **Critical Issue:** Mixed aspect ratios in asset definitions.
+    *   *Example:* A "Lithophone" (static, small) vs. a "Turbine" (large, multi-tile) vs. "Muffalo" (animated, 4-frame).
+    *   **Fix:** Enforce a strict **16x16 pixel base grid** for all static objects. Animated entities (Fauna) must use **32x32** or **48x48** sprites with 2x scaling to maintain readability against the 16px grid.
+    *   **Alignment:** All assets must snap to the 16px grid. No sub-pixel offsets.
 
-**Spatial Consistency Issue:** The "Rogue Subversion Loop" (Domain 1) and "Hydroponics" (Domain 5) may have different logical footprints. Ensure the *visual* bounding box matches the *logical* collision box exactly. No "ghost pixels" outside the grid.
+### 16-bit Pixel Scaling & Palette
+*   **Palette Constraint:** Use a **16-color indexed palette** per domain to reduce cognitive load and enhance retro clarity.
+    *   *Domain 1 (Drones):* Cyan/White/Gray (Tech)
+    *   *Domain 2 (Habitation):* Warm Amber/Brown (Organic/Cozy)
+    *   *Domain 3 (Flora):* Green/Teal (Bioluminescent)
+    *   *Domain 4 (Fauna):* Earth Tones (Brown/Beige)
+    *   *Domain 5 (Industrial):* High-Contrast Orange/Black (Warning/Active)
+    *   *Domain 6 (Logistics):* Blue/White (Flow)
+*   **Quantization:** Apply **nearest-neighbor scaling** for all UI and sprites. No bilinear filtering. This preserves the crisp 16-bit aesthetic.
 
----
-
-### 2. Gameplay Loop Clarity: Factorio + RimWorld Hybrid
-
-**Verdict:** The loop is clear but risks cognitive overload. We must enforce a **3-Tier Feedback System**.
-
-**The Core Loop:**
-1.  **Input:** Player places assets (Drones, Furniture, Flora, Fauna, Machinery, Logistics).
-2.  **Process:** Autonomous systems interact (e.g., Hauler moves Berry Bush output to Smelter; Sentry Rover patrols).
-3.  **Output:** Resource generation, colony stability, and aesthetic progression.
-
-**Clarity Strategy:**
-*   **Factorio-Grade Automation:** The player must see *immediate* visual feedback. When a Conveyor moves an item, the item sprite must visibly traverse the belt. When an Inserter activates, it must have a 2-frame animation (up/down).
-*   **RimWorld-Grade Pawn Survival:** The "Pawns" here are the **Autonomous Drones** and **Fauna**.
-    *   *Visual Cue:* Each drone/fawn must have a **Status Halo** (1px colored dot above the sprite).
-        *   Green: Active/Working.
-        *   Yellow: Idle/Waiting.
-        *   Red: Error/Blocked.
-    *   *Why?* This allows the player to scan the entire orthographic map in <1 second and identify bottlenecks.
-
-**Will the player understand?**
-Yes, if we use **Color-Coded Domain Layers**:
-*   **Blue:** Logistics (Conveyors, Inserters).
-*   **Orange:** Machinery (Smelter, Turbine).
-*   **Green:** Flora/Fauna.
-*   **Purple:** Habitation/Furniture.
-*   **Cyan:** Drones.
-
-This color coding reduces cognitive load and makes the "Rogue Subversion Loop" (likely a glitch/error state) stand out as a distinct red/orange anomaly.
+### Spatial Consistency
+*   **Layering:** Define Z-index layers explicitly:
+    1.  Ground (Grid)
+    2.  Static Structures (Shelves, Desks)
+    3.  Animated Entities (Fauna, Drones)
+    4.  UI Overlays (Numbers, Icons)
+*   **Issue:** "Rogue Subversion Loop" is abstract. It must be visualized as a **glitching overlay** or **color-shifted sprite** to distinguish it from standard drones.
 
 ---
 
-### 3. AI-Generated Asset Audit: Replacements & Quantization
+## 2. Gameplay Loop Clarity & Player Comprehension
 
-**Identified Issues in AI-Generated Assets:**
+**Verdict:** The loop is **Factorio-grade in structure** but needs **RimWorld-grade narrative pacing** to avoid cognitive overload.
 
-| Asset Domain | Issue | Solution |
-| :--- | :--- | :--- |
-| **1. Drones** | Inconsistent pixel density. Some sprites have 1px gaps, others 2px. | **Quantize** to strict 16x16. Use nearest-neighbor scaling. Ensure all drones share the same "eye" pixel position for uniformity. |
-| **2. Furniture** | "Lithophone" and "Terminal Desk" have mismatched heights. | **Align baselines.** All furniture must sit on the same Y-axis grid line. Use a 1px shadow offset for depth. |
-| **3. Flora** | Spore Tree canopy is too detailed (anti-aliased). | **Reduce to 4-color palette.** Use dithering for gradients. Ensure the "Healroot" has a distinct 2-frame pulse animation. |
-| **4. Fauna** | Wolf walk cycle is 5 frames, not 4. | **Force 4-frame cycle.** Frame 1: Stand. Frame 2: Left leg forward. Frame 3: Stand. Frame 4: Right leg forward. This ensures smooth looping. |
-| **5. Machinery** | Turbine rotation is not synced to grid. | **Snap rotation to 90° increments.** The turbine blade must align with the grid lines at each frame. |
-| **6. Logistics** | Conveyor arrows are blurry. | **Use crisp, 1px arrows.** Ensure N/E/S/W directions are visually distinct (e.g., N=Up, E=Right, etc.). |
+### Core Loop Structure
+1.  **Input:** Raw Resources (Ore, Water, Spores)
+2.  **Process:** Industrial Machinery (Smelter, Pultrusion Mill)
+3.  **Logistics:** Conveyors/Inserters move items
+4.  **Output:** Finished Goods (Components, Food, Energy)
+5.  **Expansion:** New Habitation/Fauna unlock new capabilities
 
-**Perspective Alignment:**
-*   All assets must be **flat-shaded** with a single light source (top-left).
-*   No perspective foreshortening. All objects are orthographic projections.
+### Player Understanding Strategy
+*   **Visual Feedback:**
+    *   **Active State:** Machines glow (e.g., Smelter = Orange pulse).
+    *   **Idle State:** Dimmed sprites.
+    *   **Blocked State:** Red "X" overlay on conveyor junctions.
+*   **Pawn Interaction:**
+    *   Pawns (Fauna/Drones) must have **clear pathfinding lines** (dotted white lines) when selected.
+    *   **Priority Indicators:** Use small icons above pawns (e.g., 🍎 for hungry, ⚡ for low energy) to reduce UI clutter.
+*   **Tutorial Integration:**
+    *   First 5 minutes: **Guided Build** (1 Conveyor → 1 Smelter → 1 Output).
+    *   Next 10 minutes: **Optimization Challenge** (Minimize belt length).
+    *   Then: **Open Sandbox** with domain-specific goals.
+
+### Clarity Check
+*   **Yes, it is clear** if:
+    *   Each domain has a **unique color signature**.
+    *   Animations are **snappy** (4-frame cycles at 10 FPS for fauna, 20 FPS for drones).
+    *   UI tooltips are **one-line max**.
 
 ---
 
-### 4. New Depth & Fun Features for Maximum Engagement
+## 3. AI-Generated Artifacts: Replacement & Alignment Plan
 
-To elevate the simulation beyond a static diorama, we introduce **Dynamic Interaction Layers**:
+**Verdict:** AI-generated assets often suffer from **inconsistent line weights**, **misaligned grids**, and **color bleeding**. Here’s the remediation plan:
 
-#### A. **The "Subversion" Mechanic (Rogue Loop Integration)**
-*   **Feature:** The "Rogue Subversion Loop" is not just a state; it’s a **puzzle**.
-*   **Implementation:** When a drone enters a "Rogue" state, it leaves a **glitch trail** (cyan pixels). The player must place a "Terminal Desk" within 3 tiles to "reset" the drone. This creates a mini-game of proximity-based problem solving.
+| Asset Domain | Common AI Artifacts | Replacement/Alignment Strategy |
+|--------------|---------------------|--------------------------------|
+| **Drones** | Blurry edges, inconsistent wheel counts | **Re-draw** in Aseprite with 1px black outlines. Ensure all wheels are 2x2 pixels. |
+| **Habitation** | Perspective drift (isometric vs. top-down) | **Force orthographic projection.** Use 16x16 grid. Align all furniture to grid corners. |
+| **Flora** | Overly detailed textures, non-pixelated | **Quantize to 16 colors.** Simplify leaves to 3-4 pixel clusters. |
+| **Fauna** | Inconsistent frame counts, jittery walk cycles | **Standardize to 4 frames.** Use onion-skinning in Aseprite to align feet positions. |
+| **Machinery** | Misaligned ports (input/output) | **Snap ports to grid edges.** Ensure all input arrows point right, output arrows point left. |
+| **Logistics** | Belt direction ambiguity | **Use directional arrows** on belts. N/E/S/W must be clearly marked with 1px white lines. |
 
-#### B. **Fauna Behavior Trees (RimWorld-Style)**
-*
+### Technical Implementation
+*   **Toolchain:** Aseprite for pixel art, Tiled for map editing.
+*   **Quantization:** Use **Nearest Neighbor** scaling in engine settings.
+*   **Palette:** Export as **PNG-8** with indexed colors.
+
+---
+
+## 4. New Depth & Fun Features for Maximum Engagement
+
+**Verdict:** Add **layered complexity** without breaking the core loop. Focus on **synergy** and **visual feedback**.
+
+### 1. **Bioluminescent Synergy System**
+*   **Feature:** Flora (Spore Tree, Crystal Pine) emit light that **boosts nearby machinery efficiency**.
+*   **Visual:** Glow radius shown as a soft cyan halo.
+*   **Gameplay:** Players must interleave flora and machinery for optimal output.
+
+### 2. **Dynamic Fauna Behavior**
+*   **Feature:** Fauna (Muffalo, Deer) **graze on specific flora**, producing unique resources.
+    *   *Muffalo* → Milk (Energy)
+    *   *Deer* → Antlers (Crafting Material)
+*   **Visual:** Fauna
 
 ## 2. Domain Asset Telemetry
 
