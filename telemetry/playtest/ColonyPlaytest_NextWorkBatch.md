@@ -1,19 +1,19 @@
-# Project Deep-Mantle :: Engineering Work Batch: BATCH-76
+# Project Deep-Mantle :: Engineering Work Batch: BATCH-77
 
 ## Ultra-Endgame Ascension & Deterministic State Compression (Target: `v1.2.0`)
 
 - **Architect**: `DGX Spark Cluster Lead Systems Engineer`
 - **QA Verifier**: `RTX 5090 Blackwell Reflex QA Director`
-- **Date**: `2026-10-19 21:08:38`
+- **Date**: `2026-10-19 21:19:15`
 
 ### Batch Overview
-Finalize simulation coverage by implementing deterministic state hashing for rapid save/load verification, optimizing colonist psychology state machines for zero-allocation transitions, and integrating Vulkan compute shaders for parallel physics resolution. These tasks close the final gaps in performance and determinism.
+Finalize the simulation loop by implementing deterministic state hashing for rapid save/load verification and optimizing the Monte Carlo convergence check for the 5,500-tick milestone. This batch ensures the engine achieves 100% coverage with zero deadlocks and minimal memory overhead.
 
 ---
 
 ### Prioritized Engineering Tasks
 
-#### [TASK-801] Deterministic State Hashing for Save/Load Verification (`P0 - Critical`)
+#### [TASK-801] Implement Deterministic State Hashing for Save/Load Verification (`P0 - Critical`)
 
 - **Domain**: `Engine/C++20`
 - **Estimated Complexity**: `Atomic`
@@ -21,38 +21,67 @@ Finalize simulation coverage by implementing deterministic state hashing for rap
   - `Source/Runtime/Core/StateHash.h`
   - `Source/Runtime/Core/StateHash.cpp`
 - **Architectural Specification**:
-  Implement a 64-bit FNV-1a hash function for the core simulation state. Use constexpr where possible. The hash must be stable across compiler versions. Structure: struct StateHash { uint64_t value; }; Function: uint64_t ComputeStateHash(const SimulationState& state) noexcept. Iterate through all primitive members of SimulationState. No dynamic allocation. Use std::bit_cast for type punning if needed. Ensure endianness consistency by normalizing to little-endian before hashing.
+  1. Define struct StateHashContext with fixed-size arrays for tick, entity count, and checksum.
+2. Implement constexpr hash function using FNV-1a algorithm for speed.
+3. Integrate with ez::World::SaveState to append hash to binary stream.
+4. Verify hash on load to detect corruption or non-deterministic drift.
+5. Ensure zero heap allocations during hashing phase.
+6. Use std::span for contiguous memory access.
+7. Add static_assert for struct size alignment.
+8. Provide inline comparison operator for fast equality checks.
 - **Acceptance Criteria**:
-  1. Hash is identical across 1000 runs of the same seed. 2. Zero heap allocations during hashing. 3. Compilation time < 100ms for the header.
+  1. Hash generation completes in <1ms for 5,500 ticks.
+2. Load verification fails gracefully on mismatch.
+3. No heap allocations in hashing path.
+4. Unit tests cover edge cases (empty state, max entities).
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Instant save/load verification, reducing perceived load times and ensuring deterministic replay reliability.
+  Instant save/load verification ensures no lost progress due to silent corruption.
 
-#### [TASK-802] Zero-Allocation Colonist Psychology State Machine (`P1 - High`)
+#### [TASK-802] Optimize Monte Carlo Convergence Check for 5,500 Ticks (`P1 - High`)
 
 - **Domain**: `Simulation/Physics`
 - **Estimated Complexity**: `Small`
 - **Target Files**:
-  - `Source/Runtime/Simulation/ColonistPsychology.h`
-  - `Source/Runtime/Simulation/ColonistPsychology.cpp`
+  - `Source/Runtime/Simulation/MonteCarlo.h`
+  - `Source/Runtime/Simulation/MonteCarlo.cpp`
 - **Architectural Specification**:
-  Refactor the psychology state machine to use a fixed-size array of state transitions. Define enum class PsychState : uint8_t. Use a static lookup table for transitions: static constexpr std::array<PsychState, 16> NextStateTable. Implement UpdatePsychology(Colonist& c) noexcept. No std::vector or std::string usage. Use std::span for input data. Ensure all state transitions are O(1). Handle overflow by clamping to max state index.
+  1. Refactor MonteCarloRunner to use fixed-size ring buffer for last 100 samples.
+2. Implement incremental mean/variance calculation (Welford's algorithm).
+3. Add early exit condition if variance < 1e-6 for 10 consecutive samples.
+4. Remove dynamic vector resizing in hot loop.
+5. Use std::array for sample storage.
+6. Profile with 5,500 ticks to ensure <5ms total execution.
+7. Ensure thread-safe atomic updates for shared counters.
+8. Add debug output for convergence step count.
 - **Acceptance Criteria**:
-  1. 10,000 colonists updated in < 1ms. 2. No heap allocations in the update loop. 3. State transitions are deterministic and match previous batch results.
+  1. Convergence detected within 100 samples for stable systems.
+2. Execution time <5ms for 5,500 ticks.
+3. No dynamic allocations in simulation loop.
+4. Variance calculation matches reference implementation.
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Smoother frame rates during large colony simulations, reducing stutter during peak activity.
+  Faster simulation steps lead to smoother gameplay and quicker load times.
 
-#### [TASK-803] Vulkan Compute Shader for Parallel Physics Resolution (`P2 - Quality-of-Life`)
+#### [TASK-803] Add Tick-Count Metadata to Save Files (`P2 - Quality-of-Life`)
 
-- **Domain**: `Graphics/Vulkan`
-- **Estimated Complexity**: `Small`
+- **Domain**: `Storyteller/AI`
+- **Estimated Complexity**: `Atomic`
 - **Target Files**:
-  - `Source/Runtime/Graphics/Vulkan/ComputePhysics.h`
-  - `Source/Runtime/Graphics/Vulkan/ComputePhysics.cpp`
-  - `Shaders/PhysicsResolve.comp`
+  - `Source/Runtime/Core/SaveSystem.h`
+  - `Source/Runtime/Core/SaveSystem.cpp`
 - **Architectural Specification**:
-  Implement a Vulkan compute shader to resolve collision constraints. Use a structured buffer for entity data. Shader: layout(local_size_x = 64) in; void main() { ... }. Host side: Create a 1D buffer for entity positions and velocities. Dispatch compute with group count = ceil(entityCount / 64). Use std::atomic for synchronization if needed, but prefer barrier() in shader. No CPU-side loop for collision resolution.
+  1. Extend SaveHeader struct with uint32_t tickCount field.
+2. Populate tickCount from World::GetTick() during save.
+3. Display tick count in UI debug overlay.
+4. Ensure backward compatibility with old save formats (default 0).
+5. Add version check for header size.
+6. Use std::optional for optional fields.
+7. Serialize as little-endian uint32.
+8. Add unit test for header parsing.
 - **Acceptance Criteria**:
-  1. Physics resolution 5x faster than CPU implementation for 1000 entities. 2. No synchronization stalls between compute and graphics queues. 3. Correct collision response verified against CPU reference.
+  1. Tick count visible in debug overlay.
+2. Old saves load without error (tick=0).
+3. New saves include correct tick count.
+4. No performance regression in save/load.
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Higher frame rates and more responsive physics interactions in complex scenes.
+  Helps players track progress and identify long-running sessions.
 
