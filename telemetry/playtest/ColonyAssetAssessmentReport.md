@@ -1,6 +1,6 @@
 # Project Deep-Mantle: Autonomous Asset Assessment Report
 
-**Generated:** 2026-10-19 10:46:36 UTC  
+**Generated:** 2026-10-19 10:53:14 UTC  
 **Evaluated By:** Operator's Local AI Cluster (DGX Spark :8877 & RTX 5090 Blackwell :8080)  
 **RTX 5090 Role Transition:** `ROLE_ENTER` -> `ROLE_EXIT` Clean VRAM Hand-off  
 **Total Assets Evaluated:** 52  
@@ -9,69 +9,70 @@
 
 ## 1. Operator AI Cognitive Assessment & Feature Directives
 
-Hello. As the Lead Visual Designer and Gameplay Architect for **Project Deep-Mantle**, I have analyzed the asset domains and the core simulation parameters. Below is my decisive evaluation of the current state and the roadmap for optimization.
+Hello. As the Lead Visual Designer and Gameplay Architect for **Project Deep-Mantle**, I have analyzed the asset domains and the core simulation parameters. Below is my decisive evaluation and architectural roadmap.
 
 ### 1. Visual & Spatial Consistency Evaluation
 **Does this make sense?**
+**Yes, but only with strict adherence to a "Layered Orthographic" system.**
 
-**Verdict:** The structure is logically sound but visually fragmented. The current mix of 16-bit pixel scaling and orthographic perspective is functional but lacks a unified "visual grammar," which is critical for rapid cognitive processing in simulation games.
-
-*   **Orthographic Perspective:** The top-down orthographic view is correct for a grid-based logistics sim. However, the **Z-axis depth** is currently underutilized. In a subterranean setting, depth is the primary differentiator.
-    *   *Issue:* Assets like the *Lithophone* and *Terminal Desk* likely lack consistent shadow casting relative to the light source (the central reactor or surface light).
-    *   *Fix:* Implement a **strict 2.5D orthographic projection** where the Y-axis represents depth (distance from camera) and Z-axis represents height (layers of the cave). All assets must share a single light source origin (e.g., top-left) to maintain spatial coherence.
-*   **16-bit Pixel Scaling:** The 16-bit constraint is appropriate for performance on the DGX Spark/RTX 5090 cluster, allowing for high frame rates with many entities.
-    *   *Issue:* The *Fauna* (Muffalo, Deer, etc.) use 4-frame walk cycles. This is too few for smooth motion in a high-refresh-rate environment.
-    *   *Fix:* Upgrade to **6-frame cycles** for all fauna to reduce "jitter" without breaking the 16-bit aesthetic. Ensure all sprites are aligned to a **16x16 pixel grid** with no sub-pixel rendering to prevent blurring.
-*   **Spatial Consistency:** The *Industrial Machinery* (Domain 5) and *Factory Logistics* (Domain 6) must share the same grid footprint.
-    *   *Issue:* If a *Conveyor* is 1x1, a *Turbine* should not be 1.5x1.5.
-    *   *Fix:* Enforce **integer-based footprints**. All machinery must occupy whole grid cells. This ensures that *Inserters* and *Chutes* snap perfectly without visual gaps.
+*   **Perspective Strategy:** We must use a **2.5D Isometric Projection** (not true isometric, but a 2:1 pixel ratio grid). This is critical for the DGX Spark/RTX 5090 cluster to handle high-density rendering without aliasing artifacts.
+    *   *Top-down orthographic* is too flat for depth perception in a subterranean cave (verticality matters).
+    *   *True Isometric* causes pixel-grid misalignment in 16-bit scaling.
+    *   **Decision:** Use **Dimetric Projection** (2:1 ratio). It preserves pixel-perfect clarity for 16-bit assets while allowing clear vertical stacking for cave layers.
+*   **16-bit Pixel Scaling:**
+    *   Assets must be authored at **1x native resolution** (e.g., 32x32 or 64x64) and scaled via **Nearest-Neighbor** interpolation. No bilinear filtering. This ensures crisp edges on the RTX 5090’s high-refresh output.
+    *   **Spatial Consistency Rule:** All assets must share a **common baseline grid**. The *Muffalo* (Fauna) and *Pultrusion Mill* (Machinery) must align to the same 16px sub-grid to prevent "floating" artifacts during animation.
+*   **Evaluation:** The current domain split is logical. However, *Lithophone* (Habitation) and *Crystal Pine* (Flora) risk visual clutter if not differentiated by **color palette separation** (e.g., Flora = cool blues/greens; Machinery = warm ambers/steels).
 
 ### 2. Gameplay Loop Clarity
-**Is it clear? Will the player understand what's going on?**
+**Is it clear? Will the player understand?**
+**Yes, if we enforce a "Three-Tier Feedback Loop."**
 
-**Verdict:** The loop is currently **implicit** and risks cognitive overload. The player needs a **three-tier feedback system** to understand the interaction between Automation (Factorio) and Survival (RimWorld).
+The loop is **Factorio-grade automation** nested within **RimWorld-grade survival**. Here is the decisive flow:
 
-**The Core Loop:**
-1.  **Extract** (Flora/Fauna/Machinery) → 2. **Process** (Machinery/Logistics) → 3. **Sustain** (Habitation/Drones) → 4. **Expand** (New Layers/Depth).
+1.  **Micro-Loop (Immediate):**
+    *   *Input:* Player places a **Conveyor** and **Inserter**.
+    *   *Output:* Items move visibly. **Sentry Rover** patrols the perimeter.
+    *   *Clarity:* Use **color-coded item trails** (e.g., blue for water, yellow for ore) to make flow instantly readable.
+2.  **Meso-Loop (Short-term):**
+    *   *Input:* **Hydroponics** produce food; **Smelter** refines ore.
+    *   *Output:* **Pawns** (Muffalo/Deer) consume food; **Turrets** activate on rogue loops.
+    *   *Clarity:* A **minimalist HUD** showing "Resource Flow Rate" and "Colony Stability" (1-5 stars). No text walls.
+3.  **Macro-Loop (Long-term):**
+    *   *Input:* Expand cave layers using **Drone Bay** and **Pultrusion Mill**.
+    *   *Output:* Unlock deeper strata with new **Fauna** and **Flora**.
+    *   *Clarity:* **Progressive Disclosure.** Only show the next layer’s blueprint when the current one is 80% optimized.
 
-**Clarity Improvements:**
-*   **Color-Coded Systems:** Assign distinct color palettes to each domain for instant recognition:
-    *   *Logistics (Domain 6):* Cyan/Blue (Flow)
-    *   *Machinery (Domain 5):* Amber/Yellow (Energy/Process)
-    *   *Flora/Fauna (Domains 3/4):* Green/Earth Tones (Biomass)
-    *   *Habitation (Domain 2):* White/Grey (Static Infrastructure)
-*   **Pawn State Indicators:** Each pawn (Drone or Human) must have a **single, bold icon** above their head indicating their current state:
-    *   ⚙️ = Processing
-    *   📦 = Transporting
-    *   💤 = Resting
-    *   ⚠️ = Stalled/Blocked
-*   **The "RimWorld" Factor:** Pawns must have **priority queues** visible in the UI. If a *Sentry Rover* is idle, the player must see *why* (e.g., "No Power," "No Target"). This reduces frustration and makes the simulation feel alive.
+**Verdict:** The loop is clear if we **limit simultaneous UI elements to 3**. The player should always know: *What is moving? What is being consumed? What is the next goal?*
 
-### 3. Asset Refinement & Technical Alignment
-**Where things look like it was AI done, what needs replacement, quantization, or perspective alignment?**
+### 3. Asset Refinement & Quantization
+**Where does it look "AI-generated"? What needs replacement?**
 
-**Verdict:** The current assets suffer from **inconsistent line weights** and **non-uniform lighting**. Here is the technical remediation plan:
-
-| Asset Domain | Issue | Action |
-| :--- | :--- | :--- |
-| **1. Drones & Defenses** | *Rogue Subversion Loop* is abstract. | **Replace** with a **3D isometric icon** showing a circular path with arrows. Quantize to 16x16. |
-| **2. Habitation** | *Lithophone* and *Lamp* lack depth cues. | **Add** a 1-pixel dark shadow offset (bottom-right) to all static objects. Align *Stool* and *Bench* to the same 16x16 grid. |
-| **3. Flora** | *Spore Tree* and *Crystal Pine* have irregular silhouettes. | **Quantize** to a 32x32 bounding box. Ensure all trees have the same base footprint (2x2 cells) for grid consistency. |
-| **4. Fauna** | 4-frame walk cycles are jerky. | **Replace** with 6-frame cycles. Ensure the *Muffalo* and *Boar* have the same stride length for visual rhythm. |
-| **5. Machinery** | *Pultrusion Mill* and *Smelter* have complex internal details. | **Simplify** to 3-layer depth: Base, Body, Output. Use **bold outlines** (2px) for all machinery to distinguish from background. |
-| **6. Logistics** | *Conveyors N/E/S/W* may have misaligned arrows. | **Align** all conveyor arrows to the center of the 16x16 tile. Ensure *Chutes* have a clear "in" and "out" indicator. |
-
-**Perspective Alignment Rule:**
-*   All objects must be drawn with a **30-degree isometric tilt** for the top surface, but **orthographic** for the side profiles. This hybrid approach maximizes readability while maintaining depth.
+*   **Problem 1: Inconsistent Lighting in Flora (Domain 3)**
+    *   *Issue:* *Spore Tree* and *Crystal Pine* often have mismatched light sources (e.g., top-down light on tree, side-light on bush).
+    *   *Fix:* **Quantize lighting to 3 levels:** Ambient (10%), Direct (50%), Highlight (100%). Apply uniformly across all 4 flora assets.
+*   **Problem 2: Animation Frame Mismatch in Fauna (Domain 4)**
+    *   *Issue:* *Muffalo* and *Wolf* walk cycles may have different frame counts (e.g., 4 vs. 6 frames), causing stutter in parallel animations.
+    *   *Fix:* **Standardize all walk cycles to 4 frames** (Idle, Step 1, Step 2, Return). Use **keyframe interpolation** for smoothness on the RTX 5090.
+*   **Problem 3: Perspective Drift in Machinery (Domain 5)**
+    *   *Issue:* *Turret* and *Smelter* may have slight perspective skew (e.g., 15° vs. 30°).
+    *   *Fix:* **Re-render all machinery assets in a single 2:1 dimetric grid.** Ensure the *Turret* base aligns perfectly with the *Conveyor* belt height (16px offset).
+*   **Problem 4: Low-Contrast in Habitation (Domain 2)**
+    *   *Issue:* *Lithophone* and *Terminal Desk* blend into the cave background.
+    *   *Fix:* Add **1px black outlines** to all interactive furniture. Increase saturation by 10% for active items.
 
 ### 4. New Depth & Fun Features for Engagement
-**What new depth and fun features should be added to maximize player engagement?**
+**Maximizing player engagement in the Deep-Mantle loop:**
 
-To elevate the simulation from a static builder to a dynamic ecosystem, I propose the following **four key features**:
-
-1.  **Dynamic Layered Depth (The "Mantle" Mechanic):**
-    *   *Feature:* The map is not flat. It has **3 vertical layers** (Surface, Upper Cave, Deep Core).
-    *   *Engagement:* Players must build **Vertical Chutes** to move items between layers. Each layer has unique environmental modifiers (e.g., Deep Core = Higher Energy Yield, but Lower Oxygen). This forces
+1.  **Dynamic Cave Acoustics (Audio-Visual Sync):**
+    *   *Feature:* The **Lithophone** (Habitation) and **Crystal Pine** (Flora) emit subtle, pitch-shifted tones based on resource flow speed.
+    *   *Engagement:* Players "hear" efficiency. A smooth hum = optimal flow; a staccato beep = bottleneck. This leverages the RTX 5090’s low-latency audio processing.
+2.  **Rogue Subversion Loop as a "Puzzle Layer":**
+    *   *Feature:* The **Rogue Subversion Loop** (Domain 1) is not just an enemy but a **dynamic puzzle**. It reconfigures conveyor paths in real-time.
+    *   *Engagement:* Players must "read" the loop’s pattern (like a rhythm game) to optimize inserter placement. This adds a **skill-based layer** to the automation.
+3.  **Fauna as Living Sensors:**
+    *   *Feature:* **Muffalo** and **Deer** (Domain 4) change color intensity based on cave temperature/humidity.
+    *   *Engagement:* No need for text readouts. The player glances at the *Muffalo*’s fur (blue = cold, red = hot) to adjust **Hydroponics** settings.
 
 ## 2. Domain Asset Telemetry
 
