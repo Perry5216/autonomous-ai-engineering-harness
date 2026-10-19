@@ -5640,7 +5640,7 @@
             // Construct Architectural Room Enclosures & High-Performance Flooring
             const off = getCompoundOffset();
 
-            // 1. Assign room-specific flooring
+            // 1. Assign room-specific flooring & metadata
             COLONY_ROOM_DEFS.forEach(room => {
                 const rx = room.x + off.x;
                 const ry = room.y + off.y;
@@ -5649,18 +5649,25 @@
                         if (y < 0 || y >= LOCAL_MAP_SIZE || x < 0 || x >= LOCAL_MAP_SIZE) continue;
                         const cell = localColonyGrid[y][x];
                         if (cell.isWall) continue;
-                        if (room.id === 'mess_hall') {
-                            cell.terrain = "excavated_basalt";
-                            cell.floorSpriteKey = `floor_basalt_${getFloorVariantIndex(x, y, currentSeed, 8)}`;
-                        } else if (room.id === 'hydro_lab') {
-                            cell.terrain = "spore_humus";
-                            cell.floorSpriteKey = `floor_spore_${getFloorVariantIndex(x, y, currentSeed, 4)}`;
-                        } else if (room.id === 'tokamak_vault') {
-                            cell.terrain = "hazard_plating";
-                            cell.floorSpriteKey = ((x + y) % 2 === 0) ? "floor_hazard_0" : "floor_grate";
-                        } else if (room.id === 'logistics_yard') {
+                        cell.roomId = room.id;
+                        cell.roomDef = room;
+
+                        const floorKey = room.floorType || 'floor_basalt';
+                        if (floorKey === 'floor_plating') {
                             cell.terrain = "precursor_alloy_floor";
                             cell.floorSpriteKey = `floor_plating_${getFloorVariantIndex(x, y, currentSeed, 4)}`;
+                        } else if (floorKey === 'floor_spore') {
+                            cell.terrain = "spore_humus";
+                            cell.floorSpriteKey = `floor_spore_${getFloorVariantIndex(x, y, currentSeed, 4)}`;
+                        } else if (floorKey === 'floor_hazard') {
+                            cell.terrain = "hazard_plating";
+                            cell.floorSpriteKey = ((x + y) % 2 === 0) ? "floor_hazard_0" : "floor_grate";
+                        } else if (floorKey === 'floor_grate') {
+                            cell.terrain = "catwalk_grate";
+                            cell.floorSpriteKey = "floor_grate";
+                        } else {
+                            cell.terrain = "excavated_basalt";
+                            cell.floorSpriteKey = `floor_basalt_${getFloorVariantIndex(x, y, currentSeed, 8)}`;
                         }
                     }
                 }
@@ -5669,9 +5676,11 @@
             // 2. Identify designated blast hatch doorways
             const doorwaySet = new Set();
             COLONY_ROOM_DEFS.forEach(r => {
-                r.doors.forEach(d => {
-                    doorwaySet.add(`${d.x + off.x},${d.y + off.y}`);
-                });
+                if (r.doors) {
+                    r.doors.forEach(d => {
+                        doorwaySet.add(`${d.x + off.x},${d.y + off.y}`);
+                    });
+                }
             });
 
             // Helper to place Plasteel Blast Walls
@@ -5692,25 +5701,19 @@
                 c.walkSpeed = 0;
             }
 
-            // Mess Hall perimeter walls
-            for (let x = 8 + off.x; x <= 15 + off.x; x++) placeRoomWall(x, 7 + off.y);
-            for (let y = 7 + off.y; y <= 12 + off.y; y++) placeRoomWall(8 + off.x, y);
-            for (let y = 7 + off.y; y <= 12 + off.y; y++) placeRoomWall(15 + off.x, y);
-            for (let x = 6 + off.x; x <= 15 + off.x; x++) placeRoomWall(x, 12 + off.y);
-
-            // Hydroponics & Research Lab walls
-            for (let y = 12 + off.y; y <= 17 + off.y; y++) placeRoomWall(6 + off.x, y);
-            for (let x = 6 + off.x; x <= 10 + off.x; x++) placeRoomWall(x, 17 + off.y);
-            for (let y = 12 + off.y; y <= 17 + off.y; y++) placeRoomWall(10 + off.x, y);
-
-            // Tokamak Reactor Vault walls
-            for (let x = 10 + off.x; x <= 15 + off.x; x++) placeRoomWall(x, 17 + off.y);
-            for (let y = 12 + off.y; y <= 17 + off.y; y++) placeRoomWall(15 + off.x, y);
-
-            // Logistics & Fabrication Yard perimeter
-            for (let x = 15 + off.x; x <= 25 + off.x; x++) placeRoomWall(x, 7 + off.y);
-            for (let y = 7 + off.y; y <= 16 + off.y; y++) placeRoomWall(25 + off.x, y);
-            for (let x = 15 + off.x; x <= 25 + off.x; x++) placeRoomWall(x, 16 + off.y);
+            // Data-driven perimeter blast walls for all registered rooms
+            COLONY_ROOM_DEFS.forEach(room => {
+                const rx = room.x + off.x;
+                const ry = room.y + off.y;
+                for (let x = rx; x <= rx + room.w; x++) {
+                    placeRoomWall(x, ry);
+                    placeRoomWall(x, ry + room.h);
+                }
+                for (let y = ry; y <= ry + room.h; y++) {
+                    placeRoomWall(rx, y);
+                    placeRoomWall(rx + room.w, y);
+                }
+            });
 
             // Procedurally spawn Flora and Fauna strictly on open, walkable cavern floors
             const prng = (function(s) {
@@ -6359,14 +6362,40 @@
             handleLocalCanvasHover(event);
             const gx = localHoverCell.x;
             const gy = localHoverCell.y;
+
+            if (gx < 0 || gx >= LOCAL_MAP_SIZE || gy < 0 || gy >= LOCAL_MAP_SIZE) return;
+
+            // Check if clicked directly on a colonist
+            const hitPawnIdx = DEPLOYED_COLONISTS.findIndex(p => Math.abs(p.x - gx) < 0.9 && Math.abs(p.y - gy) < 0.9);
+            if (hitPawnIdx !== -1) {
+                selectColonist(hitPawnIdx);
+                return;
+            }
+
+            // If a terrain brush is active, paint
             if (activeTerrainBrush && localColonyGrid[gy] && localColonyGrid[gy][gx]) {
                 paintCell(gx, gy, activeTerrainBrush);
                 return;
             }
-            const hitPawn = DEPLOYED_COLONISTS.find(p => Math.abs(p.x - gx) < 0.9 && Math.abs(p.y - gy) < 0.9);
-            if (hitPawn) {
-                selectArchetype(hitPawn.arch);
+
+            // If a colonist is selected and clicked an open cell, order move
+            if (selectedColonistIdx !== null) {
+                const pawn = DEPLOYED_COLONISTS[selectedColonistIdx];
+                const targetCell = localColonyGrid[gy]?.[gx];
+                if (pawn && targetCell && !targetCell.isWall) {
+                    pawn.targetX = gx + 0.5;
+                    pawn.targetY = gy + 0.5;
+                    pawn.isWalking = true;
+                    pawn.activeTask = 'move';
+                    playTactileSound('click');
+                    showColonyToast(`🚶 ${pawn.name.split(' ')[0]} ordered to move to [${gx}, ${gy}]`);
+                    updateLocalInspectBox(gx, gy);
+                    renderLocalColony();
+                    return;
+                }
             }
+
+            updateLocalInspectBox(gx, gy);
         }
 
         function updateLocalInspectBox(gx, gy) {
@@ -6413,6 +6442,38 @@
             const inspectBox = document.getElementById('local-inspect-box');
             if (inspectBox) {
                 inspectBox.innerHTML = statusStr;
+            }
+
+            // Update RimWorld / Dwarf Fortress Room Impressiveness Card
+            const r = cell.roomDef || (cellRoom ? COLONY_ROOM_DEFS.find(rm => rm.id === cellRoom.id) : null);
+            if (r) {
+                const rName = document.getElementById("room-name");
+                const rTier = document.getElementById("room-tier-badge");
+                const rVal = document.getElementById("room-impress-val");
+                const rMeter = document.getElementById("room-meter-fill");
+                const rSpace = document.getElementById("room-space-val");
+                const rBeauty = document.getElementById("room-beauty-val");
+                const rClean = document.getElementById("room-clean-val");
+                const rTemp = document.getElementById("room-temp-val");
+                const rBuffs = document.getElementById("room-mood-buffs");
+
+                if (rName) rName.innerText = r.name.toUpperCase();
+                if (rTier) {
+                    rTier.innerText = r.tierName || "TIER 1 SUBSISTENCE";
+                    rTier.style.color = r.tierLevel === 4 ? "#38bdf8" : r.tierLevel === 3 ? "#ef4444" : r.tierLevel === 2 ? "#c084fc" : "#22c55e";
+                }
+                if (rVal) {
+                    const quality = r.impressiveness > 170 ? "Wonder of the World" : r.impressiveness > 140 ? "Extravagantly Impressive" : r.impressiveness > 115 ? "Extremely Impressive" : "Decent";
+                    rVal.innerText = `${r.impressiveness} (${quality})`;
+                }
+                if (rMeter) rMeter.style.width = `${Math.min(100, Math.max(10, Math.round(r.impressiveness / 2)))}%`;
+                if (rSpace) rSpace.innerText = `${r.space || (r.w * r.h)} m²`;
+                if (rBeauty) rBeauty.innerText = `+${r.beauty || 25}`;
+                if (rClean) rClean.innerText = `${r.cleanliness || 0.95} Clean`;
+                if (rTemp) rTemp.innerText = `${cell.temp || 22.4}°C`;
+                if (rBuffs && r.moodBuff) {
+                    rBuffs.innerHTML = `<span class="mood-buff-tag">${r.moodBuff}</span><span class="mood-buff-tag" style="background: rgba(56, 189, 248, 0.12); border-color: rgba(56, 189, 248, 0.3); color: #7dd3fc;">+5 Lithophone Joy</span><span class="mood-buff-tag" style="background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.3); color: #fcd34d;">+4 Well-Lit</span>`;
+                }
             }
         }
 
@@ -7099,6 +7160,64 @@
 
             // 3. Tactical Grid Lines applied strictly to excavated floor cells in Pass 1 to preserve monolithic rock mass
 
+            // 3.2 Draw Room Zoning Overlays (RimWorld & Dwarf Fortress style)
+            if (showLocalRooms && COLONY_ROOM_DEFS) {
+                COLONY_ROOM_DEFS.forEach(room => {
+                    const rx = room.x * cellSize - offsetX;
+                    const ry = room.y * cellSize - offsetY;
+                    const rw = room.w * cellSize;
+                    const rh = room.h * cellSize;
+
+                    if (rx + rw < 0 || rx > cw || ry + rh < 0 || ry > ch) return;
+
+                    // Soft ambient room tint
+                    localCtx.fillStyle = room.color || "rgba(56, 189, 248, 0.06)";
+                    localCtx.fillRect(rx, ry, rw, rh);
+
+                    // Dashed zoning perimeter border
+                    localCtx.save();
+                    localCtx.strokeStyle = room.borderColor || "rgba(56, 189, 248, 0.4)";
+                    localCtx.lineWidth = 1;
+                    localCtx.setLineDash([4, 4]);
+                    localCtx.strokeRect(rx + 1, ry + 1, rw - 2, rh - 2);
+                    localCtx.restore();
+
+                    // Room designation badge
+                    localCtx.font = "bold 8px monospace";
+                    const bText = room.badge || room.name.toUpperCase();
+                    const tw = localCtx.measureText(bText).width;
+                    localCtx.fillStyle = "rgba(4, 7, 14, 0.85)";
+                    localCtx.fillRect(rx + 4, ry + 4, tw + 8, 12);
+                    localCtx.strokeStyle = room.borderColor || "rgba(56, 189, 248, 0.4)";
+                    localCtx.lineWidth = 0.8;
+                    localCtx.strokeRect(rx + 4, ry + 4, tw + 8, 12);
+                    localCtx.fillStyle = room.borderColor || "#38bdf8";
+                    localCtx.fillText(bText, rx + 8, ry + 13);
+                });
+            }
+
+            // 3.5 Update Colonist Movement & Continuous Obstacle Sliding
+            DEPLOYED_COLONISTS.forEach((colonist) => {
+                if (colonist.isWalking && (colonist.targetX !== undefined) && (colonist.targetY !== undefined)) {
+                    const dx = colonist.targetX - colonist.x;
+                    const dy = colonist.targetY - colonist.y;
+                    const dist = Math.hypot(dx, dy);
+                    const speed = 0.055;
+                    if (dist > speed) {
+                        const vx = (dx / dist) * speed;
+                        const vy = (dy / dist) * speed;
+                        resolveContinuousMove(colonist, vx, vy, 0.28, false);
+                    } else {
+                        colonist.x = colonist.targetX;
+                        colonist.y = colonist.targetY;
+                        colonist.isWalking = false;
+                        if (colonist.activeTask && colonist.activeTask !== 'idle' && colonist.activeTask !== 'move') {
+                            showColonyToast(`✅ ${colonist.name.split(' ')[0]} reached workstation for ${colonist.activeTask.toUpperCase()}!`, 'var(--accent-green)');
+                        }
+                    }
+                }
+            });
+
             // 4. Draw Pawns Deployed on the Local Grid
             if (showLocalPawns) {
                 DEPLOYED_COLONISTS.forEach((pawn, pIdx) => {
@@ -7116,13 +7235,38 @@
                     localCtx.ellipse(px + cellSize * 0.5, py + cellSize * 0.88, cellSize * 0.45, cellSize * 0.2, 0, 0, Math.PI * 2);
                     localCtx.fill();
 
-                    // Selected pawn aura
-                    if (pawn.arch === currentArchetype) {
-                        localCtx.strokeStyle = "var(--accent-amber)";
+                    // Selected pawn aura & Tactical Destination Line
+                    const isSelected = (selectedColonistIdx !== null && DEPLOYED_COLONISTS[selectedColonistIdx] === pawn);
+                    if (pawn.arch === currentArchetype || isSelected) {
+                        localCtx.strokeStyle = isSelected ? "var(--accent-cyan)" : "var(--accent-amber)";
                         localCtx.lineWidth = 2;
                         localCtx.beginPath();
                         localCtx.ellipse(px + cellSize * 0.5, py + cellSize * 0.88, cellSize * 0.52, cellSize * 0.24, 0, 0, Math.PI * 2);
                         localCtx.stroke();
+
+                        // Draw pathing destination line and target crosshair
+                        if (pawn.isWalking && pawn.targetX !== undefined && pawn.targetY !== undefined) {
+                            const targetPx = pawn.targetX * cellSize - offsetX;
+                            const targetPy = pawn.targetY * cellSize - offsetY;
+                            localCtx.save();
+                            localCtx.strokeStyle = "rgba(56, 189, 248, 0.75)";
+                            localCtx.setLineDash([4, 4]);
+                            localCtx.lineWidth = 1.5;
+                            localCtx.beginPath();
+                            localCtx.moveTo(px + cellSize * 0.5, py + cellSize * 0.5);
+                            localCtx.lineTo(targetPx, targetPy);
+                            localCtx.stroke();
+                            localCtx.setLineDash([]);
+
+                            // Target Crosshair
+                            localCtx.strokeStyle = "#38bdf8";
+                            localCtx.beginPath();
+                            localCtx.arc(targetPx, targetPy, 5, 0, Math.PI * 2);
+                            localCtx.moveTo(targetPx - 8, targetPy); localCtx.lineTo(targetPx + 8, targetPy);
+                            localCtx.moveTo(targetPx, targetPy - 8); localCtx.lineTo(targetPx, targetPy + 8);
+                            localCtx.stroke();
+                            localCtx.restore();
+                        }
                     }
 
                     // Render Pawn Sprite
@@ -7344,50 +7488,15 @@
                     const stepVx = drone.vx * speedMultiplier;
                     const stepVy = drone.vy * speedMultiplier;
 
-                    if (drone.altitude > 0 && bounds) {
+                    if (drone.altitude > 0) {
                         // AIRBORNE DRONES (Sanitation, Agronomy, Hauler):
                         // - Freely glide OVER tables, chairs, desks, conveyors, and floor crates
-                        // - Strictly contained within room boundaries: IMPOSSIBLE to penetrate or pass through walls!
-                        const nextX = drone.x + stepVx;
-                        if (nextX <= bounds.minX) {
-                            drone.x = bounds.minX;
-                            drone.vx = Math.abs(drone.vx);
-                        } else if (nextX >= bounds.maxX) {
-                            drone.x = bounds.maxX;
-                            drone.vx = -Math.abs(drone.vx);
-                        } else {
-                            drone.x = nextX;
-                        }
-
-                        const nextY = drone.y + stepVy;
-                        if (nextY <= bounds.minY) {
-                            drone.y = bounds.minY;
-                            drone.vy = Math.abs(drone.vy);
-                        } else if (nextY >= bounds.maxY) {
-                            drone.y = bounds.maxY;
-                            drone.vy = -Math.abs(drone.vy);
-                        } else {
-                            drone.y = nextY;
-                        }
+                        // - Strictly bounce off solid rock walls and blast walls using continuous swept collision
+                        resolveContinuousMove(drone, stepVx, stepVy, 0.35, true);
                     } else {
                         // GROUND VEHICLES (Tread-Warden Sentry Rover, altitude === 0):
-                        // - Ground treads blocked by walls AND solid machinery/tables
-                        const roverRad = 0.38;
-                        const nextX = drone.x + stepVx;
-                        const probeX = nextX + (stepVx > 0 ? roverRad : -roverRad);
-                        if (bounds && (nextX <= bounds.minX || nextX >= bounds.maxX || isPositionBlocked(probeX, drone.y, 0.12))) {
-                            drone.vx = (drone.vx > 0 ? -1 : 1) * Math.abs(drone.vx);
-                        } else {
-                            drone.x = nextX;
-                        }
-
-                        const nextY = drone.y + stepVy;
-                        const probeY = nextY + (stepVy > 0 ? roverRad : -roverRad);
-                        if (bounds && (nextY <= bounds.minY || nextY >= bounds.maxY || isPositionBlocked(drone.x, probeY, 0.12))) {
-                            drone.vy = (drone.vy > 0 ? -1 : 1) * Math.abs(drone.vy);
-                        } else {
-                            drone.y = nextY;
-                        }
+                        // - Blocked by walls AND solid machinery/tables
+                        resolveContinuousMove(drone, stepVx, stepVy, 0.38, false);
                     }
 
                     // Contextual telemetry updates when hovering over functional furniture
