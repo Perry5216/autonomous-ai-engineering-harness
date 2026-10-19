@@ -1,49 +1,49 @@
 {
-  "batch_id": "BATCH-18",
+  "batch_id": "BATCH-19",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "Finalize simulation coverage by implementing deterministic state hashing for rapid save/load verification and optimizing colonist psychological state transitions for ultra-endgame stability. These atomic tasks close the final gaps in simulation determinism and AI responsiveness without introducing cascading dependencies.",
+  "overview": "Finalize simulation coverage by implementing deterministic state compression for ultra-endgame scenarios, optimizing Monte Carlo convergence, and enhancing colonist psychological modeling with atomic, zero-heap C++20 constructs.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Implement Deterministic State Hashing for Save Verification",
+      "title": "Implement Zero-Heap Deterministic State Compression",
       "target_files": [
-        "Source/Engine/Core/StateHash.h",
-        "Source/Engine/Core/StateHash.cpp"
+        "src/engine/state/StateCompressor.h",
+        "src/engine/state/StateCompressor.cpp"
       ],
-      "architectural_spec": "1. Define struct StateHashContext with fixed-size arrays for component IDs and values.\n2. Implement constexpr function ComputeStateHash(const StateHashContext&) using FNV-1a algorithm.\n3. Ensure no dynamic allocation; use std::array for storage.\n4. Integrate with existing SaveSystem via template specialization.\n5. Validate hash consistency across 1000 Monte Carlo runs.\n6. Handle endianness explicitly using std::endian::native.\n7. Provide inline operator== for fast comparison.\n8. Document memory layout for cache-line alignment.\n9. Add static_assert for struct size <= 64 bytes.\n10. Include unit tests for collision resistance.",
-      "acceptance_criteria": "1. Hash computation completes in < 1 microsecond for 1000 entities.\n2. Zero heap allocations during hashing.\n3. 100% match rate between serialized and recomputed hashes.\n4. All unit tests pass with 0 warnings.",
-      "player_fun_impact": "Faster save/load cycles and reliable state verification, reducing perceived lag in ultra-endgame scenarios.",
+      "architectural_spec": "Use C++20 concepts for compile-time type checking. Implement a fixed-size array-based compressor for simulation states. No dynamic allocations. Use std::span for view-based access. Ensure deterministic serialization order.",
+      "acceptance_criteria": "State compression ratio > 80%. Zero heap allocations. Deterministic output across runs. Unit tests pass with 100% coverage.",
+      "player_fun_impact": "Faster load times and consistent simulation results.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Optimize Collision Resolution for Static Geometry",
+      "title": "Optimize Monte Carlo Convergence for Endgame States",
       "target_files": [
-        "Source/Engine/Physics/CollisionResolver.h",
-        "Source/Engine/Physics/CollisionResolver.cpp"
+        "src/simulation/mc/MonteCarloEngine.h",
+        "src/simulation/mc/MonteCarloEngine.cpp"
       ],
-      "architectural_spec": "1. Precompute bounding boxes for static geometry at load time.\n2. Use AABB intersection tests before detailed collision checks.\n3. Implement spatial partitioning grid with fixed cell size.\n4. Store collision results in a ring buffer for frame reuse.\n5. Minimize branch mispredictions with sorted entity lists.\n6. Use std::span for contiguous memory access.\n7. Avoid virtual calls in hot path via template specialization.\n8. Profile with 10,000 static entities.\n9. Ensure deterministic ordering of collision events.\n10. Add debug counters for cache misses.",
-      "acceptance_criteria": "1. Collision resolution time reduced by 40% for static scenes.\n2. Deterministic output order maintained.\n3. No memory leaks in ring buffer implementation.\n4. Passes all existing physics regression tests.",
-      "player_fun_impact": "Smoother frame rates in complex static environments, enhancing immersion during exploration.",
+      "architectural_spec": "Implement a fixed-iteration Monte Carlo solver with early termination based on variance thresholds. Use C++20 ranges for data processing. Avoid recursion; use iterative state updates.",
+      "acceptance_criteria": "Convergence within 1000 iterations. Variance < 1e-6. No deadlocks. Performance improvement > 20% over previous version.",
+      "player_fun_impact": "More accurate and faster endgame predictions.",
       "estimated_complexity": "Small"
     },
     {
       "task_id": "TASK-803",
       "priority": "P2 - Quality-of-Life",
       "domain": "Storyteller/AI",
-      "title": "Streamline Colonist Psychological State Transitions",
+      "title": "Enhance Colonist Psychological Modeling with Atomic Updates",
       "target_files": [
-        "Source/Engine/AI/ColonistPsychology.h",
-        "Source/Engine/AI/ColonistPsychology.cpp"
+        "src/ai/psychology/ColonistPsychology.h",
+        "src/ai/psychology/ColonistPsychology.cpp"
       ],
-      "architectural_spec": "1. Define enum class PsychState with 8 core states.\n2. Implement transition table as constexpr std::array.\n3. Use bitwise operations for state combination.\n4. Cache last 3 states for quick history lookup.\n5. Reduce state update frequency to every 10 ticks.\n6. Ensure no dynamic allocation in transition logic.\n7. Provide inline getters for state values.\n8. Validate state machine completeness.\n9. Add trace logging for state changes.\n10. Benchmark against previous implementation.",
-      "acceptance_criteria": "1. State transitions complete in < 50 nanoseconds.\n2. No undefined states in 10,000 simulation ticks.\n3. Memory footprint reduced by 20%.\n4. All AI behavior tests pass.",
-      "player_fun_impact": "More responsive colonist behaviors and clearer psychological feedback in UI.",
+      "architectural_spec": "Use std::atomic for shared psychological states. Implement a lock-free update mechanism for mood and stress levels. Ensure thread-safe reads and writes with minimal overhead.",
+      "acceptance_criteria": "No data races detected. Update latency < 1ms. Consistent psychological states across threads.",
+      "player_fun_impact": "More responsive and consistent colonist behavior.",
       "estimated_complexity": "Atomic"
     }
   ]
