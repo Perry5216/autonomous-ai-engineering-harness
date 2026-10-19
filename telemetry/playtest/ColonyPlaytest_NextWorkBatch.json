@@ -1,50 +1,46 @@
 {
-  "batch_id": "BATCH-37",
+  "batch_id": "BATCH-38",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "Finalize the simulation loop by implementing deterministic state hashing for rapid save/load verification and optimizing the tick-based event queue for zero-allocation processing. These steps ensure the 5,500-tick campaign state is reproducible and memory-efficient, closing the final gaps in system stability and performance.",
+  "overview": "Finalize the deep-mantle simulation by implementing deterministic state compression for long-running campaigns and optimizing the Monte Carlo convergence logic for endgame stability. This batch closes the final coverage gaps in simulation persistence and statistical validation.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Implement Deterministic State Hashing for Save Verification",
+      "title": "Deterministic State Compression for 5k+ Tick Campaigns",
       "target_files": [
-        "Source/Runtime/Core/StateHash.h",
-        "Source/Runtime/Core/StateHash.cpp"
+        "Source/Runtime/Simulation/StateCompression.h",
+        "Source/Runtime/Simulation/StateCompression.cpp"
       ],
-      "architectural_spec": "1. Define `struct StateHash` with `uint64_t m_Hash`.\n2. Implement `ComputeHash(const SimulationState& state)` using FNV-1a 64-bit algorithm.\n3. Iterate through `state.m_Ticks`, `state.m_Colonists`, and `state.m_Resources`.\n4. Use `std::span` for contiguous memory access to minimize cache misses.\n5. Ensure no dynamic allocation during hash computation.\n6. Return `StateHash` by value.\n7. Add `operator==` for quick comparison.\n8. Integrate into `SaveSystem::VerifyIntegrity`.\n9. Handle null pointers in state structs gracefully.\n10. Unit test with known 5,500-tick snapshot.",
-      "acceptance_criteria": "Hash computation completes in <1ms for 5,500 ticks. Identical states produce identical hashes. No heap allocations during hashing.",
-      "player_fun_impact": "Instant save/load verification, reducing perceived load times and ensuring save integrity.",
+      "architectural_spec": "Implement a zero-heap, stack-based compression algorithm for the simulation state vector. Use C++20 concepts to constrain template parameters. The algorithm must process the 16,500-step history into a fixed-size 256-byte checksum plus a sparse delta map. No dynamic allocations allowed. Use std::array for all buffers. Ensure deterministic iteration order for reproducible checksums.",
+      "acceptance_criteria": [
+        "Compression ratio > 10:1 for 5,500 tick states.",
+        "Zero heap allocations during compression/decompression.",
+        "Deterministic output verified across 100 Monte Carlo runs.",
+        "Compilation time < 2 seconds for the header."
+      ],
+      "player_fun_impact": "Faster save/load times and smaller save files for long campaigns, improving overall responsiveness.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Zero-Allocation Tick Event Queue Optimization",
+      "title": "Optimized Monte Carlo Convergence Check for Endgame",
       "target_files": [
-        "Source/Runtime/Simulation/EventQueue.h",
-        "Source/Runtime/Simulation/EventQueue.cpp"
+        "Source/Runtime/Simulation/MonteCarlo.h",
+        "Source/Runtime/Simulation/MonteCarlo.cpp"
       ],
-      "architectural_spec": "1. Replace `std::vector<Event>` with `std::array<Event, 1024>`.\n2. Implement circular buffer logic with `m_Head` and `m_Tail` indices.\n3. Use `std::optional<Event>` for slot storage.\n4. `PushEvent` uses modulo arithmetic for index wrapping.\n5. `PopEvent` returns `std::optional<Event>`.\n6. Pre-allocate all events in a static pool.\n7. Remove `std::vector` dependencies from header.\n8. Ensure `constexpr` support for array size.\n9. Benchmark against previous vector implementation.\n10. Verify no fragmentation in memory profiler.",
-      "acceptance_criteria": "Memory footprint reduced by 40%. No heap allocations during tick processing. 100% deterministic order.",
-      "player_fun_impact": "Smoother frame rates during high-density simulation phases.",
+      "architectural_spec": "Refactor the Monte Carlo convergence check to use a fixed-point arithmetic approach for stability. Implement a 3-stage convergence detector: 1) Variance check, 2) Mean drift check, 3) Final state lock. Use constexpr functions for the threshold values. The logic must fit within 40 lines of code, leveraging C++20 structured bindings for result unpacking.",
+      "acceptance_criteria": [
+        "Convergence detected within 10 iterations for stable states.",
+        "No floating-point non-determinism in final state.",
+        "Unit tests pass for 100% survival rate scenarios.",
+        "Memory footprint < 1KB per simulation instance."
+      ],
+      "player_fun_impact": "More reliable and faster endgame calculations, reducing perceived lag during campaign completion.",
       "estimated_complexity": "Small"
-    },
-    {
-      "task_id": "TASK-803",
-      "priority": "P2 - Quality-of-Life",
-      "domain": "Storyteller/AI",
-      "title": "Compact Colonist Psychology State Serialization",
-      "target_files": [
-        "Source/Runtime/AI/ColonistState.h",
-        "Source/Runtime/AI/ColonistState.cpp"
-      ],
-      "architectural_spec": "1. Pack `m_Hunger`, `m_Energy`, `m_Mood` into `uint8_t` fields.\n2. Use bitfields for boolean flags (`m_IsWorking`, `m_IsIdle`).\n3. Implement `SerializeToBuffer` using `memcpy` for struct.\n4. Implement `DeserializeFromBuffer` with static_assert size checks.\n5. Remove virtual functions from `ColonistState`.\n6. Ensure alignment is 1 byte (`#pragma pack(1)`).\n7. Add `static_assert(sizeof(ColonistState) == 8)`.\n8. Update `SaveSystem` to use new struct.\n9. Test with 16,500 footsteps log.\n10. Verify backward compatibility with v1.1.0 saves.",
-      "acceptance_criteria": "Struct size is exactly 8 bytes. Serialization is 2x faster. All 16,500 footsteps reconstruct correctly.",
-      "player_fun_impact": "Faster save file loading and smaller save file sizes.",
-      "estimated_complexity": "Atomic"
     }
   ]
 }
