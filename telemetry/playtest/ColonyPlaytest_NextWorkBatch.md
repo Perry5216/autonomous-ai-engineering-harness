@@ -1,50 +1,45 @@
-# Project Deep-Mantle :: Engineering Work Batch: BATCH-65
+# Project Deep-Mantle :: Engineering Work Batch: BATCH-66
 
 ## Ultra-Endgame Ascension & Deterministic State Compression (Target: `v1.2.0`)
 
 - **Architect**: `DGX Spark Cluster Lead Systems Engineer`
 - **QA Verifier**: `RTX 5090 Blackwell Reflex QA Director`
-- **Date**: `2026-10-19 18:55:31`
+- **Date**: `2026-10-19 19:07:58`
 
 ### Batch Overview
-Finalize the simulation loop by implementing deterministic state hashing for rapid save/load verification and optimizing the Monte Carlo convergence logic for the endgame phase. This batch closes the last gaps in simulation coverage by ensuring 100% reproducibility of the 5,500-tick state and reducing memory footprint for long-running sessions.
+Finalize simulation coverage by implementing deterministic state compression for long-running campaigns and optimizing the endgame ascension logic. This batch focuses on reducing memory footprint for 5,500+ tick simulations and ensuring zero-latency state restoration for Monte Carlo verification.
 
 ---
 
 ### Prioritized Engineering Tasks
 
-#### [TASK-801] Implement Deterministic State Hashing for Save Verification (`P0 - Critical`)
+#### [TASK-801] Implement Deterministic Bit-Packed State Serializer (`P0 - Critical`)
 
 - **Domain**: `Engine/C++20`
 - **Estimated Complexity**: `Atomic`
 - **Target Files**:
-  - `Source/Engine/Core/StateHasher.h`
-  - `Source/Engine/Core/StateHasher.cpp`
+  - `Source/Engine/Core/StateSerializer.h`
+  - `Source/Engine/Core/StateSerializer.cpp`
 - **Architectural Specification**:
-  1. Define struct StateHash { uint64_t value; }.
-2. Implement constexpr uint64_t FNV1a(const char* data, size_t len).
-3. Create class StateHasher with static method Compute(const SimulationState& s).
-4. Iterate through all primitive members of SimulationState.
-5. Apply FNV1a to each member's binary representation.
-6. Combine results using XOR folding.
-7. Ensure no heap allocations in Compute.
-8. Use std::bit_cast for type-erased hashing.
-9. Handle nested structs via recursive template expansion.
-10. Return final 64-bit hash.
-11. Add unit test for known state vectors.
-12. Verify endianness handling (little-endian assumed).
-13. Optimize loop unrolling for fixed-size arrays.
-14. Ensure compatibility with C++20 concepts.
-15. Document hash collision probability (<1e-18).
+  1. Define struct PackedState with fixed-size uint64_t arrays for core entities.
+2. Implement constexpr bit-packing for enum states (4 bits) and IDs (12 bits).
+3. Use std::span for zero-copy serialization into pre-allocated buffers.
+4. Ensure no dynamic allocation during serialization/deserialization.
+5. Validate checksum using CRC32 inline.
+6. Handle endianness via std::endian::native checks.
+7. Support versioning via 8-bit header prefix.
+8. Integrate with existing ez::World state container.
+9. Provide static_assert for struct sizes.
+10. Ensure compatibility with C++20 concepts for trivially copyable types.
 - **Acceptance Criteria**:
-  1. Hash computation completes in <1ms for 5,500-tick state.
-2. Identical states produce identical hashes.
-3. Zero heap allocations during hashing.
-4. Unit tests pass for 100 random state vectors.
+  1. Serialization of 5,500 ticks completes in <1ms.
+2. Memory usage reduced by >60% compared to JSON/XML.
+3. Zero heap allocations during serialize/deserialize.
+4. Checksum validation passes for all test cases.
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Instant save/load verification, reducing perceived load times and ensuring data integrity.
+  Faster load times and smoother frame rates in large-scale colony simulations.
 
-#### [TASK-802] Optimize Monte Carlo Convergence for Endgame Phase (`P1 - High`)
+#### [TASK-802] Optimize Monte Carlo Survival Rate Calculation (`P1 - High`)
 
 - **Domain**: `Simulation/Physics`
 - **Estimated Complexity**: `Small`
@@ -52,55 +47,47 @@ Finalize the simulation loop by implementing deterministic state hashing for rap
   - `Source/Simulation/MonteCarlo.h`
   - `Source/Simulation/MonteCarlo.cpp`
 - **Architectural Specification**:
-  1. Define struct MCResult { float mean; float variance; }.
-2. Implement class MonteCarlo with static method Converge(const std::span<float>& samples).
-3. Use Welford's online algorithm for mean/variance.
-4. Stop iteration when variance < 1e-6.
-5. Pre-allocate fixed-size buffer for samples (max 1024).
-6. Use std::accumulate for final mean calculation.
-7. Implement early exit if 10 consecutive samples are identical.
-8. Ensure thread-safe static initialization.
-9. Handle empty span by returning {0.0f, 0.0f}.
-10. Add constexpr support for small sample sets.
-11. Profile memory usage (target < 4KB per instance).
-12. Integrate with StateHasher for result verification.
-13. Document convergence criteria in header.
-14. Test with 5,500-tick simulation data.
-15. Verify no floating-point drift over 10k iterations.
+  1. Replace std::vector with fixed-size std::array for 16,500 footsteps.
+2. Implement incremental mean/variance calculation (Welford's algorithm).
+3. Use constexpr lookup tables for common probability distributions.
+4. Parallelize independent simulation branches using std::jthread.
+5. Cache intermediate states to avoid recomputation.
+6. Ensure deterministic ordering of thread results.
+7. Minimize cache misses via struct-of-arrays layout.
+8. Provide progress callback for UI integration.
+9. Handle edge cases for empty simulation sets.
+10. Validate against known analytical solutions.
 - **Acceptance Criteria**:
-  1. Convergence achieved in <50 iterations for stable states.
-2. Memory footprint < 4KB per simulation step.
-3. Results match reference implementation within 1e-6 tolerance.
+  1. Calculation time reduced by 40%.
+2. Deterministic output matches previous batch exactly.
+3. No race conditions in parallel execution.
+4. Memory footprint remains constant regardless of tick count.
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Faster simulation ticks, leading to smoother gameplay and quicker endgame resolution.
+  Immediate feedback on simulation outcomes without stuttering.
 
-#### [TASK-803] Cache Precomputed Endgame Narrative Beats (`P2 - Quality-of-Life`)
+#### [TASK-803] Endgame Ascension Event Queue Compression (`P2 - Quality-of-Life`)
 
 - **Domain**: `Storyteller/AI`
 - **Estimated Complexity**: `Atomic`
 - **Target Files**:
-  - `Source/Storyteller/NarrativeCache.h`
-  - `Source/Storyteller/NarrativeCache.cpp`
+  - `Source/Storyteller/EventQueue.h`
+  - `Source/Storyteller/EventQueue.cpp`
 - **Architectural Specification**:
-  1. Define struct NarrativeBeat { const char* text; uint32_t id; }.
-2. Create static array of 100 precomputed beats.
-3. Implement class NarrativeCache with static method GetBeat(uint32_t id).
-4. Use binary search for O(log n) lookup.
-5. Ensure all strings are null-terminated.
-6. Add constexpr array initialization.
-7. Handle out-of-bounds IDs by returning default beat.
-8. Integrate with StateHasher for cache validation.
-9. Document beat structure in header.
-10. Test with 5,500-tick simulation data.
-11. Verify no heap allocations.
-12. Ensure thread-safe access.
-13. Add unit tests for boundary conditions.
-14. Profile lookup time (<10ns).
-15. Confirm compatibility with C++20 concepts.
+  1. Implement ring buffer for event queue with fixed capacity 1024.
+2. Use 16-bit indices for event references.
+3. Deduplicate consecutive identical events via hash comparison.
+4. Store event payloads in a shared pool with reference counting.
+5. Implement lazy evaluation for event triggers.
+6. Ensure thread-safe push/pop operations.
+7. Provide iterator interface for UI rendering.
+8. Handle overflow by dropping oldest non-critical events.
+9. Validate event ordering constraints.
+10. Integrate with StateSerializer for persistence.
 - **Acceptance Criteria**:
-  1. Lookup time < 10ns per beat.
-2. Zero heap allocations.
-3. All 100 beats accessible without error.
+  1. Queue operations are O(1).
+2. Memory usage capped at 16KB.
+3. No event loss for critical path events.
+4. Seamless integration with existing UI systems.
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Immediate narrative feedback during endgame, enhancing immersion.
+  Responsive UI updates and consistent narrative flow in endgame scenarios.
 
