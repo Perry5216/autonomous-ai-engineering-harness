@@ -2,128 +2,102 @@
 
 - **Author**: DGX Spark Lead Systems & Game Designer
 - **Reviewed by**: RTX 5090 Blackwell Commercial QA Director
-- **Date**: `2026-10-19 09:42:50`
+- **Date**: `2026-10-19 09:49:02`
 
 ---
 
 # Project Deep-Mantle: Post-5090 Validation & Depth Roadmap
 
-**Status:** Green Light. The 5090 Blackwell playtest data confirms that the core simulation engine is stable, performant, and logically consistent. The transition from "data entry" to "emergent narrative" is successful.
+**Status:** Green. 5500 Ticks, 0 Anomalies, 100% Visibility.
+**Verdict:** The transition from "Data Entry" to "Living Simulation" is complete.
 
-Below is the comprehensive evaluation and roadmap.
+### 1. Why This Transforms the Experience (Spreadsheet → Visceral Loop)
 
----
+The previous iteration was a static table of numbers. The current implementation creates a **sensory feedback loop** where data *is* the gameplay. Here is how the 5 new features eradicate the spreadsheet feel:
 
-### 1. Why This Transforms the Experience: From Spreadsheet to Living Organism
+*   **Spatial Heatmap (16,500 Footsteps):**
+    *   *Spreadsheet:* A list of coordinates.
+    *   *Visceral:* The player *sees* the colony breathe. Dense orange zones indicate high-traffic bottlenecks; cool blue zones show underutilized space. The player no longer reads a "Traffic Efficiency: 85%" line; they *feel* the congestion in the visual gradient. It turns logistics into a visual puzzle.
+*   **Monte Carlo Fuzzing:**
+    *   *Spreadsheet:* Static test cases.
+    *   *Visceral:* The world feels *alive* and unpredictable. By fuzzing state transitions, we ensure that the 3 Storyteller Incidents (Wealth/Threat) don’t just print numbers, but trigger cascading visual effects (e.g., a sudden drop in light levels during a "Threat" spike). The randomness is structured, making the world feel organic rather than scripted.
+*   **Boredom Pacing Sensor (15 Micro-Events):**
+    *   *Spreadsheet:* "Time Elapsed: 5500."
+    *   *Visceral:* The sensor acts as a heartbeat. When the player’s attention wanes (detected via input frequency), the sensor injects a *micro-event* (e.g., a spark in a wire, a small rockfall). These are not just numbers; they are visual cues that snap the player back into the "flow state." The 15 events are the punctuation marks in the narrative of the colony.
+*   **In-Engine Thought Bubbles (Spark, Perry, Blackwell):**
+    *   *Spreadsheet:* "Colonist Status: Happy."
+    *   *Visceral:* Direct, diegetic UI. Instead of looking at a side panel, the player sees *Perry* literally thinking "Need more copper!" above his head. This reduces cognitive load and creates immediate empathy with the agents. The thoughts are tied to the Heatmap data, creating a direct link between visual density and agent satisfaction.
+*   **Self-Healing Patch Drafter:**
+    *   *Spreadsheet:* "Error Log: 12."
+    *   *Visceral:* The system *fixes itself* in real-time. If a pathing oscillation is detected (0 in this run, but the mechanism is active), the Drafter adjusts the node weights instantly. The player sees the path lines smooth out. It feels like the world is *learning* alongside them.
 
-The previous iteration suffered from "Static Data Syndrome"—players read numbers, adjusted sliders, and watched bars fill. The 5 newly implemented features eradicate this by binding **data** to **sensory feedback** and **causal immediacy**.
-
-#### A. Spatial Heatmap: From Coordinates to Flow
-*   **Old Way:** A table showing `Entity_ID: 402, Pos: (12, 45)`.
-*   **New Way:** The 16,500 footsteps tracked via the Spatial Heatmap create a *visual rhythm*. Players see "traffic jams" as glowing red zones and "efficient flow" as cool blue streams.
-*   **Fun Factor:** It turns logistics into a visual puzzle. The player doesn't read coordinates; they *see* the bottleneck forming in real-time. The 0 pathing oscillations prove the AI is decisive, making the visual flow crisp and satisfying to watch, akin to watching a well-oiled machine.
-
-#### B. Monte Carlo Fuzzing: From Linear to Organic
-*   **Old Way:** Predictable, linear event sequences (1 → 2 → 3).
-*   **New Way:** Fuzzing introduces controlled chaos. The 3 tested incidents (Wealth/Threat) show that the world reacts non-linearly.
-*   **Fun Factor:** This creates "discovery moments." Players feel smart when they anticipate a fuzzy outcome correctly. It prevents memorization of the meta, keeping the brain engaged.
-
-#### C. Boredom Pacing Sensor: The Heartbeat of the Game
-*   **Old Way:** Long stretches of nothing happening between major events.
-*   **New Way:** 15 dynamic micro-events triggered automatically.
-*   **Fun Factor:** The game breathes. It never stalls. The player is constantly nudged forward by small, digestible updates, maintaining a "flow state" without overwhelming cognitive load.
-
-#### D. In-Engine Thought Bubbles: Diegetic UI
-*   **Old Way:** A side-panel list of text logs.
-*   **New Way:** Spark, Perry, and Blackwell’s thoughts float *in* the 3D world.
-*   **Fun Factor:** This grounds the narrative in the space. Players learn to associate specific visual cues (bubble color/shape) with character states. It reduces eye movement between UI and world, increasing immersion.
-
-#### E. Self-Healing Patch Drafter: Instant Feedback Loop
-*   **Old Way:** Wait for a patch note to understand a bug fix.
-*   **New Way:** The engine self-corrects minor logic gaps in real-time.
-*   **Fun Factor:** The game feels "alive" and responsive. The lack of anomalies (0 pathing oscillations) gives the player confidence that their inputs matter immediately.
-
-**Verdict:** The spreadsheet is dead. The player is no longer reading a database; they are observing a living, breathing ecosystem where cause and effect are visually and temporally linked.
+**Conclusion:** The player is no longer *reading* the simulation; they are *watching* it breathe. The data is rendered as light, motion, and immediate feedback.
 
 ---
 
-### 2. The Event-Delta Boredom Sensor: Eliminating Pacing Droughts
+### 2. Event-Delta Boredom Sensor: Eliminating Pacing Droughts
 
-The Boredom Sensor is not a timer; it is a **delta-based attention regulator**. It measures the *rate of change* in the player’s cognitive engagement.
+The Boredom Sensor is not a timer; it is a **Delta-Triggered Interrupt System**.
 
-#### How It Works:
-1.  **Baseline Measurement:** The sensor tracks the time between meaningful state changes (e.g., a resource tick, a character action, a UI update).
-2.  **Delta Calculation:** If `Δt` (time since last meaningful event) exceeds a threshold (e.g., 3 seconds), the sensor flags a "Pacing Drought."
-3.  **Dynamic Injection:** Instead of waiting for the next major story beat, the engine injects a **Micro-Event**.
+**Mechanism:**
+1.  **Baseline Calculation:** The sensor tracks the "Input Frequency" (IF) and "Visual Change Rate" (VCR) over a 10-tick window.
+2.  **Delta Detection:**
+    *   If `IF` drops below threshold AND `VCR` is static (no new objects, no movement), a **Drought Flag** is set.
+3.  **Micro-Event Injection (The 15 Events):**
+    *   The sensor pulls from a weighted pool of *low-cost, high-visibility* events.
+    *   *Example 1 (Visual):* A spark jumps from a wire (visible in Heatmap).
+    *   *Example 2 (Audio):* A distant echo from a new tunnel section.
+    *   *Example 3 (State):* A colonist’s thought bubble changes color from Blue (Idle) to Yellow (Active).
+4.  **Reset:** The injection of the event resets the IF/VCR counters, forcing the player to re-engage with the visual field.
 
-#### Example from the 5090 Test (15 Micro-Events):
-*   **Drought Detected:** 4 seconds of no UI updates.
-*   **Injected Micro-Event:**
-    *   *Visual:* A single dust mote drifts across the screen, catching light.
-    *   *Audio:* A distant drip echoes in the cavern.
-    *   *Thought Bubble:* Perry’s bubble pulses: *"The air tastes like iron today."*
-*   **Result:** The player’s attention is re-engaged without breaking immersion. The micro-event is small enough to be processed instantly but significant enough to reset the boredom timer.
-
-#### Why It Eliminates Droughts:
-*   **No Dead Air:** The game never feels "stuck."
-*   **Rhythmic Engagement:** The pacing becomes a heartbeat—*tick, tick, pulse*—rather than a flat line.
-*   **Contextual Relevance:** Micro-events are tied to the current state (e.g., if heat is high, the micro-event is a shimmering heat haze; if wealth is high, a coin clinks). This reinforces the simulation’s logic.
+**Why it works:**
+It prevents the "glaze-over" effect. By injecting small, non-blocking visual changes, it keeps the player’s eyes moving across the screen, maintaining the "flow state" without interrupting the core loop with modal dialogs.
 
 ---
 
 ### 3. Next 5 Concrete Gameplay Loops to Implement
 
-To deepen the emergent gameplay and leverage the new engine capabilities, we implement these 5 loops. Each loop builds on the previous, creating a layered experience.
+To deepen the emergent gameplay, we must move from *observation* to *interaction* and *complexity*.
 
-#### Loop 1: The Thermal Gradient Puzzle (Spatial + Heatmap)
-*   **Concept:** Use the Spatial Heatmap to solve thermal inefficiencies.
-*   **Mechanic:**
-    1.  Player places a heat source (e.g., Geothermal Vent).
-    2.  Heatmap visualizes diffusion in real-time.
-    3.  Player must place insulation tiles to create "thermal islands" for specific crops or machinery.
-    4.  **Delta:** If the gradient is too steep, the Boredom Sensor injects a micro-event: *"The metal groans under stress."*
-*   **Fun Factor:** Visual, immediate feedback. Players see their logic in color.
+#### Loop 1: **Thermal Gradient Crafting (Heatmap Integration)**
+*   **Concept:** Use the Spatial Heatmap data to drive crafting recipes.
+*   **Implementation:**
+    *   High-traffic zones (Orange/Red) generate "Kinetic Energy."
+    *   Low-traffic zones (Blue) generate "Static Charge."
+    *   **Player Action:** Place "Energy Harvesters" in specific zones to collect these charges.
+    *   **Depth:** Players must optimize layout not just for speed, but for *energy yield*. A dense hub yields high Kinetic; a quiet corner yields high Static. This creates a strategic trade-off.
 
-#### Loop 2: The Thought-Chain Cascade (Thought Bubbles + Monte Carlo)
-*   **Concept:** Character thoughts influence each other in a chain reaction.
-*   **Mechanic:**
-    1.  Spark’s thought bubble: *"The water is rising."*
-    2.  Perry’s bubble reacts: *"I need to seal the vents."*
-    3.  Blackwell’s bubble reacts: *"Efficiency is key."*
-    4.  **Delta:** If the chain breaks (no reaction in 2 seconds), the Monte Carlo Fuzzer injects a random environmental event (e.g., a rockfall) to force a new state.
-*   **Fun Factor:** Players feel like they are directing a conversation, not just managing stats. The chain reactions create a sense of narrative momentum.
+#### Loop 2: **Thought-Chain Dependencies (Bubble Logic)**
+*   **Concept:** Link thought bubbles into a dependency graph.
+*   **Implementation:**
+    *   If *Spark* thinks "Need Copper," and *Perry* thinks "Copper Found," a **Chain Link** appears between them.
+    *   **Player Action:** The player can "Boost" the chain by placing a "Focus Lamp" over the link, speeding up the task completion.
+    *   **Depth:** Visualizes the workflow. Players see the *logic* of their colony as a web of light.
 
-#### Loop 3: The Micro-Event Harvest (Boredom Sensor + Resources)
-*   **Concept:** Micro-events are not just flavor; they are resource nodes.
-*   **Mechanic:**
-    1.  Boredom Sensor injects a micro-event: *"A rare crystal glints in the corner."*
-    2.  Player must click the glint within 1 second to harvest it.
-    3.  If missed, the crystal fades, and the next micro-event is delayed.
-    4.  **Delta:** Successful harvests increase the "Attention Score," which unlocks faster event pacing.
-*   **Fun Factor:** Turns passive observation into active, rhythmic clicking. It’s a mini-game within the simulation.
+#### Loop 3: **Fuzz-Driven Anomaly Events (Monte Carlo Expansion)**
+*   **Concept:** Use the fuzzing results to create *unique* one-time events.
+*   **Implementation:**
+    *   The fuzzer identifies rare state combinations (e.g., "High Threat + Low Wealth + High Traffic").
+    *   **Player Action:** These combinations trigger "Deep Mantle Echoes" – special, non-repeating visual phenomena (e.g., a bioluminescent vein appears).
+    *   **Depth:** Rewards players for observing patterns. The world feels like it has *memory* and *history*.
 
-#### Loop 4: The Self-Healing Logic Tree (Patch Drafter + UI)
-*   **Concept:** The UI itself is a puzzle.
-*   **Mechanic:**
-    1.  The Self-Healing Drafter identifies a minor inconsistency (e.g., a misaligned icon).
-    2.  Instead of a static fix, it animates the correction: the icon slides into place with a satisfying *click*.
-    3.  Player can "nudge" the UI to trigger more self-healing animations.
-    4.  **Delta:** Each nudge reveals a hidden layer of the UI (e.g., a tooltip or a shortcut).
-*   **Fun Factor:** The UI becomes a tactile, responsive object. Players enjoy the "clicky" satisfaction of the interface.
+#### Loop 4: **Self-Healing Path Optimization (Drafter Interaction)**
+*   **Concept:** Allow players to "nudge" the Self-Healing Drafter.
+*   **Implementation:**
+    *   The Drafter shows a "Suggested Path" (dashed line).
+    *   **Player Action:** The player can place a "Priority Node" (a small beacon) to force the Drafter to prioritize a specific route.
+    *   **Depth:** Gives the player direct control over the AI’s logic without breaking the simulation. It’s a "tuning knob" for the colony’s nervous system.
 
-#### Loop 5: The Ascension Echo (End-Game + All Loops)
-*   **Concept:** The final victory is a synthesis of all previous loops.
-*   **Mechanic:**
-    1.  Upon `PlanetaryAscensionComplete`, the game doesn’t just show a score.
-    2.  It replays the 15 micro-events, 3 incidents, and 16,500 footsteps as a **single, continuous animation**.
-    3.  The Spatial Heatmap, Thought Bubbles, and Resource Ticks all converge into one final, pulsing image.
-    4.  **Delta:** The player sees their entire journey as a single, coherent pattern.
-*   **Fun Factor:** A satisfying, cinematic conclusion that validates the player’s attention. It proves that every small action mattered.
+#### Loop 5: **Boredom-Driven Discovery (Sensor Feedback)**
+*   **Concept:** Use the Boredom Sensor to reveal hidden map elements.
+*   **Implementation:**
+    *   When the sensor detects a "Drought," it highlights the *nearest unexplored* tile with a pulsing glow.
+    *   **Player Action:** The player clicks the glow to "Focus" the camera.
+    *   **Depth:** Turns the pacing sensor into a *navigation aid*. It guides the player’s eye to areas of interest, reducing the "where do I look?" cognitive load.
 
 ---
 
-### Final Assessment
+**Final Note:**
+The 5090 validation proves the core loop is stable. The next phase is about **layering meaning** onto the visual data. The heatmap is no longer just a map; it’s an energy source. The thoughts are no longer just status; they’re a workflow diagram. The boredom sensor is no longer just a timer; it’s a guide.
 
-The 5090 Blackwell test confirms that **Project Deep-Mantle** is no longer a spreadsheet simulator. It is a **visceral, rhythmic, and emergent experience**. The 5 new features have successfully transformed data into sensation, and the next 5 loops will deepen that sensation into a addictive, layered gameplay journey.
-
-**Next Step:** Implement Loop 1 (Thermal Gradient Puzzle) and run a 100-tick micro-test to validate the visual feedback loop.
+**Next Step:** Implement Loop 1 (Thermal Gradient Crafting) as it directly leverages the existing Heatmap data with minimal new code.
