@@ -1,78 +1,65 @@
 {
-  "batch_id": "BATCH-07",
-  "batch_title": "Subterranean Deep-Core Autonomous Expansion & Living Cavern Ecosystem",
-  "target_version": "v1.1.0",
-  "overview": "Deepen subterranean simulation dynamics, fluid physics, and pawn emotional social texture.",
+  "batch_id": "BATCH-09",
+  "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
+  "target_version": "v1.2.0",
+  "overview": "Finalize simulation coverage by implementing deterministic state compression for endgame snapshots and optimizing Monte Carlo convergence logic. These atomic tasks close the last gaps in long-term stability and memory efficiency without introducing cascading dependencies.",
   "tasks": [
     {
-      "task_id": "TASK-701",
+      "task_id": "TASK-901",
       "priority": "P0 - Critical",
-      "domain": "Simulation/FluidDynamics",
-      "title": "Multi-Z Magma & Groundwater Hydrodynamic Simulation",
-      "target_files": [
-        "Code/EnginePlugins/ColonyPlugin/ColonyFluidDynamics.h",
-        "Code/EnginePlugins/ColonyPlugin/ColonyFluidDynamics.cpp"
-      ],
-      "architectural_spec": "Zero-heap 64x64x3 cellular automaton fluid solver tracking pressure, viscosity, and thermal transfer.",
-      "acceptance_criteria": "Water meeting magma creates solid obsidian blocks; flood containment bulkheads prevent drowning.",
-      "player_fun_impact": "Dwarf Fortress-grade catastrophic tension when mining near subterranean water tables or lava pockets.",
-      "estimated_complexity": "Large"
-    },
-    {
-      "task_id": "TASK-702",
-      "priority": "P1 - High",
       "domain": "Engine/C++20",
-      "title": "Pneumatic Logistics Tube Network & Auto-Sorter Splitters",
+      "title": "Implement Zero-Heap Deterministic State Hasher",
       "target_files": [
-        "Code/EnginePlugins/ColonyPlugin/ColonyConveyorNetwork.h",
-        "Code/EnginePlugins/ColonyPlugin/ColonyConveyorNetwork.cpp"
+        "src/engine/core/StateHasher.h",
+        "src/engine/core/StateHasher.cpp"
       ],
-      "architectural_spec": "High-velocity pressurized pneumatic delivery chutes connecting Z-1 mining shafts to surface stockpiles.",
-      "acceptance_criteria": "Items travel at 8.0 tiles/sec; filter splitters sort iron from plasteel automatically.",
-      "player_fun_impact": "Factorio-style industrial satisfaction watching goods rocket through glass pneumatic tubes.",
-      "estimated_complexity": "Medium"
+      "architectural_spec": "1. Define struct `StateSnapshot` with fixed-size arrays for tick, entity count, and checksum.\n2. Implement `constexpr uint64_t ComputeHash(const StateSnapshot& s)` using FNV-1a.\n3. Ensure no dynamic allocation; use `std::array` for all members.\n4. Add static_assert for struct size <= 64 bytes.\n5. Provide `inline` operator== for fast comparison.\n6. Include unit test macro `EZ_TEST_HASH_DETERMINISM`.",
+      "acceptance_criteria": [
+        "Hash computation is constexpr and zero-heap.",
+        "Struct size is exactly 64 bytes or less.",
+        "Unit tests verify identical hashes for identical states across 1000 iterations.",
+        "No external dependencies beyond <cstdint> and <array>."
+      ],
+      "player_fun_impact": "Faster save/load times and reliable deterministic replay verification.",
+      "estimated_complexity": "Atomic"
     },
     {
-      "task_id": "TASK-703",
+      "task_id": "TASK-902",
       "priority": "P1 - High",
-      "domain": "Simulation/Social",
-      "title": "Colonist Social Relationships, Banter & Cavern Recreation Loops",
+      "domain": "Simulation/Physics",
+      "title": "Optimize Monte Carlo Convergence Check",
       "target_files": [
-        "Code/EnginePlugins/ColonyPlugin/ColonyPawnComponent.h",
-        "Code/EnginePlugins/ColonyPlugin/ColonyPawnComponent.cpp"
+        "src/simulation/physics/MonteCarlo.h",
+        "src/simulation/physics/MonteCarlo.cpp"
       ],
-      "architectural_spec": "Granular social opinion matrix, shared cavern leisure activities (playing chess, brewing lichen ale).",
-      "acceptance_criteria": "Pawns develop friendships and rivalries; impressiveness of dining rooms grants major mood buffs.",
-      "player_fun_impact": "RimWorld-level emotional attachment to colonists; eliminates spreadsheet sterility completely.",
-      "estimated_complexity": "Medium"
+      "architectural_spec": "1. Refactor `MonteCarloRunner` to use a fixed-size ring buffer for last 100 results.\n2. Implement `bool IsConverged()` checking if std::deviation < 1e-6 over the buffer.\n3. Use `std::accumulate` for mean calculation.\n4. Remove all `new/delete` calls; use stack-allocated arrays.\n5. Add `noexcept` to all methods.\n6. Ensure thread-safe via atomic counters for tick index.",
+      "acceptance_criteria": [
+        "Convergence detected within 100 ticks for stable systems.",
+        "Memory footprint reduced by 40% compared to previous batch.",
+        "No heap allocations during simulation loop.",
+        "Thread-safe execution verified with 4 concurrent threads."
+      ],
+      "player_fun_impact": "Smoother physics simulation with fewer frame drops during complex interactions.",
+      "estimated_complexity": "Small"
     },
     {
-      "task_id": "TASK-704",
+      "task_id": "TASK-903",
       "priority": "P2 - Quality-of-Life",
-      "domain": "Simulation/Agriculture",
-      "title": "Subterranean Fungal Hydroponics & Bioluminescent Flora Farming",
+      "domain": "Storyteller/AI",
+      "title": "Cache Colonist Psychological State Transitions",
       "target_files": [
-        "Code/EnginePlugins/ColonyPlugin/ColonyFarmingSystem.h",
-        "Code/EnginePlugins/ColonyPlugin/ColonyFarmingSystem.cpp"
+        "src/ai/colonist/PsychologyCache.h",
+        "src/ai/colonist/PsychologyCache.cpp"
       ],
-      "architectural_spec": "Nutrient solution circulation system with automatic growth stages, spore collection, and medicinal herbs.",
-      "acceptance_criteria": "Hydroponic basins produce glow-fungus every 180 ticks; temperature drops pause growth without killing crops.",
-      "player_fun_impact": "Vibrant visual bioluminescent farms replacing drab industrial blocks.",
-      "estimated_complexity": "Medium"
-    },
-    {
-      "task_id": "TASK-705",
-      "priority": "P0 - Critical",
-      "domain": "Graphics/Vulkan",
-      "title": "Dyson Beam Receiver Focal Beam Lens Flare & Atmospheric Particle Ionization",
-      "target_files": [
-        "Code/EnginePlugins/ColonyPlugin/ColonyView/ColonyView.cpp",
-        "Data/Samples/ColonyView/ColonyMap.rcss"
+      "architectural_spec": "1. Create `struct PsychState` with enum `Mood` and `int16_t` stress level.\n2. Implement `static PsychState GetState(int tick)` using a precomputed lookup table of size 5500.\n3. Initialize table at compile-time using `constexpr` array.\n4. Provide `inline` accessors for O(1) lookup.\n5. Add `static_assert` for table size match.\n6. No dynamic initialization; all data embedded in binary.",
+      "acceptance_criteria": [
+        "Lookup time is < 1ns per call.",
+        "Table size matches 5500 ticks exactly.",
+        "No runtime initialization overhead.",
+        "Memory usage is constant and predictable."
       ],
-      "architectural_spec": "Real-time Vulkan compute shader rendering orbital laser refraction, ground scorching, and atmospheric heat haze.",
-      "acceptance_criteria": "Engaging Module 120 illuminates entire cavern with dynamic pulsing god-rays at 144+ FPS.",
-      "player_fun_impact": "Awe-inspiring visual payoff for endgame victory, wowing the player at first glance.",
-      "estimated_complexity": "Medium"
+      "player_fun_impact": "Instantaneous UI updates for colonist status, reducing perceived lag.",
+      "estimated_complexity": "Atomic"
     }
   ]
 }
