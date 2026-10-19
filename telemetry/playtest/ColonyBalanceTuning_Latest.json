@@ -1,9 +1,10 @@
 {
-  "flow_state": "ANXIETY_FRUSTRATION_ZONE (Overly Punishing / Early Wipeouts)",
-  "survival_pct": 0.0,
+  "flow_state": "MILD_BOREDOM_ZONE (Too Safe / Plateauing Mid-Game)",
+  "survival_pct": 100.0,
   "deltas": {
-    "SapperRaidThreatMultiplier": 0.8,
-    "StarterFoodRations": 120,
-    "CryogenicFrostbiteThresholdKelvin": 255.0
+    "SapperRaidThreatMultiplier": 1.25,
+    "SeismicTremorFrequencyTicks": 750,
+    "SOECOxygenYieldPerUnit": 0.82,
+    "LichenAleRecreationBuff": 1.15
   }
 }

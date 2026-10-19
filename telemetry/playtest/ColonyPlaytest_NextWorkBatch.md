@@ -1,56 +1,84 @@
-# Project Deep-Mantle :: Engineering Work Batch: BATCH-60
+# Project Deep-Mantle :: Engineering Work Batch: BATCH-61
 
 ## Ultra-Endgame Ascension & Deterministic State Compression (Target: `v1.2.0`)
 
 - **Architect**: `DGX Spark Cluster Lead Systems Engineer`
 - **QA Verifier**: `RTX 5090 Blackwell Reflex QA Director`
-- **Date**: `2026-10-19 17:57:32`
+- **Date**: `2026-10-19 18:06:40`
 
 ### Batch Overview
-Following the successful completion of BATCH-59, the simulation has achieved stable high-depth operation. This batch focuses on the final optimization of the endgame state to ensure deterministic reproducibility and minimal memory footprint for long-running sessions. We are closing the gap between raw simulation data and efficient archival storage, while finalizing the psychological model for colonist adaptation to deep-mantle conditions.
+Finalize the simulation loop by implementing deterministic state hashing for save/load integrity, optimizing the tick-based event queue for zero-allocation processing, and finalizing the colonist psychological state machine for endgame stability.
 
 ---
 
 ### Prioritized Engineering Tasks
 
-#### [TASK-801] Implement Zero-Copy Deterministic State Hasher (`P0 - Critical`)
+#### [TASK-801] Implement Zero-Heap Deterministic State Hashing (`P0 - Critical`)
 
 - **Domain**: `Engine/C++20`
 - **Estimated Complexity**: `Atomic`
 - **Target Files**:
-  - `src/engine/core/StateHasher.h`
-  - `src/engine/core/StateHasher.cpp`
+  - `src/engine/core/StateHash.h`
+  - `src/engine/core/StateHash.cpp`
 - **Architectural Specification**:
-  Create a constexpr-friendly struct `StateHasher` using `std::span<const uint8_t>` for input. Implement a custom FNV-1a variant optimized for 64-bit integers. Use `std::bit_cast` for type-punning. No dynamic allocation. The hasher must process the entire simulation state buffer in a single pass. Include a static assertion for endianness. Provide a `finalize()` method returning `uint64_t`. Ensure all operations are noexcept. Integrate with the existing `TickManager` to hash state every 100 ticks.
+  1. Define struct StateHashContext with fixed-size arrays for stack-based hashing.
+2. Implement FNV-1a 64-bit hash algorithm using constexpr where possible.
+3. Provide inline functions for hashing primitive types (int, float, bool) and fixed-size strings.
+4. Ensure no dynamic memory allocation (no std::vector, no new/delete).
+5. Use std::span for contiguous memory access during hashing.
+6. Add static_asserts for struct sizes to ensure cache-line alignment.
+7. Implement a simple combine function for nested structures.
+8. Ensure all functions are noexcept.
+9. Provide a single entry point: ComputeStateHash(const void* data, size_t size).
+10. Verify determinism across different compiler optimizations (O2, O3).
 - **Acceptance Criteria**:
-  ['Hasher produces identical `uint64_t` for identical state buffers across 1000 runs.', 'Zero heap allocations during hashing phase.', 'Compilation time < 50ms for the header.', 'Unit tests cover edge cases: empty buffer, single byte, max uint64.']
+  ['Hash values are identical across 1000 runs with same input.', 'Zero heap allocations during hashing phase.', 'Compilation time < 100ms for header inclusion.', 'All unit tests pass with 100% coverage.']
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Ensures save/load consistency and enables rapid state comparison for debugging and replay systems.
+  Ensures save/load consistency and prevents desyncs in multiplayer or replay modes.
 
-#### [TASK-802] Optimize Deep-Mantle Pressure Gradient Calculation (`P1 - High`)
+#### [TASK-802] Optimize Tick-Based Event Queue with Ring Buffer (`P1 - High`)
 
 - **Domain**: `Simulation/Physics`
 - **Estimated Complexity**: `Small`
 - **Target Files**:
-  - `src/simulation/physics/PressureModel.h`
-  - `src/simulation/physics/PressureModel.cpp`
+  - `src/sim/core/EventQueue.h`
+  - `src/sim/core/EventQueue.cpp`
 - **Architectural Specification**:
-  Refactor the pressure gradient calculation to use a precomputed lookup table for depth-to-pressure conversion. Define a `constexpr` array of 1024 entries mapping depth indices to pressure values. Implement a linear interpolation function `lerp` for intermediate depths. Use `std::array` for the lookup table. The main calculation function should take `uint16_t depth_index` and return `float pressure`. Remove all floating-point divisions in the hot path by using reciprocal constants. Ensure the table is generated at compile-time using `constexpr` loops.
+  1. Define template class RingBuffer<T, N> with fixed capacity N.
+2. Implement push_back and pop_front using index arithmetic (no modulo if possible, use bitmask for power-of-2 N).
+3. Store events as packed structs (EventID, Tick, Data[16]).
+4. Implement ProcessEvents(uint64_t currentTick) that processes all events <= currentTick.
+5. Use std::array for storage to avoid heap fragmentation.
+6. Add inline getters for size and capacity.
+7. Ensure thread-safety via atomic indices if used in parallel contexts, otherwise single-threaded assumption.
+8. Provide a Reset() method for quick state clearing.
+9. Benchmark against std::deque for 10k events.
+10. Ensure no virtual functions in the hot path.
 - **Acceptance Criteria**:
-  ['Lookup table generated at compile time.', 'Calculation time per tick reduced by >40% compared to BATCH-59.', 'No runtime initialization of the lookup table.', 'Accuracy within 1e-6 of reference values.']
+  ['Processing 10,000 events takes < 1ms.', 'Memory footprint is exactly N * sizeof(Event) + overhead.', 'No memory leaks detected by Valgrind.', 'Correct ordering of events maintained.']
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Smoother frame rates during deep exploration sequences, reducing stutter in high-depth zones.
+  Reduces frame time spikes during heavy simulation phases, improving smoothness.
 
-#### [TASK-803] Compact Colonist Psychological State Bitfield (`P2 - Quality-of-Life`)
+#### [TASK-803] Finalize Colonist Psychological State Machine (`P2 - Quality-of-Life`)
 
 - **Domain**: `Storyteller/AI`
 - **Estimated Complexity**: `Atomic`
 - **Target Files**:
-  - `src/ai/colonist/PsychState.h`
+  - `src/ai/ColonistPsychology.h`
+  - `src/ai/ColonistPsychology.cpp`
 - **Architectural Specification**:
-  Define a `struct PsychState` using `uint32_t` bitfields for core attributes: `mood` (4 bits), `energy` (4 bits), `hunger` (4 bits), `thirst` (4 bits), `status_flags` (16 bits). Implement `constexpr` getters and setters using bitwise operations. Add a `to_string()` method that formats the state into a compact 16-character string for UI display. Ensure the struct is trivially copyable and fits within 4 bytes. Provide a `merge` function to combine two states using bitwise OR for flags and average for numeric values.
+  1. Define enum class PsychState { Idle, Working, Resting, Panicked, Dead }.
+2. Create struct PsychData with float values for Stress, Happiness, Energy.
+3. Implement UpdatePsychology(PsychData& data, const Environment& env) as a pure function.
+4. Use lookup tables for state transitions to avoid branching.
+5. Clamp all float values to [0.0, 1.0] using std::clamp.
+6. Ensure deterministic output for given inputs.
+7. Add serialization support for PsychData.
+8. Implement a simple decay function for Energy over ticks.
+9. Provide a GetStateDescription() returning a const char*.
+10. Ensure all functions are constexpr-friendly where possible.
 - **Acceptance Criteria**:
-  ['Struct size is exactly 4 bytes.', 'All getters/setters are `constexpr` and `noexcept`.', 'UI display string is always 16 characters long.', 'No padding bytes in the struct.']
+  ['State transitions are deterministic and reproducible.', 'No floating-point drift after 10,000 ticks.', 'Serialization size is exactly 16 bytes per colonist.', 'Unit tests cover all state transitions.']
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Faster UI updates and clearer, more concise status indicators for colonists.
+  Provides consistent and predictable colonist behavior, enhancing strategic planning.
 
