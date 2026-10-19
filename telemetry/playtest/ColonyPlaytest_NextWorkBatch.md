@@ -1,13 +1,13 @@
-# Project Deep-Mantle :: Engineering Work Batch: BATCH-57
+# Project Deep-Mantle :: Engineering Work Batch: BATCH-58
 
 ## Ultra-Endgame Ascension & Deterministic State Finalization (Target: `v1.2.0`)
 
 - **Architect**: `DGX Spark Cluster Lead Systems Engineer`
 - **QA Verifier**: `RTX 5090 Blackwell Reflex QA Director`
-- **Date**: `2026-10-19 17:28:04`
+- **Date**: `2026-10-19 17:40:06`
 
 ### Batch Overview
-This batch finalizes the simulation loop by implementing deterministic state hashing for save/load integrity, optimizing the tick-based physics resolution for zero-allocation stability, and compressing the storyteller narrative state into a fixed-size ring buffer. These steps ensure 100% coverage of the endgame phase with minimal memory footprint and maximal determinism.
+This batch finalizes the simulation loop by implementing deterministic state hashing for save/load integrity, optimizing the Monte Carlo convergence check for the 5,500-tick milestone, and establishing the final ascension protocol for colonist psychology. All tasks are atomic, self-contained, and require zero cascading header dependencies.
 
 ---
 
@@ -18,76 +18,105 @@ This batch finalizes the simulation loop by implementing deterministic state has
 - **Domain**: `Engine/C++20`
 - **Estimated Complexity**: `Atomic`
 - **Target Files**:
-  - `Source/Runtime/Core/StateHash.h`
-  - `Source/Runtime/Core/StateHash.cpp`
+  - `src/Engine/Core/StateHasher.h`
+  - `src/Engine/Core/StateHasher.cpp`
 - **Architectural Specification**:
-  1. Define struct StateHashContext with fixed-size uint64_t accumulator.
-2. Implement constexpr functions for hashing primitives (int, float, bool).
-3. Use FNV-1a algorithm for string hashing to ensure determinism.
-4. Provide template specializations for std::array and std::tuple.
-5. Ensure no dynamic allocation in hash computation.
-6. Add static_assert for struct sizes to verify layout.
-7. Implement operator== for StateHashContext.
-8. Provide debug string conversion for hash values.
-9. Integrate with existing serialization framework.
-10. Verify hash stability across compiler versions.
-- **Acceptance Criteria**:
-  1. Hash values are identical across 1000 runs.
-2. No heap allocations during hashing.
-3. Compile time < 50ms for header inclusion.
-4. Unit tests cover all primitive types.
-- **Player Fun & Anti-Spreadsheet Impact**:
-  Ensures save games load perfectly every time, preventing corruption.
+  struct StateHasher {
+    static constexpr uint64_t kPrime = 1099511628211ULL;
+    uint64_t hash = 14695981039346656037ULL;
 
-#### [TASK-802] Optimize Tick-Based Physics Resolution with Zero-Allocation (`P1 - High`)
+    constexpr void Add(uint64_t value) noexcept {
+        hash ^= value;
+        hash *= kPrime;
+    }
+
+    constexpr void Add(const char* str) noexcept {
+        while (*str) {
+            hash ^= static_cast<uint64_t>(*str++);
+            hash *= kPrime;
+        }
+    }
+
+    constexpr uint64_t GetHash() const noexcept {
+        return hash;
+    }
+};
+
+// Usage in SimulationLoop:
+// StateHasher hasher;
+// hasher.Add(tickCount);
+// hasher.Add(colonistCount);
+// finalHash = hasher.GetHash();
+- **Acceptance Criteria**:
+  ['StateHasher produces identical 64-bit hashes for identical simulation states across 1000 runs.', 'Zero heap allocations during hashing process.', 'Compilation time < 50ms for the header.']
+- **Player Fun & Anti-Spreadsheet Impact**:
+  Guarantees 100% reproducible saves, eliminating 'ghost' desyncs in long-running campaigns.
+
+#### [TASK-802] Optimize Monte Carlo Convergence Check for 5,500-Tick Milestone (`P1 - High`)
 
 - **Domain**: `Simulation/Physics`
-- **Estimated Complexity**: `Small`
+- **Estimated Complexity**: `Atomic`
 - **Target Files**:
-  - `Source/Runtime/Simulation/PhysicsResolver.h`
-  - `Source/Runtime/Simulation/PhysicsResolver.cpp`
+  - `src/Simulation/MonteCarlo/ConvergenceChecker.h`
 - **Architectural Specification**:
-  1. Replace std::vector with fixed-size array for collision pairs.
-2. Implement iterative solver with max 10 iterations.
-3. Use float32 for all calculations to match hardware.
-4. Precompute inverse masses in initialization phase.
-5. Remove virtual functions from core solver structs.
-6. Implement spatial hash grid with fixed bucket size.
-7. Use bitwise operations for fast comparison.
-8. Cache last frame's results for warm-starting.
-9. Ensure deterministic order of operations.
-10. Profile memory usage to confirm < 1KB per entity.
-- **Acceptance Criteria**:
-  1. Physics simulation runs at 1000+ ticks/sec.
-2. Memory usage is constant regardless of entity count.
-3. No jitter in resting objects.
-4. Deterministic results for identical inputs.
-- **Player Fun & Anti-Spreadsheet Impact**:
-  Smoother animations and faster loading times.
+  struct ConvergenceChecker {
+    static constexpr int kWindowSize = 100;
+    float window[kWindowSize];
+    int index = 0;
+    int count = 0;
 
-#### [TASK-803] Compress Storyteller Narrative State into Fixed-Size Ring Buffer (`P2 - Quality-of-Life`)
+    void Update(float value) noexcept {
+        window[index] = value;
+        index = (index + 1) % kWindowSize;
+        if (count < kWindowSize) ++count;
+    }
+
+    bool IsConverged(float epsilon = 1e-6f) const noexcept {
+        if (count < kWindowSize) return false;
+        float minVal = window[0];
+        float maxVal = window[0];
+        for (int i = 1; i < kWindowSize; ++i) {
+            if (window[i] < minVal) minVal = window[i];
+            if (window[i] > maxVal) maxVal = window[i];
+        }
+        return (maxVal - minVal) < epsilon;
+    }
+};
+- **Acceptance Criteria**:
+  ['Convergence detected within 100 ticks of stabilization.', 'No dynamic memory allocation in Update or IsConverged.', 'Handles edge case of count < kWindowSize correctly.']
+- **Player Fun & Anti-Spreadsheet Impact**:
+  Faster resolution of physics simulations, reducing perceived lag in endgame scenarios.
+
+#### [TASK-803] Finalize Colonist Psychology Ascension Protocol (`P2 - Quality-of-Life`)
 
 - **Domain**: `Storyteller/AI`
 - **Estimated Complexity**: `Atomic`
 - **Target Files**:
-  - `Source/Runtime/AI/Storyteller.h`
-  - `Source/Runtime/AI/Storyteller.cpp`
+  - `src/Storyteller/Psychology/AscensionState.h`
 - **Architectural Specification**:
-  1. Define struct NarrativeEvent with 32-bit ID and timestamp.
-2. Implement circular buffer of size 64 for recent events.
-3. Use bitwise AND for index wrapping.
-4. Store event data in separate contiguous array.
-5. Implement linear search for event retrieval.
-6. Add compression flag for repeated events.
-7. Provide iterator interface for traversal.
-8. Ensure no dynamic allocation in buffer operations.
-9. Integrate with existing UI display system.
-10. Test with 10,000 events to verify overflow handling.
+  enum class AscensionState : uint8_t {
+    kPreAscension = 0,
+    kStabilizing = 1,
+    kComplete = 2
+};
+
+struct PsychologySnapshot {
+    AscensionState state;
+    uint16_t tick;
+    uint8_t colonistCount;
+
+    constexpr bool IsFinalized() const noexcept {
+        return state == AscensionState::kComplete;
+    }
+
+    constexpr uint32_t Pack() const noexcept {
+        return (static_cast<uint32_t>(state) << 24) |
+               (static_cast<uint32_t>(tick) << 8) |
+               static_cast<uint32_t>(colonistCount);
+    }
+};
 - **Acceptance Criteria**:
-  1. Buffer handles overflow gracefully.
-2. Memory usage is exactly 256 bytes.
-3. Retrieval time is O(1) for recent events.
-4. No fragmentation in memory pool.
+  ['Snapshot packs into a single 32-bit integer without loss of precision for standard campaign lengths.', 'State transitions are strictly monotonic.', 'Zero virtual function overhead.']
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Faster UI updates and lower memory usage for long games.
+  Instantaneous load times for endgame states, providing a seamless conclusion to the campaign.
 

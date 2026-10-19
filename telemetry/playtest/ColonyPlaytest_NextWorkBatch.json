@@ -1,8 +1,8 @@
 {
-  "batch_id": "BATCH-57",
+  "batch_id": "BATCH-58",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Finalization",
   "target_version": "v1.2.0",
-  "overview": "This batch finalizes the simulation loop by implementing deterministic state hashing for save/load integrity, optimizing the tick-based physics resolution for zero-allocation stability, and compressing the storyteller narrative state into a fixed-size ring buffer. These steps ensure 100% coverage of the endgame phase with minimal memory footprint and maximal determinism.",
+  "overview": "This batch finalizes the simulation loop by implementing deterministic state hashing for save/load integrity, optimizing the Monte Carlo convergence check for the 5,500-tick milestone, and establishing the final ascension protocol for colonist psychology. All tasks are atomic, self-contained, and require zero cascading header dependencies.",
   "tasks": [
     {
       "task_id": "TASK-801",
@@ -10,40 +10,50 @@
       "domain": "Engine/C++20",
       "title": "Implement Deterministic State Hashing for Save/Load Integrity",
       "target_files": [
-        "Source/Runtime/Core/StateHash.h",
-        "Source/Runtime/Core/StateHash.cpp"
+        "src/Engine/Core/StateHasher.h",
+        "src/Engine/Core/StateHasher.cpp"
       ],
-      "architectural_spec": "1. Define struct StateHashContext with fixed-size uint64_t accumulator.\n2. Implement constexpr functions for hashing primitives (int, float, bool).\n3. Use FNV-1a algorithm for string hashing to ensure determinism.\n4. Provide template specializations for std::array and std::tuple.\n5. Ensure no dynamic allocation in hash computation.\n6. Add static_assert for struct sizes to verify layout.\n7. Implement operator== for StateHashContext.\n8. Provide debug string conversion for hash values.\n9. Integrate with existing serialization framework.\n10. Verify hash stability across compiler versions.",
-      "acceptance_criteria": "1. Hash values are identical across 1000 runs.\n2. No heap allocations during hashing.\n3. Compile time < 50ms for header inclusion.\n4. Unit tests cover all primitive types.",
-      "player_fun_impact": "Ensures save games load perfectly every time, preventing corruption.",
+      "architectural_spec": "struct StateHasher {\n    static constexpr uint64_t kPrime = 1099511628211ULL;\n    uint64_t hash = 14695981039346656037ULL;\n\n    constexpr void Add(uint64_t value) noexcept {\n        hash ^= value;\n        hash *= kPrime;\n    }\n\n    constexpr void Add(const char* str) noexcept {\n        while (*str) {\n            hash ^= static_cast<uint64_t>(*str++);\n            hash *= kPrime;\n        }\n    }\n\n    constexpr uint64_t GetHash() const noexcept {\n        return hash;\n    }\n};\n\n// Usage in SimulationLoop:\n// StateHasher hasher;\n// hasher.Add(tickCount);\n// hasher.Add(colonistCount);\n// finalHash = hasher.GetHash();",
+      "acceptance_criteria": [
+        "StateHasher produces identical 64-bit hashes for identical simulation states across 1000 runs.",
+        "Zero heap allocations during hashing process.",
+        "Compilation time < 50ms for the header."
+      ],
+      "player_fun_impact": "Guarantees 100% reproducible saves, eliminating 'ghost' desyncs in long-running campaigns.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Optimize Tick-Based Physics Resolution with Zero-Allocation",
+      "title": "Optimize Monte Carlo Convergence Check for 5,500-Tick Milestone",
       "target_files": [
-        "Source/Runtime/Simulation/PhysicsResolver.h",
-        "Source/Runtime/Simulation/PhysicsResolver.cpp"
+        "src/Simulation/MonteCarlo/ConvergenceChecker.h"
       ],
-      "architectural_spec": "1. Replace std::vector with fixed-size array for collision pairs.\n2. Implement iterative solver with max 10 iterations.\n3. Use float32 for all calculations to match hardware.\n4. Precompute inverse masses in initialization phase.\n5. Remove virtual functions from core solver structs.\n6. Implement spatial hash grid with fixed bucket size.\n7. Use bitwise operations for fast comparison.\n8. Cache last frame's results for warm-starting.\n9. Ensure deterministic order of operations.\n10. Profile memory usage to confirm < 1KB per entity.",
-      "acceptance_criteria": "1. Physics simulation runs at 1000+ ticks/sec.\n2. Memory usage is constant regardless of entity count.\n3. No jitter in resting objects.\n4. Deterministic results for identical inputs.",
-      "player_fun_impact": "Smoother animations and faster loading times.",
-      "estimated_complexity": "Small"
+      "architectural_spec": "struct ConvergenceChecker {\n    static constexpr int kWindowSize = 100;\n    float window[kWindowSize];\n    int index = 0;\n    int count = 0;\n\n    void Update(float value) noexcept {\n        window[index] = value;\n        index = (index + 1) % kWindowSize;\n        if (count < kWindowSize) ++count;\n    }\n\n    bool IsConverged(float epsilon = 1e-6f) const noexcept {\n        if (count < kWindowSize) return false;\n        float minVal = window[0];\n        float maxVal = window[0];\n        for (int i = 1; i < kWindowSize; ++i) {\n            if (window[i] < minVal) minVal = window[i];\n            if (window[i] > maxVal) maxVal = window[i];\n        }\n        return (maxVal - minVal) < epsilon;\n    }\n};",
+      "acceptance_criteria": [
+        "Convergence detected within 100 ticks of stabilization.",
+        "No dynamic memory allocation in Update or IsConverged.",
+        "Handles edge case of count < kWindowSize correctly."
+      ],
+      "player_fun_impact": "Faster resolution of physics simulations, reducing perceived lag in endgame scenarios.",
+      "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-803",
       "priority": "P2 - Quality-of-Life",
       "domain": "Storyteller/AI",
-      "title": "Compress Storyteller Narrative State into Fixed-Size Ring Buffer",
+      "title": "Finalize Colonist Psychology Ascension Protocol",
       "target_files": [
-        "Source/Runtime/AI/Storyteller.h",
-        "Source/Runtime/AI/Storyteller.cpp"
+        "src/Storyteller/Psychology/AscensionState.h"
       ],
-      "architectural_spec": "1. Define struct NarrativeEvent with 32-bit ID and timestamp.\n2. Implement circular buffer of size 64 for recent events.\n3. Use bitwise AND for index wrapping.\n4. Store event data in separate contiguous array.\n5. Implement linear search for event retrieval.\n6. Add compression flag for repeated events.\n7. Provide iterator interface for traversal.\n8. Ensure no dynamic allocation in buffer operations.\n9. Integrate with existing UI display system.\n10. Test with 10,000 events to verify overflow handling.",
-      "acceptance_criteria": "1. Buffer handles overflow gracefully.\n2. Memory usage is exactly 256 bytes.\n3. Retrieval time is O(1) for recent events.\n4. No fragmentation in memory pool.",
-      "player_fun_impact": "Faster UI updates and lower memory usage for long games.",
+      "architectural_spec": "enum class AscensionState : uint8_t {\n    kPreAscension = 0,\n    kStabilizing = 1,\n    kComplete = 2\n};\n\nstruct PsychologySnapshot {\n    AscensionState state;\n    uint16_t tick;\n    uint8_t colonistCount;\n\n    constexpr bool IsFinalized() const noexcept {\n        return state == AscensionState::kComplete;\n    }\n\n    constexpr uint32_t Pack() const noexcept {\n        return (static_cast<uint32_t>(state) << 24) |\n               (static_cast<uint32_t>(tick) << 8) |\n               static_cast<uint32_t>(colonistCount);\n    }\n};",
+      "acceptance_criteria": [
+        "Snapshot packs into a single 32-bit integer without loss of precision for standard campaign lengths.",
+        "State transitions are strictly monotonic.",
+        "Zero virtual function overhead."
+      ],
+      "player_fun_impact": "Instantaneous load times for endgame states, providing a seamless conclusion to the campaign.",
       "estimated_complexity": "Atomic"
     }
   ]
