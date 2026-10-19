@@ -2,7 +2,7 @@
 
 - **Author**: DGX Spark Lead Systems & Game Designer
 - **Reviewed by**: RTX 5090 Blackwell Commercial QA Director
-- **Date**: `2026-10-19 18:30:56`
+- **Date**: `2026-10-19 18:42:36`
 
 ---
 
@@ -11,15 +11,16 @@
 ## 1. Executive Design Thesis: Depth vs. The Spreadsheet Trap
 
 **The Core Philosophy:**
-Depth in *Project Deep-Mantle* is not defined by the number of variables tracked, but by the **density of causal relationships** between those variables. A spreadsheet is flat; a simulation is volumetric.
+Depth in *Project Deep-Mantle* is not defined by the quantity of numbers in a UI, but by the **density of causal links** between systems. A "deep" system is one where a change in one variable (e.g., water level) ripples through multiple independent subsystems (structural integrity, fungal growth, pawn mood) without requiring manual recalibration by the player.
 
 **The Anti-Spreadsheet Check:**
-We must distinguish between *Data Density* (more numbers) and *Mechanical Depth* (more interactions).
-*   **Spreadsheet Trap:** Tracking 50 different mineral types with unique decay rates. (High Data, Low Fun).
-*   **True Depth:** Tracking 3 mineral types, but their physical properties (density, conductivity, brittleness) directly alter the physics of the map generation and the speed of conveyor belts. (Low Data, High Fun).
+*   **Spreadsheet Game:** The player reads a table of values and inputs the next number. (Low Fun, High Cognitive Load).
+*   **Deep Simulation:** The player observes a visual change (e.g., a cave-in) and intuitively understands the cause (low support beams) and effect (blocked path). (High Fun, Low Cognitive Load).
 
-**Verdict on Current State:**
-With 56 active modules and 11 completed projects in Era 4, we are approaching the "Complexity Ceiling." The goal now is **consolidation through emergence**. We do not add *more* systems; we make existing systems *talk* to each other more tightly.
+**Current Telemetry Analysis:**
+*   **Pawns: 3** suggests a tight, intimate simulation. This is ideal for high-fidelity psychological modeling.
+*   **Boredom Events: 15** indicates the current loop is slightly too static. We need more *active* feedback loops.
+*   **Era 4 Apex** implies we have exhausted basic linear progression. The next depth must come from **non-linear emergent complexity**.
 
 ---
 
@@ -28,57 +29,57 @@ With 56 active modules and 11 completed projects in Era 4, we are approaching th
 ### Era 0: Primitive Cavern Dwellers
 *   **Current State:** Flint tools, torchlight, spore forage, rough dugouts, rockfall fear.
 *   **1. CAN I ADD MORE DEPTH?**
-    *   **Yes.** Introduce **Acoustic Propagation** as a primary resource. In dark caverns, sound is the only map.
-    *   **Yes.** Introduce **Thermal Inertia** for torches. A torch near a wall heats the stone; the stone radiates heat back, creating micro-climates.
+    *   **Yes.** Introduce **Acoustic Propagation** and **Thermal Inertia**.
+    *   *Mechanic:* Sound travels differently through basalt vs. sandstone. Heat from torches dissipates slowly in narrow shafts, creating micro-climates.
 *   **2. IF SO, WHY?**
-    *   *Causality:* Sound waves reflect off different rock densities (Basalt vs. Limestone). Players must "listen" to the map to find voids (echoes) vs. solid rock (dull thud). This replaces the minimap with a sensory mechanic.
-    *   *Emergence:* Heat from torches creates condensation rings on walls, which become water sources. The "light" mechanic becomes a "water" mechanic.
+    *   *Causality:* Acoustic depth allows for "blind" navigation puzzles (e.g., locating a water source by echo). Thermal inertia creates natural "warm zones" for resting, reducing the need for UI-heavy temperature readouts.
+    *   *Emergence:* A pawn’s mood is directly tied to the *quality* of the echo in their room, not just the room size.
 *   **3. IS IT FUN?**
-    *   **Yes.** It transforms navigation from "clicking icons" to "interpreting signals." The tactile satisfaction of hearing a hollow echo and digging exactly there provides immediate feedback. It feels like spelunking, not inventory management.
+    *   **Yes.** It transforms static maps into interactive puzzles. The "click" of a well-placed torch illuminating a specific echo pattern provides immediate, tactile feedback.
 
 ### Era 1: Medieval Strata Fortification
 *   **Current State:** Stone masonry, gravity aqueducts, mushroom brewing taverns, structural arches.
 *   **1. CAN I ADD MORE DEPTH?**
-    *   **Yes.** Implement **Load-Bearing Stress Visualization** directly on the 3D model.
-    *   **Yes.** Add **Fermentation Time Dilation** based on ambient temperature.
+    *   **Yes.** Introduce **Load-Bearing Visualization** and **Fermentation Kinetics**.
+    *   *Mechanic:* Arches are not just "built"; they have a stress coefficient. Mushroom brewing depends on humidity *and* light spectrum (bioluminescent vs. torchlight).
 *   **2. IF SO, WHY?**
-    *   *Causality:* Arches are not just "walls with holes." They distribute weight. If a player digs too deep under an arch, the stress line turns red, and the arch collapses *dynamically*, crushing nearby pawns.
-    *   *Emergence:* Cold caverns slow fermentation (longer wait, higher quality). Warm geothermal vents speed it up (shorter wait, lower quality). Players must choose between *throughput* and *quality* based on map location.
+    *   *Causality:* Arch stress creates a "tension map" on the screen. If a nearby cave-in occurs, the stress propagates visually. Fermentation kinetics mean that a "good" year for mushrooms depends on the previous year’s water table, creating a 2-year lag effect.
+    *   *Emergence:* Players must balance water drainage (for aqueducts) with humidity (for brewing), creating a genuine dilemma.
 *   **3. IS IT FUN?**
-    *   **Yes.** The visual feedback of stress lines (green to red) is instant and satisfying. The trade-off between speed and quality creates meaningful decision points without requiring a spreadsheet. It feels like engineering, not accounting.
+    *   **Yes.** The visual "stress lines" on arches are satisfying to watch stabilize. The delayed feedback of brewing creates a "harvest rhythm" that feels organic, not mechanical.
 
 ### Era 2: Industrial Subterranean Mechanization
 *   **Current State:** Steam boilers, conveyors, inserters, shockwave pistons, mining elevators.
 *   **1. CAN I ADD MORE DEPTH?**
-    *   **Yes.** Introduce **Vibration Coupling** between machines.
-    *   **Yes.** Add **Kinetic Energy Recovery** in elevators.
+    *   **Yes.** Introduce **Vibration Harmonics** and **Thermal Gradient Efficiency**.
+    *   *Mechanic:* Conveyor belts have a "resonance frequency." If too many are aligned, they vibrate in sync, causing micro-fractures in nearby stone. Steam pressure is not just a number; it’s a visual gauge that affects piston speed *and* noise level.
 *   **2. IF SO, WHY?**
-    *   *Causality:* Machines placed adjacent to each other share vibration frequencies. If two boilers are out of phase, they shatter. If in phase, they boost efficiency. This forces spatial puzzle-solving.
-    *   *Emergence:* Elevators descending gain kinetic energy; ascending lose it. A chain of elevators can act as a battery if timed correctly.
+    *   *Causality:* Vibration harmonics force players to stagger conveyor layouts, breaking the "grid" monotony. Thermal gradients mean that placing a boiler near a cold aquifer is more efficient than near a warm one, rewarding spatial awareness.
+    *   *Emergence:* A "humming" cave becomes a visual and auditory cue for efficiency.
 *   **3. IS IT FUN?**
-    *   **Yes.** The "hum" of the factory becomes a gameplay element. Players listen for the rhythm. The "click-clack" of inserters syncing creates a dopamine loop similar to *Factorio* but with physical weight. It is tactile and rhythmic.
+    *   **Yes.** The rhythmic "clank-hiss" of pistons and the visual "wave" of vibration through the stone creates a hypnotic, satisfying industrial rhythm. It feels like a living machine.
 
 ### Era 3: Spacer High-Tech Cybernetics
 *   **Current State:** SOEC electrolysis, Tokamak fusion, bionics, cryogenic stasis, energy shielding.
 *   **1. CAN I ADD MORE DEPTH?**
-    *   **Yes.** Implement **Quantum Entanglement** for inventory slots (linked items update instantly across distance).
-    *   **Yes.** Add **Stasis Decay** affecting pawn skill retention.
+    *   **Yes.** Introduce **Quantum Entanglement of Resources** and **Stasis Decay**.
+    *   *Mechanic:* Energy shielding creates a "pressure wave" that pushes nearby objects. Cryogenic stasis slows time for the pawn but *accelerates* the decay of nearby organic materials (fungi, wood).
 *   **2. IF SO, WHY?**
-    *   *Causality:* Entangled items reduce UI lag and create "magic" logistics puzzles. Stasis decay means pawns forget skills if left too long, forcing rotation.
-    *   *Emergence:* High-tech items require specific geological conditions (e.g., Uranium needs high-pressure zones). The map dictates the tech tree progression.
+    *   *Causality:* Stasis decay creates a "time-lapse" effect on the local environment, making the world feel alive and changing. Energy shielding pressure waves allow for "pushing" puzzles without direct interaction.
+    *   *Emergence:* Players must place stasis pods away from organic farms to prevent spoilage, creating a spatial logic puzzle.
 *   **3. IS IT FUN?**
-    *   **Mixed.** Entanglement is fun (visual linking). Stasis decay can feel like a chore if not visualized well. *Fix:* Use color-coded halos around pawns to show memory decay. It becomes a "keep the light on" mini-game.
+    *   **Yes.** The visual contrast between the frozen, still stasis pod and the rapidly growing fungi around it is striking. The "push" effect of shields feels tactile and responsive.
 
 ### Era 4: Deep Mantle Archotech & Transcendence
 *   **Current State:** Superconducting busbars, hydraulic core hydrofracturing, harmonic resonance miners, ascension monolith.
 *   **1. CAN I ADD MORE DEPTH?**
-    *   **Yes.** Introduce **Non-Euclidean Geometry** in deep caverns (shortcuts via folding space).
-    *   **Yes.** Add **Harmonic Resonance** where the entire map vibrates at a frequency determined by the Monolith.
+    *   **Yes.** Introduce **Non-Local Causality** and **Resonance Feedback Loops**.
+    *   *Mechanic:* The Ascension Monolith does not just "upgrade" tech; it *rewrites* the physics of the local map. Hydrofracturing creates "echoes" that persist for 100 ticks, affecting future mining.
 *   **2. IF SO, WHY?**
-    *   *Causality:* Non-Euclidean shortcuts break the grid, forcing players to think in 3D topology rather than 2D tiles. Harmonic resonance changes the speed of all machines based on the Monolith's pulse.
-    *   *Emergence:* The map "breathes." Players must time their actions to the pulse.
+    *   *Causality:* Non-local causality means that a change in Era 4 can retroactively affect Era 2 structures (e.g., a superconductor stabilizes a shaky arch). Resonance feedback loops mean that mining speed increases as the number of active miners increases, but only up to a harmonic limit.
+    *   *Emergence:* The map itself becomes a "character" that evolves with the player’s tech level.
 *   **3. IS IT FUN?**
-    *   **Yes.** It feels like solving a cosmic puzzle. The shift from linear progression to rhythmic, pulsing gameplay is a distinct, high-tier experience. It is awe-inspiring.
+    *   **Yes.** The "glow" of superconductors and the "pulse" of the monolith create a sense of awe. The retroactive stabilization of old structures feels like a "reward" for long-term planning.
 
 ---
 
@@ -86,48 +87,53 @@ With 56 active modules and 11 completed projects in Era 4, we are approaching th
 
 ### 3.1 Geological Crust Stratification & Mineral Seams
 *   **1. CAN I ADD MORE DEPTH?**
-    *   **Yes.** Make mineral seams **procedurally dependent** on depth and pressure.
+    *   **Yes.** Introduce **Mineral Synergy** and **Fracture Networks**.
+    *   *Mechanic:* Silver and Uranium are not just "resources"; they are *catalysts*. A seam of Silver next to Uranium increases fusion efficiency by 15%. Fracture networks are not random; they follow Voronoi patterns based on the initial rock type.
 *   **2. IF SO, WHY?**
-    *   *Causality:* Basalt is common near the surface; Obsidian forms in rapid cooling zones; Titanium is found in high-pressure veins. This creates a "geological logic" to the map.
-    *   *Emergence:* Players learn to read the rock color to predict resources.
+    *   *Causality:* Mineral synergy rewards careful placement of miners. Fracture networks create natural "highways" for water and air, making map generation more logical and less chaotic.
+    *   *Emergence:* Players learn to "read" the rock, predicting where resources will be based on visible fracture patterns.
 *   **3. IS IT FUN?**
-    *   **Yes.** It turns exploration into a detective game. "That black glassy rock means Obsidian nearby." It is satisfying to predict correctly.
+    *   **Yes.** The "aha!" moment of spotting a synergy pattern is satisfying. The visual clarity of fracture networks makes the map feel like a coherent geological diagram.
 
 ### 3.2 Organic Cavern Contours, Cellular Autotiling & Voronoi Topography
 *   **1. CAN I ADD MORE DEPTH?**
-    *   **Yes.** Use **Voronoi diagrams** to generate natural cave systems that mimic real-world erosion.
+    *   **Yes.** Introduce **Bioluminescent Gradients** and **Cellular Growth Rates**.
+    *   *Mechanic:* Cavern contours are not static; they "breathe" with the water table. Bioluminescent fungi grow in gradients based on light exposure, creating natural "lighting" without torches.
 *   **2. IF SO, WHY?**
-    *   *Causality:* Voronoi cells create natural "rooms" and "corridors" with varying widths. This affects airflow and light penetration.
-    *   *Emergence:* Narrow corridors act as wind tunnels, speeding up steam vents. Wide rooms act as thermal buffers.
+    *   *Causality:* Breathing contours mean that the map is never truly static, keeping the player engaged. Bioluminescent gradients reduce the need for manual lighting, streamlining the UI.
+    *   *Emergence:* The map feels like a living organism, not a static grid.
 *   **3. IS IT FUN?**
-    *   **Yes.** The organic, non-repetitive look is visually pleasing. The functional difference between narrow and wide spaces adds strategic layering.
+    *   **Yes.** The soft glow of fungi and the gentle "breathing" of the cavern walls create a calming, immersive atmosphere. It feels like exploring a real cave.
 
 ### 3.3 Geotechnical Fault Lines, Subsidence & Overburden Stress Mechanics
 *   **1. CAN I ADD MORE DEPTH?**
-    *   **Yes.** Implement **Dynamic Subsidence** where digging changes the stress map in real-time.
+    *   **Yes.** Introduce **Stress Propagation Waves** and **Fault Line Memory**.
+    *   *Mechanic:* When a fault line shifts, it sends a "wave" of stress through the map, affecting nearby structures in sequence. Fault lines "remember" their last shift, making them more likely to shift again in the same direction.
 *   **2. IF SO, WHY?**
-    *   *Causality:* Removing support causes immediate, visible sagging of the ceiling. This creates urgency.
-    *   *Emergence:* Players must balance excavation speed with structural integrity.
+    *   *Causality:* Stress propagation waves create a "domino effect" that is visually satisfying to watch. Fault line memory allows for predictive modeling, rewarding players who observe patterns.
+    *   *Emergence:* The map feels like a dynamic system with its own logic, not just a random generator.
 *   **3. IS IT FUN?**
-    *   **Yes.** The visual "sag" is immediate feedback. It feels like the world is reacting to your touch.
+    *   **Yes.** Watching the stress waves ripple through the stone is like watching a stone drop in water. It’s hypnotic and satisfying.
 
 ### 3.4 Subterranean Biomes & Extreme Environments
 *   **1. CAN I ADD MORE DEPTH?**
-    *   **Yes.** Link biomes to **specific mineral compositions**.
+    *   **Yes.** Introduce **Symbiotic Chains** and **Micro-Climate Layers**.
+    *   *Mechanic:* Fungal forests are not just "food"; they are *air filters*. Hydrothermal geysers create "heat layers" that affect pawn movement speed. Sour gas voids are not just "empty"; they are *acidic* and corrode nearby metal.
 *   **2. IF SO, WHY?**
-    *   *Causality:* Fungal forests thrive in porous limestone; Hydrothermal vents are in basalt. This creates a logical map.
-    *   *Emergence:* Players navigate by biome, not just coordinates.
+    *   *Causality:* Symbiotic chains mean that removing one element (e.g., fungi) affects the entire biome. Micro-climate layers create a "vertical" gameplay element, where pawns move faster in warm layers and slower in cold ones.
+    *   *Emergence:* The biomes feel interconnected, not isolated.
 *   **3. IS IT FUN?**
-    *   **Yes.** It creates a sense of place. Each biome has a unique color palette and sound.
+    *   **Yes.** The visual contrast between the glowing fungi, the steaming geysers, and the acidic voids creates a rich, varied landscape. It feels like a journey through different worlds.
 
 ### 3.5 Multi-Z Vertical Topography & Fluid Dynamics
 *   **1. CAN I ADD MORE DEPTH?**
-    *   **Yes.** Implement **Pressure-Based Fluid Flow** (not just height).
+    *   **Yes.** Introduce **Capillary Action** and **Pressure Differentials**.
+    *   *Mechanic:* Water rises in narrow shafts via capillary action, creating "natural elevators." Pressure differentials between aquifers and magma chambers create "geysers" that can be harnessed for power.
 *   **2. IF SO, WHY?**
-    *   *Causality:* Water flows from high pressure to low pressure, not just high to low elevation. This allows for complex aquifer systems.
-    *   *Emergence:* Players can use pressure differentials to power turbines.
+    *   *Causality:* Capillary action reduces the need for mechanical pumps, streamlining logistics. Pressure differentials create natural "power sources" that are visually distinct from steam boilers.
+    *   *Emergence:* The fluid dynamics feel like a puzzle, where players must "read" the water levels to optimize flow.
 *   **3. IS IT FUN?**
-    *   **Yes.** It makes water feel like a living, breathing entity. The "whoosh" of a blowout is visceral.
+    *   **Yes.** The "pop" of a geyser and the "climb" of water in a shaft are tactile and satisfying. It feels like solving a hydraulic puzzle.
 
 ---
 
@@ -135,79 +141,53 @@ With 56 active modules and 11 completed projects in Era 4, we are approaching th
 
 ### 4.1 RimWorld Loops (Colonist Psychology, Room Impressiveness, Social Dynamics, Storyteller AI)
 *   **1. CAN I ADD MORE DEPTH?**
-    *   **Yes.** Integrate **Room Impressiveness** directly into **Work Speed**.
+    *   **Yes.** Introduce **Environmental Mood Resonance** and **Social Echoes**.
+    *   *Mechanic:* A pawn’s mood is not just a number; it *resonates* with the room’s "impressiveness" and the *number* of pawns in it. A "social echo" means that a happy pawn makes nearby pawns happier, but only if they are in the same "zone."
 *   **2. IF SO, WHY?**
-    *   *Causality:* A beautiful room makes pawns work faster. A ugly room slows them down. This links aesthetics to efficiency.
-    *   *Emergence:* Players are incentivized to decorate for mechanical gain.
+    *   *Causality:* Environmental mood resonance ties psychology directly to map design. Social echoes create a "chain reaction" of happiness, rewarding clustered layouts.
+    *   *Emergence:* The colony feels like a "community" with its own rhythm, not just a list of stats.
 *   **3. IS IT FUN?**
-    *   **Yes.** It makes decoration meaningful. The "click" of a completed room boosting speed is satisfying.
+    *   **Yes.** The visual "glow" of a happy pawn and the "ripple" of happiness through the colony is satisfying. It feels like nurturing a living organism.
 
 ### 4.2 Dwarf Fortress Loops (Pressurized Fluids, Overburden Cave-Ins, Strange Moods, Localized Trauma)
 *   **1. CAN I ADD MORE DEPTH?**
-    *   **Yes.** Make **Strange Moods** affect **Machine Efficiency**.
+    *   **Yes.** Introduce **Trauma Scarring** and **Fluid Memory**.
+    *   *Mechanic:* A cave-in leaves a "scar" in the rock that affects future mining speed. Fluids "remember" their last level, creating a "hysteresis" effect in water tables.
 *   **2. IF SO, WHY?**
-    *   *Causality:* A pawn in a "Strange Mood" works faster but makes more mistakes. This creates a risk/reward loop.
-    *   *Emergence:* Players must manage pawn states to optimize production.
+    *   *Causality:* Trauma scarring makes the map feel "aged" and "lived-in." Fluid memory creates a more realistic, less "snappy" water simulation.
+    *   *Emergence:* The map feels like a history book, with each layer telling a story of past events.
 *   **3. IS IT FUN?**
-    *   **Yes.** It adds a layer of strategy to pawn management. It feels like conducting an orchestra.
+    *   **Yes.** The "crack" in the rock and the "slow rise" of water are tactile and immersive. It feels like exploring a real, ancient place.
 
 ### 4.3 Factorio Loops (High-Throughput Logistics, Power Cascades, Vibration-Driven Hive Aggression)
 *   **1. CAN I ADD MORE DEPTH?**
-    *   **Yes.** Implement **Vibration-Driven Aggression** for cave creatures.
+    *   **Yes.** Introduce **Logistical Inertia** and **Harmonic Aggression**.
+    *   *Mechanic:* Conveyor belts have "inertia," meaning they take time to start and stop. Hive aggression is not random; it’s *harmonic*, meaning it peaks when the number of active miners matches the number of hives.
 *   **2. IF SO, WHY?**
-    *   *Causality:* High-frequency vibrations attract creatures. Low-frequency vibrations repel them. This links machine placement to creature behavior.
-    *   *Emergence:* Players must tune their factory to the "frequency" of the cave.
+    *   *Causality:* Logistical inertia makes the factory feel "heavy" and "real." Harmonic aggression creates a predictable, rhythmic pattern that rewards observation.
+    *   *Emergence:* The factory feels like a "machine" with its own rhythm, not just a list of numbers.
 *   **3. IS IT FUN?**
-    *   **Yes.** It makes the factory feel alive. The hum of the machines becomes a gameplay element.
+    *   **Yes.** The "clunk" of a starting conveyor and the "pulse" of hive aggression are satisfying. It feels like conducting an orchestra.
 
 ---
 
 ## 5. The 'Anti-Spreadsheet' Fun & Depth Scoring Matrix
 
-| Category | Depth /10 | Fun /10 | Cognitive Overhead /10 | Feedback Mechanism | Verdict |
+| System | Depth /10 | Fun /10 | Cognitive Overhead /10 | Feedback Mechanism | Verdict |
 | :--- | :---: | :---: | :---: | :--- | :--- |
-| **Era 0: Acoustic Propagation** | 8 | 9 | 4 | Visual Echo Rings | **Keep.** High tactile joy. |
-| **Era 1: Load-Bearing Stress** | 9 | 8 | 5 | Color-Coded Lines | **Keep.** Instant visual feedback. |
-| **Era 2: Vibration Coupling** | 9 | 9 | 6 | Humming Sync | **Keep.** Rhythmic satisfaction. |
-| **Era 3: Quantum Entanglement** | 7 | 7 | 7 | Linked Icons | **Keep.** Reduces UI clutter. |
-| **Era 4: Non-Euclidean Geometry** | 10 | 8 | 8 | Warp Effects | **Keep.** Awe-inspiring. |
-| **Map Gen: Voronoi Topography** | 8 | 8 | 5 | Organic Shapes | **Keep.** Visually pleasing. |
-| **Map Gen: Pressure Fluids** | 9 | 8 | 6 | Flow Arrows | **Keep.** Logical and clear. |
-| **RimWorld: Room Impressiveness** | 7 | 9 | 3 | Speed Boost Icon | **Keep.** Simple and effective. |
-| **DF: Strange Moods** | 8 | 7 | 6 | Mood Halo | **Keep.** Adds strategic layer. |
-| **Factorio: Vibration Aggression** | 9 | 9 | 5 | Pulse Wave | **Keep.** Makes factory alive. |
+| **Acoustic Propagation** | 8 | 9 | 3 | Visual "echo rings" on map | **High Priority** |
+| **Load-Bearing Visualization** | 9 | 8 | 4 | Stress lines on arches | **High Priority** |
+| **Vibration Harmonics** | 7 | 9 | 2 | Humming sound + visual wave | **High Priority** |
+| **Quantum Entanglement** | 6 | 7 | 5 | Color shift in UI | **Medium Priority** |
+| **Mineral Synergy** | 8 | 8 | 3 | Glow effect on seams | **High Priority** |
+| **Bioluminescent Gradients** | 7 | 9 | 2 | Soft glow in caverns | **High Priority** |
+| **Stress Propagation Waves** | 9 | 8 | 4 | Ripple effect on map | **High Priority** |
+| **Symbiotic Chains** | 8 | 7 | 3 | Color-coded biome layers | **Medium Priority** |
+| **Capillary Action** | 7 | 8 | 3 | Water "climbing" animation | **High Priority** |
+| **Environmental Mood Resonance** | 8 | 9 | 2 | Pawn "glow" intensity | **High Priority** |
+| **Trauma Scarring** | 6 | 6 | 4 | Crack texture in rock | **Low Priority** |
+| **Logistical Inertia** | 7 | 8 | 3 | Conveyor "start/stop" lag | **Medium Priority** |
 
-**Overall Verdict:**
-All proposed additions pass the "Anti-Spreadsheet" check. They provide **immediate visual or auditory feedback** and create **meaningful trade-offs**. They do not add "more numbers"; they add **more connections**.
-
----
-
-## 6. Prioritized C++20 Module Backlog for Next Engineering Sprints
-
-1.  **Module: Acoustic_Echo_System (Era 0)**
-    *   *Task:* Implement raycasting for sound propagation.
-    *   *Output:* Visual echo rings on UI.
-    *   *Priority:* High (Foundational for navigation).
-
-2.  **Module: Stress_Visualizer (Era 1)**
-    *   *Task:* Calculate load-bearing stress per tile.
-    *   *Output:* Color-coded lines on 3D model.
-    *   *Priority:* High (Critical for structural integrity).
-
-3.  **Module: Vibration_Sync_Engine (Era 2)**
-    *   *Task:* Link machine frequencies based on proximity.
-    *   *Output:* Humming sound effects and speed boosts.
-    *   *Priority:* Medium (Enhances factory feel).
-
-4.  **Module: Pressure_Fluid_Dynamics (Map Gen)**
-    *   *Task:* Implement pressure-based flow for water/magma.
-    *   *Output:* Flow arrows and turbine speed changes.
-    *   *Priority:* High (Core to subterranean logic).
-
-5.  **Module: Harmonic_Monolith_Pulse (Era 4)**
-    *   *Task:* Global pulse timer affecting all machine speeds.
-    *   *Output:* Pulsing UI and machine speed variations.
-    *   *Priority:* Low (End-game polish).
-
-**Final Note:**
-The depth of *Project Deep-Mantle* lies in the **interconnectedness** of its systems. By focusing on **causal links** rather than **data volume**, we ensure that every addition feels like a natural extension of the world, not a new spreadsheet tab. The game should feel like a living, breathing organism, not a database.
+**Analysis:**
+*   **High Priority:** Systems with high depth and fun, but low cognitive overhead. These are the "sweet spot" of the design.
+*   **Medium Priority:** Systems with good depth but slightly higher overhead. Implement if time allows.
