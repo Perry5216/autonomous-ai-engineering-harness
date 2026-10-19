@@ -1,64 +1,49 @@
 {
-  "batch_id": "BATCH-27",
+  "batch_id": "BATCH-28",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "Finalize simulation coverage by implementing deterministic state compression for long-running campaigns and optimizing endgame tick processing. This batch focuses on reducing memory footprint and improving cache locality for the 5,500+ tick milestone, ensuring zero deadlocks and 100% Monte Carlo survival rate stability.",
+  "overview": "Finalize simulation coverage by implementing deterministic state hashing for save/load integrity, optimizing colonist psychology state transitions for zero-allocation performance, and establishing a compact tick-based event log for endgame analysis.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Implement Zero-Heap Deterministic State Compression",
+      "title": "Deterministic State Hashing for Save/Load Integrity",
       "target_files": [
-        "Source/Engine/Core/StateCompression.h",
-        "Source/Engine/Core/StateCompression.cpp"
+        "Source/Engine/Core/StateHash.h",
+        "Source/Engine/Core/StateHash.cpp"
       ],
-      "architectural_spec": "Use std::span for contiguous memory access. Implement a fixed-size ring buffer for state deltas. Utilize C++20 concepts for type-safe serialization. No dynamic allocations in hot path. Use std::bit_cast for efficient integer packing. Ensure all operations are constexpr-friendly where possible.",
-      "acceptance_criteria": [
-        "Memory usage reduced by >40% for 5,500 tick state.",
-        "Zero heap allocations during compression/decompression.",
-        "All unit tests pass with 100% coverage.",
-        "Deterministic output verified against BATCH-26 baseline."
-      ],
-      "player_fun_impact": "Faster load times and smoother frame rates in long campaigns.",
+      "architectural_spec": "Implement a 64-bit FNV-1a hash function for core simulation state. Use constexpr where possible. Store state in a fixed-size array of uint64_t. No dynamic allocation. Hash is computed incrementally per tick. Provide a static method to verify hash against stored value. Ensure endianness consistency.",
+      "acceptance_criteria": "Hash value is identical across multiple runs with same seed. Verification fails on any state mutation. No heap allocations during hash computation.",
+      "player_fun_impact": "Ensures reliable save/load functionality and deterministic replay.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Optimize Endgame Tick Processing with SIMD",
+      "title": "Zero-Allocation Colonist Psychology State Machine",
       "target_files": [
-        "Source/Engine/Simulation/PhysicsTick.h",
-        "Source/Engine/Simulation/PhysicsTick.cpp"
+        "Source/Simulation/Colonist/Psychology.h",
+        "Source/Simulation/Colonist/Psychology.cpp"
       ],
-      "architectural_spec": "Leverage C++20 std::simd for vectorized physics calculations. Align data structures to 64-byte boundaries. Implement branchless logic for collision detection in the final 100 ticks. Use std::array for fixed-size physics state.",
-      "acceptance_criteria": [
-        "Tick processing time reduced by >25%.",
-        "No regressions in Monte Carlo survival rate.",
-        "SIMD instructions verified via compiler output.",
-        "Cache miss rate reduced by >15%."
-      ],
-      "player_fun_impact": "More responsive physics interactions in late-game scenarios.",
+      "architectural_spec": "Define a fixed-size enum for psychological states (Idle, Working, Resting, Panicked). Use a struct with uint8_t for state and float for stress level. Implement transition logic using switch-case. No std::string or std::vector. State changes are recorded in a circular buffer of size 1024.",
+      "acceptance_criteria": "State transitions are correct and fast. Memory footprint is minimal. Circular buffer wraps correctly.",
+      "player_fun_impact": "Faster simulation ticks and more responsive colonist behavior.",
       "estimated_complexity": "Small"
     },
     {
       "task_id": "TASK-803",
       "priority": "P2 - Quality-of-Life",
       "domain": "Storyteller/AI",
-      "title": "Cache-Friendly Colonist Psychology State Lookup",
+      "title": "Compact Tick-Based Event Log for Endgame Analysis",
       "target_files": [
-        "Source/Engine/AI/ColonistPsychology.h",
-        "Source/Engine/AI/ColonistPsychology.cpp"
+        "Source/Storyteller/EventLog.h",
+        "Source/Storyteller/EventLog.cpp"
       ],
-      "architectural_spec": "Flatten psychology state into a single contiguous array. Use std::span for iteration. Implement a simple hash map with open addressing for quick state lookups. Ensure all structs are trivially copyable.",
-      "acceptance_criteria": [
-        "Lookup time reduced to <10ns per colonist.",
-        "Memory layout verified as contiguous.",
-        "No deadlocks in parallel psychology updates.",
-        "Unit tests confirm deterministic state transitions."
-      ],
-      "player_fun_impact": "Smoother AI behavior transitions and reduced stutter.",
+      "architectural_spec": "Create a struct Event with uint32_t tick, uint16_t type, and uint16_t data. Store events in a static array of size 4096. Implement push and pop operations. Provide a method to retrieve events within a tick range. No dynamic memory.",
+      "acceptance_criteria": "Events are stored and retrieved correctly. Memory usage is fixed. No fragmentation.",
+      "player_fun_impact": "Enables detailed analysis of simulation history for debugging and replay.",
       "estimated_complexity": "Atomic"
     }
   ]
