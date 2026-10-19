@@ -1,50 +1,60 @@
 {
-  "batch_id": "BATCH-81",
+  "batch_id": "BATCH-82",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "Finalize the simulation loop by implementing deterministic state hashing for save/load integrity, optimizing the tick-based physics solver for zero-allocation stability, and compressing the storyteller's narrative state into a bit-packed format. These steps ensure 100% coverage of the endgame phase with minimal memory footprint.",
+  "overview": "Finalize simulation coverage by implementing deterministic state hashing for save/load integrity, optimizing colonist psychology state transitions for zero-allocation performance, and establishing a fixed-point physics accumulator for endgame stability.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Implement Zero-Heap Deterministic State Hasher",
+      "title": "Deterministic State Hashing for Save/Load Integrity",
       "target_files": [
-        "Source/Engine/Core/StateHasher.h",
-        "Source/Engine/Core/StateHasher.cpp"
+        "Source/Engine/Core/StateHash.h",
+        "Source/Engine/Core/StateHash.cpp"
       ],
-      "architectural_spec": "struct StateHasher {\n    uint64_t hash = 0;\n    void Update(const void* data, size_t size) {\n        const uint8_t* ptr = static_cast<const uint8_t*>(data);\n        for (size_t i = 0; i < size; ++i) {\n            hash ^= ptr[i];\n            hash *= 1099511628211ULL;\n        }\n    }\n    uint64_t GetHash() const { return hash; }\n};",
-      "acceptance_criteria": "1. Hash value is stable across multiple runs for identical state.\n2. No dynamic memory allocation occurs during hashing.\n3. Unit tests verify collision resistance for 10k random states.",
-      "player_fun_impact": "Ensures save/load consistency and prevents desyncs in long-running simulations.",
+      "architectural_spec": "Implement a 64-bit FNV-1a hash accumulator for simulation state. Use constexpr where possible. No dynamic allocation. Hash struct members in declaration order. Provide a static inline function for combining hashes. Ensure endianness consistency via std::endian::native checks. Max 40 lines.",
+      "acceptance_criteria": [
+        "Hash value is identical across 1000 Monte Carlo runs for identical state.",
+        "Zero heap allocations during hash computation.",
+        "Compiles with -std=c++20 -Wall -Wextra without warnings."
+      ],
+      "player_fun_impact": "Guarantees save/load consistency, preventing desyncs in long-running simulations.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Optimize Tick-Based Solver with Fixed-Point Arithmetic",
+      "title": "Fixed-Point Physics Accumulator for Endgame Stability",
       "target_files": [
-        "Source/Simulation/Physics/FixedPointSolver.h",
-        "Source/Simulation/Physics/FixedPointSolver.cpp"
+        "Source/Simulation/Physics/FixedPointAccumulator.h"
       ],
-      "architectural_spec": "using Fixed = int64_t;\nconstexpr Fixed SCALE = 1000000;\nstruct Vec3 {\n    Fixed x, y, z;\n    Vec3 operator+(const Vec3& o) const { return {x+o.x, y+o.y, z+o.z}; }\n    Vec3 operator*(Fixed s) const { return {x*s/SCALE, y*s/SCALE, z*s/SCALE}; }\n};\nvoid StepPhysics(Vec3& pos, Vec3& vel, Vec3 acc, Fixed dt) {\n    pos = pos + vel * dt + acc * (dt * dt / 2);\n    vel = vel + acc * dt;\n}",
-      "acceptance_criteria": "1. Physics steps are deterministic across platforms.\n2. No floating-point drift after 10,000 ticks.\n3. Performance benchmark shows >20% speedup over double-precision.",
-      "player_fun_impact": "Provides snappier, more predictable physics interactions in dense scenes.",
-      "estimated_complexity": "Small"
+      "architectural_spec": "Define a struct FixedPointAccumulator using int64_t for position and velocity. Implement step() with a fixed delta time (1/60s). Use integer arithmetic for all operations. No floating-point types. Include a reset() method. Max 50 lines.",
+      "acceptance_criteria": [
+        "Position and velocity remain stable after 10,000 steps.",
+        "No floating-point drift observed in 1000-step test.",
+        "All operations are constexpr-compatible where applicable."
+      ],
+      "player_fun_impact": "Eliminates floating-point drift in long simulations, ensuring precise object placement.",
+      "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-803",
       "priority": "P2 - Quality-of-Life",
       "domain": "Storyteller/AI",
-      "title": "Bit-Packed Narrative State Compression",
+      "title": "Zero-Alloc Colonist Psychology State Machine",
       "target_files": [
-        "Source/Storyteller/NarrativeState.h",
-        "Source/Storyteller/NarrativeState.cpp"
+        "Source/AI/Colonist/PsychologyState.h"
       ],
-      "architectural_spec": "struct NarrativeState {\n    uint32_t flags : 16;\n    uint16_t tick : 16;\n    uint8_t eventID : 8;\n    uint8_t mood : 8;\n    void Pack(uint8_t* buffer) {\n        buffer[0] = flags & 0xFF;\n        buffer[1] = (flags >> 8) & 0xFF;\n        buffer[2] = tick & 0xFF;\n        buffer[3] = (tick >> 8) & 0xFF;\n        buffer[4] = eventID;\n        buffer[5] = mood;\n    }\n};",
-      "acceptance_criteria": "1. State fits in 6 bytes.\n2. Unpack/Repack cycle preserves all data.\n3. Memory usage reduced by 60% compared to struct padding.",
-      "player_fun_impact": "Faster save/load times and smaller save files for large worlds.",
-      "estimated_complexity": "Atomic"
+      "architectural_spec": "Create a union-based state machine for colonist moods (Idle, Working, Resting, Panicked). Use std::variant with fixed-size alternatives. Implement transition() with switch-case. No heap allocation. Max 60 lines.",
+      "acceptance_criteria": [
+        "State transitions occur in O(1) time.",
+        "Memory footprint is exactly 16 bytes per colonist.",
+        "No dynamic memory allocation during state changes."
+      ],
+      "player_fun_impact": "Improves simulation performance and reduces memory usage for large colonist counts.",
+      "estimated_complexity": "Small"
     }
   ]
 }

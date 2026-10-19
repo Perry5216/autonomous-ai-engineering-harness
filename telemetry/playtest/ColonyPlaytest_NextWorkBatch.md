@@ -1,96 +1,55 @@
-# Project Deep-Mantle :: Engineering Work Batch: BATCH-81
+# Project Deep-Mantle :: Engineering Work Batch: BATCH-82
 
 ## Ultra-Endgame Ascension & Deterministic State Compression (Target: `v1.2.0`)
 
 - **Architect**: `DGX Spark Cluster Lead Systems Engineer`
 - **QA Verifier**: `RTX 5090 Blackwell Reflex QA Director`
-- **Date**: `2026-10-19 21:57:22`
+- **Date**: `2026-10-19 22:06:20`
 
 ### Batch Overview
-Finalize the simulation loop by implementing deterministic state hashing for save/load integrity, optimizing the tick-based physics solver for zero-allocation stability, and compressing the storyteller's narrative state into a bit-packed format. These steps ensure 100% coverage of the endgame phase with minimal memory footprint.
+Finalize simulation coverage by implementing deterministic state hashing for save/load integrity, optimizing colonist psychology state transitions for zero-allocation performance, and establishing a fixed-point physics accumulator for endgame stability.
 
 ---
 
 ### Prioritized Engineering Tasks
 
-#### [TASK-801] Implement Zero-Heap Deterministic State Hasher (`P0 - Critical`)
+#### [TASK-801] Deterministic State Hashing for Save/Load Integrity (`P0 - Critical`)
 
 - **Domain**: `Engine/C++20`
 - **Estimated Complexity**: `Atomic`
 - **Target Files**:
-  - `Source/Engine/Core/StateHasher.h`
-  - `Source/Engine/Core/StateHasher.cpp`
+  - `Source/Engine/Core/StateHash.h`
+  - `Source/Engine/Core/StateHash.cpp`
 - **Architectural Specification**:
-  struct StateHasher {
-    uint64_t hash = 0;
-    void Update(const void* data, size_t size) {
-        const uint8_t* ptr = static_cast<const uint8_t*>(data);
-        for (size_t i = 0; i < size; ++i) {
-            hash ^= ptr[i];
-            hash *= 1099511628211ULL;
-        }
-    }
-    uint64_t GetHash() const { return hash; }
-};
+  Implement a 64-bit FNV-1a hash accumulator for simulation state. Use constexpr where possible. No dynamic allocation. Hash struct members in declaration order. Provide a static inline function for combining hashes. Ensure endianness consistency via std::endian::native checks. Max 40 lines.
 - **Acceptance Criteria**:
-  1. Hash value is stable across multiple runs for identical state.
-2. No dynamic memory allocation occurs during hashing.
-3. Unit tests verify collision resistance for 10k random states.
+  ['Hash value is identical across 1000 Monte Carlo runs for identical state.', 'Zero heap allocations during hash computation.', 'Compiles with -std=c++20 -Wall -Wextra without warnings.']
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Ensures save/load consistency and prevents desyncs in long-running simulations.
+  Guarantees save/load consistency, preventing desyncs in long-running simulations.
 
-#### [TASK-802] Optimize Tick-Based Solver with Fixed-Point Arithmetic (`P1 - High`)
+#### [TASK-802] Fixed-Point Physics Accumulator for Endgame Stability (`P1 - High`)
 
 - **Domain**: `Simulation/Physics`
-- **Estimated Complexity**: `Small`
-- **Target Files**:
-  - `Source/Simulation/Physics/FixedPointSolver.h`
-  - `Source/Simulation/Physics/FixedPointSolver.cpp`
-- **Architectural Specification**:
-  using Fixed = int64_t;
-constexpr Fixed SCALE = 1000000;
-struct Vec3 {
-    Fixed x, y, z;
-    Vec3 operator+(const Vec3& o) const { return {x+o.x, y+o.y, z+o.z}; }
-    Vec3 operator*(Fixed s) const { return {x*s/SCALE, y*s/SCALE, z*s/SCALE}; }
-};
-void StepPhysics(Vec3& pos, Vec3& vel, Vec3 acc, Fixed dt) {
-    pos = pos + vel * dt + acc * (dt * dt / 2);
-    vel = vel + acc * dt;
-}
-- **Acceptance Criteria**:
-  1. Physics steps are deterministic across platforms.
-2. No floating-point drift after 10,000 ticks.
-3. Performance benchmark shows >20% speedup over double-precision.
-- **Player Fun & Anti-Spreadsheet Impact**:
-  Provides snappier, more predictable physics interactions in dense scenes.
-
-#### [TASK-803] Bit-Packed Narrative State Compression (`P2 - Quality-of-Life`)
-
-- **Domain**: `Storyteller/AI`
 - **Estimated Complexity**: `Atomic`
 - **Target Files**:
-  - `Source/Storyteller/NarrativeState.h`
-  - `Source/Storyteller/NarrativeState.cpp`
+  - `Source/Simulation/Physics/FixedPointAccumulator.h`
 - **Architectural Specification**:
-  struct NarrativeState {
-    uint32_t flags : 16;
-    uint16_t tick : 16;
-    uint8_t eventID : 8;
-    uint8_t mood : 8;
-    void Pack(uint8_t* buffer) {
-        buffer[0] = flags & 0xFF;
-        buffer[1] = (flags >> 8) & 0xFF;
-        buffer[2] = tick & 0xFF;
-        buffer[3] = (tick >> 8) & 0xFF;
-        buffer[4] = eventID;
-        buffer[5] = mood;
-    }
-};
+  Define a struct FixedPointAccumulator using int64_t for position and velocity. Implement step() with a fixed delta time (1/60s). Use integer arithmetic for all operations. No floating-point types. Include a reset() method. Max 50 lines.
 - **Acceptance Criteria**:
-  1. State fits in 6 bytes.
-2. Unpack/Repack cycle preserves all data.
-3. Memory usage reduced by 60% compared to struct padding.
+  ['Position and velocity remain stable after 10,000 steps.', 'No floating-point drift observed in 1000-step test.', 'All operations are constexpr-compatible where applicable.']
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Faster save/load times and smaller save files for large worlds.
+  Eliminates floating-point drift in long simulations, ensuring precise object placement.
+
+#### [TASK-803] Zero-Alloc Colonist Psychology State Machine (`P2 - Quality-of-Life`)
+
+- **Domain**: `Storyteller/AI`
+- **Estimated Complexity**: `Small`
+- **Target Files**:
+  - `Source/AI/Colonist/PsychologyState.h`
+- **Architectural Specification**:
+  Create a union-based state machine for colonist moods (Idle, Working, Resting, Panicked). Use std::variant with fixed-size alternatives. Implement transition() with switch-case. No heap allocation. Max 60 lines.
+- **Acceptance Criteria**:
+  ['State transitions occur in O(1) time.', 'Memory footprint is exactly 16 bytes per colonist.', 'No dynamic memory allocation during state changes.']
+- **Player Fun & Anti-Spreadsheet Impact**:
+  Improves simulation performance and reduces memory usage for large colonist counts.
 
