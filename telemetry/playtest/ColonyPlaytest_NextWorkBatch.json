@@ -1,62 +1,49 @@
 {
-  "batch_id": "BATCH-35",
+  "batch_id": "BATCH-36",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "Finalize simulation coverage by implementing deterministic state hashing for save/load integrity, optimizing colonist psychology state transitions for zero-latency updates, and enabling atomic endgame ascension logic with minimal memory footprint.",
+  "overview": "This batch focuses on finalizing the simulation loop by implementing deterministic state hashing for save/load integrity, optimizing the tick-based physics solver for 100% Monte Carlo survival, and refining the storyteller AI's endgame narrative pacing. These atomic tasks ensure zero deadlocks and perfect reproducibility in the 5,500+ tick campaign.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Deterministic State Hashing for Save/Load Integrity",
+      "title": "Implement Deterministic State Hashing for Save/Load Integrity",
       "target_files": [
-        "Source/Engine/Core/StateHash.h",
-        "Source/Engine/Core/StateHash.cpp"
+        "Source/Engine/Core/StateHasher.h",
+        "Source/Engine/Core/StateHasher.cpp"
       ],
-      "architectural_spec": "Implement a constexpr-friendly, zero-heap hash function using FNV-1a 64-bit. Input: contiguous byte array of simulation state. Output: uint64_t hash. Use std::span for input. No dynamic allocation. Handle endianness explicitly via std::endian::native. Include static_assert for hash consistency on known test vectors. Max 40 lines.",
-      "acceptance_criteria": [
-        "Hash function returns identical uint64_t for identical state sequences across platforms.",
-        "Zero heap allocations during hashing.",
-        "Unit tests pass for 1000 random state permutations.",
-        "Compilation time < 200ms for header inclusion."
-      ],
-      "player_fun_impact": "Ensures reliable save/load cycles, preventing corruption and enabling quick-resume gameplay.",
+      "architectural_spec": "1. Define `struct StateHash` with `uint64_t value`.\n2. Implement `constexpr uint64_t FNV1aHash(const char* data, size_t len)`.\n3. Create `class DeterministicState` with `std::array<uint64_t, 16> m_hashes`.\n4. Add `void UpdateHash(const void* data, size_t len)` using FNV1a.\n5. Ensure no heap allocations; use `std::span` for data access.\n6. Provide `bool operator==(const DeterministicState&) const`.\n7. Add `std::string_view ToString() const` for debug output.\n8. Integrate into `TickSystem::Update()` post-physics.\n9. Validate against 5,500 tick reference logs.\n10. Zero cascading headers; include only `<cstdint>`, `<array>`, `<string_view>`.",
+      "acceptance_criteria": "1. Hash value is identical across 100 Monte Carlo runs.\n2. No heap allocations during hashing.\n3. Compile time < 50ms for header inclusion.\n4. Passes all 16,500 footstep log comparisons.",
+      "player_fun_impact": "Guarantees perfect save/load reproducibility, eliminating 'ghost' desyncs in long campaigns.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Atomic Colonist Psychology State Transition Table",
+      "title": "Optimize Tick-Based Physics Solver for Zero Deadlocks",
       "target_files": [
-        "Source/Simulation/Colonist/PsychologyTable.h"
+        "Source/Simulation/Physics/TickSolver.h",
+        "Source/Simulation/Physics/TickSolver.cpp"
       ],
-      "architectural_spec": "Define a static constexpr array of 16 psychology states (e.g., Idle, Working, Resting, Panicked) and their valid transitions. Use std::array<std::pair<uint8_t, uint8_t>, 32> for transition pairs. Implement a constexpr lookup function: uint8_t NextState(uint8_t current, uint8_t event). No virtual functions. No std::map. Max 50 lines.",
-      "acceptance_criteria": [
-        "All 16 states have defined transitions for 4 core events.",
-        "Lookup is O(1) via direct array indexing.",
-        "No undefined behavior in state transitions.",
-        "Header-only implementation."
-      ],
-      "player_fun_impact": "Faster simulation ticks, smoother colonist behavior, and reduced frame stutter.",
-      "estimated_complexity": "Atomic"
+      "architectural_spec": "1. Define `struct PhysicsState` with `float pos[3]`, `float vel[3]`.\n2. Implement `void StepPhysics(PhysicsState& state, float dt)`.\n3. Use `std::array<PhysicsState, 1024>` for static pool.\n4. Add `bool IsStable(const PhysicsState& s)` with epsilon 1e-6.\n5. Implement `void ResolveCollisions(std::span<PhysicsState>)`.\n6. Ensure no recursion in collision resolution.\n7. Add `uint32_t GetTickCount()` for debug.\n8. Integrate with `StateHasher` from TASK-801.\n9. Validate 100% survival rate in 5,500 ticks.\n10. Zero heap allocations; use `std::span` for iteration.",
+      "acceptance_criteria": "1. 0 deadlocks in 5,500 ticks.\n2. 100% Monte Carlo survival rate.\n3. Physics step time < 0.1ms per 1024 entities.\n4. No floating-point drift beyond 1e-6.",
+      "player_fun_impact": "Smooth, predictable physics behavior with no stuttering or entity tunneling.",
+      "estimated_complexity": "Small"
     },
     {
       "task_id": "TASK-803",
       "priority": "P2 - Quality-of-Life",
       "domain": "Storyteller/AI",
-      "title": "Endgame Ascension Flag Compression",
+      "title": "Refine Endgame Narrative Pacing for 5,500+ Ticks",
       "target_files": [
-        "Source/Storyteller/AscensionFlags.h"
+        "Source/Storyteller/EndgamePacer.h",
+        "Source/Storyteller/EndgamePacer.cpp"
       ],
-      "architectural_spec": "Use a single uint64_t bitmask to store 64 endgame flags (e.g., CompletedTutorial, UnlockedTech1, etc.). Provide constexpr get/set/clear functions using bitwise operations. No std::bitset. No dynamic memory. Include static_assert for flag count <= 64. Max 30 lines.",
-      "acceptance_criteria": [
-        "All 64 flags fit in one uint64_t.",
-        "Get/set/clear operations are constexpr.",
-        "No heap allocations.",
-        "Unit tests verify flag independence."
-      ],
-      "player_fun_impact": "Faster save file loading and smaller save file size.",
+      "architectural_spec": "1. Define `enum class Phase { Early, Mid, Late, Ascension }`.\n2. Implement `Phase GetPhase(uint32_t tick)` with thresholds 1000, 3000, 5000.\n3. Create `struct NarrativeEvent` with `std::string_view text`.\n4. Add `void EmitEvent(Phase p)` with static `std::array` of events.\n5. Ensure no dynamic string allocation; use `std::string_view`.\n6. Integrate with `TickSolver` tick count.\n7. Add `bool IsAscensionComplete()` for final state.\n8. Validate against 16,500 footstep logs.\n9. Zero heap allocations; use `std::span` for event lists.\n10. Include only `<cstdint>`, `<array>`, `<string_view>`.",
+      "acceptance_criteria": "1. Correct phase transition at ticks 1000, 3000, 5000.\n2. No heap allocations during event emission.\n3. All 16,500 footstep logs match expected narrative beats.\n4. Ascension phase triggers exactly at tick 5500.",
+      "player_fun_impact": "Clear, timely narrative cues that enhance immersion without lag.",
       "estimated_complexity": "Atomic"
     }
   ]
