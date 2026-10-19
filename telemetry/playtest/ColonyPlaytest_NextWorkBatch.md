@@ -1,57 +1,72 @@
-# Project Deep-Mantle :: Engineering Work Batch: BATCH-48
+# Project Deep-Mantle :: Engineering Work Batch: BATCH-49
 
-## Deterministic State Compression & Ascension Logic (Target: `v1.2.0`)
+## Ultra-Endgame Ascension & Deterministic State Finalization (Target: `v1.2.0`)
 
 - **Architect**: `DGX Spark Cluster Lead Systems Engineer`
 - **QA Verifier**: `RTX 5090 Blackwell Reflex QA Director`
-- **Date**: `2026-10-19 16:08:31`
+- **Date**: `2026-10-19 16:16:28`
 
 ### Batch Overview
-This batch finalizes the ultra-endgame simulation by implementing deterministic state compression for long-running campaigns and the final ascension logic. These tasks ensure memory stability over 5,500+ ticks and provide a clean, non-blocking exit strategy for the simulation loop.
+This batch finalizes the simulation loop by implementing the deterministic state compression for the endgame and the atomic ascension logic. It ensures that the 5,500-tick campaign state is serialized into a minimal, hash-verifiable format and that the final ascension event triggers a clean, non-blocking shutdown of the simulation loop with 100% reproducibility.
 
 ---
 
 ### Prioritized Engineering Tasks
 
-#### [TASK-801] Implement Zero-Heap Deterministic State Compressor (`P0 - Critical`)
+#### [TASK-801] Implement Deterministic State Hashing for Endgame Snapshot (`P0 - Critical`)
 
 - **Domain**: `Engine/C++20`
 - **Estimated Complexity**: `Atomic`
 - **Target Files**:
-  - `src/engine/core/StateCompressor.h`
-  - `src/engine/core/StateCompressor.cpp`
+  - `Source/Runtime/Simulation/StateCompressor.h`
+  - `Source/Runtime/Simulation/StateCompressor.cpp`
 - **Architectural Specification**:
-  Use std::array<uint8_t, 4096> for static buffers. Implement a simple run-length encoding (RLE) for tick states. No dynamic allocation. Use constexpr for buffer sizes. Ensure all operations are noexcept. The compressor must handle 5,500 ticks within 4KB static memory by collapsing identical consecutive states.
+  1. Define struct `EndgameSnapshot` with fixed-size arrays for tick count, survival rate, and footstep count.
+2. Implement `constexpr uint64_t ComputeHash(const EndgameSnapshot&)` using FNV-1a 64-bit.
+3. Ensure no dynamic allocation; use `std::array` for all members.
+4. Add static assertion for struct size <= 64 bytes.
+5. Provide `inline` functions for serialization to `std::span<uint8_t>`.
+6. Verify hash stability across 100 Monte Carlo runs in unit tests.
 - **Acceptance Criteria**:
-  ['Memory usage remains constant at 4KB regardless of tick count.', 'Decompression speed is O(N) with N being the number of unique states.', 'All unit tests pass with 0 heap allocations reported by the profiler.']
+  ['Hash value is identical across 100 consecutive runs with same seed.', 'Struct size is exactly 64 bytes.', 'Zero heap allocations during serialization.', 'Unit tests pass with 100% coverage.']
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Faster load times for long campaigns and stable memory usage on low-end devices.
+  Instant, verifiable endgame results without loading delays.
 
-#### [TASK-802] Finalize Ascension State Machine Transition (`P1 - High`)
+#### [TASK-802] Atomic Ascension Trigger Logic (`P1 - High`)
 
 - **Domain**: `Simulation/Physics`
-- **Estimated Complexity**: `Small`
-- **Target Files**:
-  - `src/simulation/AscensionManager.h`
-  - `src/simulation/AscensionManager.cpp`
-- **Architectural Specification**:
-  Define a strict enum class for AscensionStates { Idle, Processing, Complete }. Implement a state machine that transitions from Processing to Complete only when all 16,500 footsteps are logged. Use std::variant for state data to avoid heap fragmentation. Ensure thread-safe transitions using std::atomic<int>.
-- **Acceptance Criteria**:
-  ['State transitions are atomic and lock-free.', 'No deadlocks occur during the transition from tick 5500 to Ascension Complete.', "The manager correctly reports 'Complete' status after the final tick."]
-- **Player Fun & Anti-Spreadsheet Impact**:
-  Provides a clear, immediate end-of-game signal without hanging the simulation loop.
-
-#### [TASK-803] Generate Deterministic Ascension Summary (`P2 - Quality-of-Life`)
-
-- **Domain**: `Storyteller/AI`
 - **Estimated Complexity**: `Atomic`
 - **Target Files**:
-  - `src/storyteller/SummaryGenerator.h`
-  - `src/storyteller/SummaryGenerator.cpp`
+  - `Source/Runtime/Simulation/AscensionLogic.h`
+  - `Source/Runtime/Simulation/AscensionLogic.cpp`
 - **Architectural Specification**:
-  Create a struct AscensionSummary with fixed-size char arrays for stats. Populate it with tick count, footstep count, and survival rate. Use std::format (C++20) for string generation into a static buffer. No dynamic string allocations.
+  1. Create `enum class AscensionState { Pending, Completed, Failed }`.
+2. Implement `void ProcessAscension(const EndgameSnapshot&)`.
+3. Logic: If tick count == 5500 and survival rate == 1.0, set state to Completed.
+4. Use `std::atomic<AscensionState>` for thread-safe state updates.
+5. No cascading dependencies; include only `<atomic>` and `<cstdint>`.
+6. Ensure `ProcessAscension` is `noexcept`.
 - **Acceptance Criteria**:
-  ['Summary is generated in <1ms.', 'Output is identical across runs for the same seed.', 'No heap allocations during summary generation.']
+  ['State transitions correctly from Pending to Completed at tick 5500.', 'No deadlocks observed in multi-threaded simulation.', 'Function is `noexcept` and completes in < 1 microsecond.', 'State is readable by UI layer without mutex contention.']
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Instant, consistent end-game statistics display.
+  Immediate feedback on campaign completion status.
+
+#### [TASK-803] Minimalist Endgame Log Formatter (`P2 - Quality-of-Life`)
+
+- **Domain**: `Storyteller/AI`
+- **Estimated Complexity**: `Small`
+- **Target Files**:
+  - `Source/Runtime/Simulation/EndgameFormatter.h`
+  - `Source/Runtime/Simulation/EndgameFormatter.cpp`
+- **Architectural Specification**:
+  1. Define `struct EndgameLog` with `std::string_view` members.
+2. Implement `std::string_view FormatLog(const EndgameSnapshot&, const AscensionState&)`.
+3. Use `std::format` (C++20) for concise output.
+4. Pre-allocate buffer of 256 bytes for stack-based formatting.
+5. Return `std::string_view` pointing to static buffer.
+6. Ensure no locale-dependent formatting issues.
+- **Acceptance Criteria**:
+  ['Output string is < 256 characters.', 'Formatting is consistent across platforms.', 'No heap allocations in `FormatLog`.', 'Readable by human and parser alike.']
+- **Player Fun & Anti-Spreadsheet Impact**:
+  Clean, concise summary of the 5,500-tick journey.
 
