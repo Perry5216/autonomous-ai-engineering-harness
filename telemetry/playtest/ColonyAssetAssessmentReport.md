@@ -1,6 +1,6 @@
 # Project Deep-Mantle: Autonomous Asset Assessment Report
 
-**Generated:** 2026-10-19 20:39:56 UTC  
+**Generated:** 2026-10-19 20:49:10 UTC  
 **Evaluated By:** Operator's Local AI Cluster (DGX Spark :8877 & RTX 5090 Blackwell :8080)  
 **RTX 5090 Role Transition:** `ROLE_ENTER` -> `ROLE_EXIT` Clean VRAM Hand-off  
 **Total Assets Evaluated:** 52  
@@ -9,109 +9,76 @@
 
 ## 1. Operator AI Cognitive Assessment & Feature Directives
 
-# Project Deep-Mantle: Architectural & Visual Audit Report
-
-**Role:** Lead Visual Designer & Gameplay Architect
-**Platform:** DGX Spark / RTX 5090 Cluster
-**Status:** Active Analysis
-
----
+Here is the architectural and visual design audit for **Project Deep-Mantle**, executed from the perspective of the Lead Visual Designer and Gameplay Architect on the DGX Spark & RTX 5090 cluster.
 
 ### 1. Visual & Spatial Consistency Audit
 **Does this make sense? (Top-down orthographic, 16-bit scaling, spatial consistency)**
 
-**Verdict:** **Yes, but with strict constraints required for readability.**
+**Verdict:** The current asset list is logically sound but suffers from **scale ambiguity** and **layering complexity** that must be resolved before finalizing the sprite sheets.
 
-The 6-domain structure is logically sound and mirrors successful genre standards (Factorio’s modular machinery, RimWorld’s pawn-centric survival). However, visual coherence depends on enforcing a **strict 16-bit pixel grid** with **orthographic projection**.
+*   **Orthographic Perspective & Scaling:**
+    *   **Grid Alignment:** All assets must snap to a strict **16x16 pixel grid** (or 32x32 for high-fidelity mode). The "Lithophone" and "Terminal Desk" are non-square; they must be defined by their bounding box (e.g., 2x1 tiles) to prevent collision errors in the logic engine.
+    *   **Z-Index Hierarchy:**
+        *   *Layer 0 (Ground):* Conveyors, Chutes, Floor tiles.
+        *   *Layer 1 (Static):* Storage Shelves, Mess Bench, Lithophone.
+        *   *Layer 2 (Dynamic):* Drones, Muffalo, Deer.
+        *   *Layer 3 (Overlay):* UI elements, light glows from Lamps/Turbines.
+    *   **Consistency Check:** The "Rogue Subversion Loop" is abstract. In a 16-bit orthographic view, it must be represented as a **glowing wireframe overlay** or a distinct color-coded path (e.g., cyan dashed line) to distinguish it from physical objects.
 
-#### Key Observations:
-- **Orthographic Perspective:** Essential for 16-bit clarity. No perspective foreshortening. All objects must align to a fixed grid (e.g., 16x16 or 32x32 px per tile). This ensures:
-  - Conveyor belts (N/E/S/W) connect seamlessly without visual gaps.
-  - Furniture (Stool, Table) snaps cleanly to grid intersections.
-  - Fauna (4-frame walk cycles) maintain consistent stride length relative to tile size.
-- **16-bit Scaling:** Use nearest-neighbor interpolation. Avoid anti-aliasing. Each domain must have a distinct color palette to reduce cognitive load:
-  - **Drones:** Cyan/White (tech)
-  - **Habitation:** Warm Amber/Beige (organic)
-  - **Flora:** Green/Teal (biological)
-  - **Fauna:** Brown/Ochre (natural)
-  - **Machinery:** Grey/Orange (industrial)
-  - **Logistics:** Blue/Yellow (functional)
-- **Spatial Consistency:**
-  - **Layering:** Background (cave walls) → Midground (machinery/flora) → Foreground (pawns/drones).
-  - **Occlusion:** Use simple drop shadows (1px offset) to distinguish overlapping objects (e.g., a Stool on a Dining Table).
-  - **Scale Hierarchy:**
-    - Small: Stool, Inserter (1 tile)
-    - Medium: Table, Smelter (2x2 tiles)
-    - Large: Turbine, Drone Bay (3x3 or larger)
+*   **Asset-Specific Visual Notes:**
+    *   **Fauna (4-frame walk cycles):** Ensure the "Muffalo" and "Wolf" have distinct silhouettes. The Muffalo should be bulky (2x2 tiles), while the Wolf is sleek (1x1 or 1x2). The "Boar" and "Deer" must have clear directional cues (head orientation) to aid player navigation.
+    *   **Industrial Machinery:** The "Pultrusion Mill" and "Smelter" need **animated states** (idle, working, jammed). Use 2-3 frames per state to convey activity without cluttering the screen.
+    *   **Flora:** "Crystal Pine" and "Spore Tree" should use **parallax scrolling** if the camera zooms, but in strict orthographic, they must have clear drop shadows to separate them from the ground.
 
-**Recommendation:** Enforce a **16px base unit**. All assets must be multiples of 16px. Use a limited palette (16–32 colors per domain) to maintain retro aesthetic clarity.
+*   **Recommendation:** Implement a **color-coded material system** in the sprites:
+    *   *Metal:* Cool grays/blues.
+    *   *Organic:* Warm greens/browns.
+    *   *Energy:* Bright cyan/yellow glows.
+    This ensures instant recognition in a dense factory layout.
 
 ---
 
 ### 2. Gameplay Loop Clarity
 **Is it clear? Will the player understand what's going on? (Factorio-grade automation + RimWorld-grade pawn survival)**
 
-**Verdict:** **Yes, if the loop is segmented into three distinct phases with immediate feedback.**
+**Verdict:** The loop is **intelligible but potentially overwhelming** without a structured tutorial. The fusion of Factorio’s linear automation and RimWorld’s emergent pawn behavior requires a **three-tier feedback system**.
 
-The hybrid model is strong but risks cognitive overload. The loop must be **explicitly visualized** in the UI.
+*   **The Core Loop:**
+    1.  **Input:** Player places a **Terminal Desk** (research) or **Hydroponics** (food).
+    2.  **Process:** **Drones** (Agronomy/Hauler) move items via **Conveyors/Inserter** to **Machinery** (Smelter/Pultrusion Mill).
+    3.  **Output:** Finished goods are stored on **Storage Shelves** or used by **Pawns** at the **Mess Bench**.
+    4.  **Survival:** Pawns consume food (Berry Bush/Healroot) and rest (Stool/Lamp). **Sentry Rovers** defend against **Rogue Subversion Loops**.
 
-#### Proposed Core Loop:
-1. **Gather (Exploration):**
-   - Pawns move to Flora/Fauna tiles.
-   - *Feedback:* Icons appear above pawns (e.g., 🌿 for harvest, 🦌 for hunt).
-   - *Goal:* Fill inventory slots.
-2. **Process (Automation):**
-   - Raw materials → Conveyor → Smelter/Mill → Product.
-   - *Feedback:* Animated conveyor belts (1-frame shift per tick). Product icons pop up at output.
-   - *Goal:* Create intermediate goods (e.g., Crystal Pine → Lumber → Plank).
-3. **Sustain (Survival):**
-   - Pawns consume food (Berry Bush) and rest (Stool).
-   - *Feedback:* Health/energy bars above pawns.
-   - *Goal:* Keep pawns alive to continue steps 1–2.
+*   **Clarity Enhancements:**
+    *   **Visual Feedback:** When a **Drone** picks up an item, the item should **float above the drone** with a slight bob animation. When a **Conveyor** is jammed, it should flash red.
+    *   **Pawn Behavior:** Pawns should have **priority indicators** (e.g., a small icon above their head: 🍽️ for hungry, 🛠️ for working, 💤 for sleeping). This mimics RimWorld’s clarity.
+    *   **Subversion Loop:** The "Rogue Subversion Loop" should be a **progress bar** or a **countdown timer** in the UI, not just a visual effect. This gives the player a clear objective: "Fix the loop before it collapses."
 
-#### Clarity Enhancements:
-- **Color-Coded UI:**
-  - Green: Flora/Fauna (Resources)
-  - Blue: Logistics (Movement)
-  - Orange: Machinery (Processing)
-  - White: Drones (Automation)
-- **Minimalist HUD:**
-  - Top-left: Current resource count (e.g., 🌿 12, 🪵 8).
-  - Top-right: Pawn status (e.g., 👤 3/5 Active).
-  - Center: Objective prompt (e.g., "Build Smelter to process Lumber").
-- **No Ambiguity:** Each object has **one** primary function. No multi-functional items unless explicitly labeled.
-
-**Recommendation:** Use **icon-driven tooltips** on hover. Each asset must have a 1-sentence description in the tooltip (e.g., "Smelter: Converts Lumber to Planks").
+*   **Player Understanding:**
+    *   Use **tooltips** that appear on hover: "Agronomy Drone: Collects spores from Spore Trees. Speed: 1.5x."
+    *   **Color-coded paths:** Conveyors should have a subtle directional arrow in the sprite. Inserters should show a "push" animation.
 
 ---
 
-### 3. AI-Generated Asset Audit & Replacement Strategy
+### 3. AI-Generated Artifacts & Technical Corrections
 **Where things look like it was AI done, what needs replacement, quantization, or perspective alignment?**
 
-**Verdict:** **AI-generated assets often suffer from inconsistent line weights, misaligned grids, and non-uniform palettes. Manual quantization is required.**
+**Verdict:** AI-generated sprites often suffer from **inconsistent lighting**, **misaligned grids**, and **blurry edges**. Here are the specific fixes:
 
-#### Common AI Artifacts & Fixes:
-| Domain | Common AI Issue | Fix Strategy |
-|--------|----------------|--------------|
-| **Drones** | Blurry edges, inconsistent pixel density | **Quantize** to 16px grid. Use 1px black outlines for all objects. |
-| **Furniture** | Perspective distortion (e.g., table legs not vertical) | **Force orthographic alignment.** All vertical lines must be exactly 1px wide. |
-| **Flora** | Overly detailed leaves (non-pixel-perfect) | **Simplify** to 3–5 color blocks per plant. Use dithering for gradients. |
-| **Fauna** | Inconsistent walk cycle frames (e.g., leg positions misaligned) | **Standardize** 4-frame cycle: 1. Standing, 2. Left leg forward, 3. Standing, 4. Right leg forward. |
-| **Machinery** | Mixed lighting (some parts lit, some not) | **Flat shading.** Use 2–3 shades per object (base, highlight, shadow). |
-| **Logistics** | Conveyor arrows misaligned with belt direction | **Snap** arrows to grid centers. Use 1px arrows for N/E/S/W. |
+*   **Quantization & Palette:**
+    *   **Problem:** AI often uses 24-bit color with gradients.
+    *   **Fix:** Force a **16-color palette** (or 32-color) per asset group. Use **dithering** for shadows instead of smooth gradients. This ensures crisp 16-bit aesthetics.
+    *   **Example:** The "Lamp" glow should be 3 distinct color steps (bright center, mid-tone, dark edge), not a smooth fade.
 
-#### Quantization Protocol:
-1. **Palette Reduction:** Limit each domain to 8–16 colors. Use a global palette for UI elements.
-2. **Grid Alignment:** All assets must start at (0,0) in their sprite sheet. No fractional pixels.
-3. **Line Weight:** Use 1px lines for all outlines. 2px for major separators (e.g., between domains).
-4. **Animation:** All animations must be 4–8 frames. No sub-pixel movement.
+*   **Perspective Alignment:**
+    *   **Problem:** AI-generated "isometric" sprites often have mismatched vanishing points.
+    *   **Fix:** Enforce **strict orthographic projection**. All vertical lines must be perfectly vertical. All horizontal lines must be perfectly horizontal. No perspective foreshortening.
+    *   **Check:** The "Terminal Desk" and "Storage Shelf" must have the same top-face angle (e.g., 2:1 pixel ratio for isometric tiles).
 
-**Recommendation:** Use a **pixel-perfect sprite editor** (e.g., Aseprite) to manually adjust AI outputs. Prioritize **readability** over detail.
-
----
-
-### 4. New Depth & Fun Features for Engagement
-**What new depth and fun features should be added to the game in this
+*   **Specific Replacements:**
+    *   **Rogue Subversion Loop:** Replace the generic "loop" icon with a **custom SVG path** that animates along the conveyor belt. This is cleaner than a rasterized sprite.
+    *   **Fauna Walk Cycles:** AI often generates 4 frames with inconsistent limb positions. **Manually keyframe** the 4 frames for each animal to ensure smooth interpolation. Use **nearest-neighbor scaling** to avoid blurriness.
+    *   **Industrial Machinery:** The "Turbine" and "Smelter" often have too many details. **S
 
 ## 2. Domain Asset Telemetry
 
