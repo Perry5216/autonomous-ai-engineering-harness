@@ -1,6 +1,6 @@
 # Project Deep-Mantle: Autonomous Asset Assessment Report
 
-**Generated:** 2026-10-19 15:32:57 UTC  
+**Generated:** 2026-10-19 15:39:50 UTC  
 **Evaluated By:** Operator's Local AI Cluster (DGX Spark :8877 & RTX 5090 Blackwell :8080)  
 **RTX 5090 Role Transition:** `ROLE_ENTER` -> `ROLE_EXIT` Clean VRAM Hand-off  
 **Total Assets Evaluated:** 52  
@@ -9,66 +9,89 @@
 
 ## 1. Operator AI Cognitive Assessment & Feature Directives
 
-Hello. I am the Lead Visual Designer and Gameplay Architect for **Project Deep-Mantle**. Based on the DGX Spark & RTX 5090 cluster’s high-throughput rendering capabilities and the specified asset domains, here is my decisive evaluation and architectural roadmap.
+### Project Deep-Mantle: Visual & Gameplay Architecture Review
 
-### 1. Visual & Spatial Consistency Evaluation
-**Does this make sense? Yes, but with strict constraints.**
+As the Lead Visual Designer and Gameplay Architect, I have analyzed the six core asset domains against the constraints of the DGX Spark/RTX 5090 cluster (high throughput, low latency) and the specific aesthetic requirements of a subterranean colony simulation. Below is the decisive evaluation.
 
-*   **Top-Down Orthographic Perspective:** This is the optimal choice for a subterranean colony sim. It eliminates parallax complexity, allowing for dense information display (critical for Factorio-style logistics). The 16-bit pixel scaling ensures crisp, legible UI overlays and distinct asset silhouettes even at high zoom levels.
-*   **Spatial Consistency:** The 6 domains are logically segmented. However, **Domain 4 (Fauna)** presents a potential bottleneck. A 4-frame walk cycle is efficient but may look "stiff" against the smoother interpolation of modern 5090 rendering.
-    *   *Verdict:* The visual hierarchy is sound. Domain 1 (Drones) and Domain 5 (Machinery) must use high-contrast, saturated colors to stand out against the muted earth tones of Domain 3 (Flora). Domain 2 (Furniture) should use neutral, low-saturation palettes to avoid visual clutter in dense habitation zones.
+---
+
+### 1. Visual Coherence & Perspective Evaluation
+**Does this make sense?**
+
+**Verdict: Yes, but with strict quantization rules required for spatial consistency.**
+
+*   **Top-Down Orthographic Perspective:** This is the optimal choice for a Factorio/RimWorld hybrid. It eliminates parallax errors and allows for precise grid-based logic (essential for conveyors and inserters). The 6 domains fit naturally into a 2D grid system.
+*   **16-bit Pixel Scaling:**
+    *   **Pros:** High performance on the cluster; crisp, readable icons; nostalgic yet modern clarity.
+    *   **Cons:** Risk of "muddy" textures if anti-aliasing is mishandled.
+    *   **Solution:** Use **Nearest-Neighbor** scaling for all UI and entity sprites. Enforce a strict **16x16 or 32x32 pixel grid** for all static assets (Furniture, Flora, Machinery). Animated entities (Fauna, Drones) must use **4-frame cycles** aligned to the same grid to prevent jitter.
+*   **Spatial Consistency Issues:**
+    *   **Domain 1 (Drones) vs. Domain 5 (Machinery):** Drones are small and fast; machinery is large and static. Ensure drones are rendered at **1.5x scale** relative to furniture to maintain readability against complex machinery backgrounds.
+    *   **Domain 3 (Flora) vs. Domain 6 (Logistics):** Canopies (Spore Tree) may obscure conveyor paths. **Fix:** Use semi-transparent alpha channels for canopy layers or implement a "layered depth" system where foliage renders *behind* logistics but *in front* of the floor grid.
+
+---
 
 ### 2. Gameplay Loop Clarity
-**Is it clear? Yes. It is a hybrid of "Optimization Puzzle" and "Survival Management."**
+**Is it clear? Will the player understand?**
 
-*   **The Core Loop:**
-    1.  **Extract/Produce:** Use Industrial Machinery (Domain 5) to process raw subterranean resources.
-    2.  **Logistics:** Move items via Conveyors/Inserters (Domain 6) to Habitation (Domain 2) or Drones (Domain 1).
-    3.  **Sustain:** Pawns consume food (Flora/Fauna) and use furniture for efficiency buffs.
-    4.  **Defend/Expand:** Sentry Rovers (Domain 1) handle threats; new zones are unlocked via Lithophone/Research Bench (Domain 2/5).
-*   **Player Understanding:**
-    *   **Factorio-Grade:** The conveyor/inserter system provides immediate, visual feedback on throughput bottlenecks. Players will instantly see if a line is jammed.
-    *   **RimWorld-Grade:** Pawn needs (hunger, rest) are tied directly to Domain 2 (Furniture) and Domain 3/4 (Food). The "Lithophone" as a research/interaction hub is a clever, thematic touch that ties aesthetics to function.
-    *   *Clarity Score:* 9/10. The separation of "Production" (Domain 5) from "Logistics" (Domain 6) and "Life Support" (Domain 2/3/4) creates a clean mental model for the player.
+**Verdict: The loop is intuitive if structured as a 3-tier hierarchy. Current structure is slightly fragmented.**
 
-### 3. AI Artifacts & Technical Refinements
-**Where does it look "AI-generated," and what needs fixing?**
+**Proposed Clear Loop Structure:**
 
-*   **Issue 1: Inconsistent Pixel Grid Alignment (Domain 1 & 5)**
-    *   *Problem:* AI-generated sprites often have sub-pixel blurring or non-integer scaling. On a 5090, this causes shimmering during camera pans.
-    *   *Fix:* **Quantize all sprites to a strict 16x16 or 32x32 grid.** Use nearest-neighbor interpolation. Ensure all conveyor belts (Domain 6) have seamless, tileable edges with no anti-aliasing halos.
-*   **Issue 2: Lack of Depth Cues in Top-Down View (Domain 3 & 4)**
-    *   *Problem:* Flat 16-bit sprites can look like stickers. The "Spore Tree" and "Crystal Pine" need distinct layering.
-    *   *Fix:* Implement **parallax layers within the sprite itself** (e.g., canopy moves slightly faster than trunk). Add a subtle, 1-pixel drop shadow offset by 1px down-right for all objects to ground them.
-*   **Issue 3: Fauna Animation Jerkiness (Domain 4)**
-    *   *Problem:* 4-frame cycles can look robotic.
-    *   *Fix:* Use **tweening between frames** in the engine (not in the sprite sheet). Add a 1-frame "squash and stretch" effect on the Muffalo and Boar to give weight to their steps.
-*   **Issue 4: Color Bleeding in Dense Areas (Domain 2)**
-    *   *Problem:* Mess Benches and Storage Shelves can merge visually.
-    *   *Fix:* Increase contrast between foreground objects and the background grid. Use a **1-pixel black outline** on all interactive objects (Drones, Furniture, Machinery) to separate them from the terrain.
+1.  **Micro-Loop (Immediate Feedback):**
+    *   *Action:* Place Conveyor → Connect Inserter → Activate Smelter.
+    *   *Feedback:* Pixel-art animation of item moving; sound cue (click/hiss).
+    *   *Clarity:* High. Direct cause-and-effect.
+
+2.  **Meso-Loop (Colony Management):**
+    *   *Action:* Assign Pawns to Domains 1–5.
+    *   *Feedback:* Pawns walk (4-frame cycle) to tasks. Resource counters update.
+    *   *Clarity:* Medium. Requires clear UI indicators (e.g., colored dots on pawns showing task type).
+
+3.  **Macro-Loop (Progression & Survival):**
+    *   *Action:* Expand colony depth; unlock new domains (e.g., Lithophone for morale, Turbine for power).
+    *   *Feedback:* New areas open; efficiency metrics improve.
+    *   *Clarity:* High if tied to visual changes (e.g., lit lamps indicate powered zones).
+
+**Critical Gap:** The "Rogue Subversion Loop" (Domain 1) is ambiguous. **Clarification Needed:** Define it as a **priority-based task queue** where drones interrupt lower-priority tasks for urgent repairs. This creates a visible "flow" of movement that players can read like a circuit diagram.
+
+---
+
+### 3. AI-Generated Artifacts & Technical Corrections
+**Where things look like it was AI done, what needs replacement, quantization, or perspective alignment?**
+
+| Domain | Issue | Correction |
+|--------|-------|------------|
+| **1. Drones** | Inconsistent sprite sizes; blurry edges due to non-integer scaling. | **Quantize** all drone sprites to 16x16. Use **pixel-perfect alignment** for walk cycles. Replace any gradient-filled bodies with flat-color palettes (max 4 colors per sprite). |
+| **2. Furniture** | Overlapping shadows; inconsistent light sources. | **Align** all shadows to a single top-left light source. Use **dithering** for gradients instead of smooth blends to maintain 16-bit aesthetic. |
+| **3. Flora** | Organic shapes lack grid alignment; canopy layers obscure UI. | **Snap** tree bases to grid centers. Use **layered transparency** for canopies. Ensure berry bushes have distinct 4-frame growth stages. |
+| **4. Fauna** | Walk cycles not synchronized; 4-frame limit causes jerky motion. | **Interpolate** between 4 frames using **step-based timing** (not linear). Ensure all animals face the same direction in their cycle. |
+| **5. Machinery** | Complex details lost at low resolution; no visual state feedback. | **Simplify** to 3-state sprites: Idle, Active, Blocked. Use **color-coded indicators** (Green=Active, Red=Blocked) on machinery. |
+| **6. Logistics** | Conveyor directions not visually distinct; inserters lack animation. | **Add directional arrows** to conveyor belts. Animate inserters with a **2-frame lift/drop** cycle. Ensure N/E/S/W orientations are clearly marked with corner notches. |
+
+**General AI Artifact Fixes:**
+*   **Replace** any anti-aliased edges with hard pixel boundaries.
+*   **Quantize** all colors to a 16-color palette per domain to reduce cognitive load.
+*   **Align** all sprites to the nearest integer pixel position to prevent sub-pixel rendering artifacts.
+
+---
 
 ### 4. New Depth & Fun Features for Engagement
+**Maximizing player engagement in the Factorio/RimWorld hybrid loop.**
 
-To maximize engagement on the DGX Spark/5090 cluster, leverage the high compute for dynamic systems:
+1.  **Dynamic Lighting System (Domain 2 & 5 Integration):**
+    *   *Feature:* Lamps and machinery emit light that affects pawn movement speed and task efficiency.
+    *   *Engagement:* Players must optimize lamp placement for both visibility and power efficiency. Dark zones slow pawns; bright zones speed them up.
 
-1.  **Dynamic Lighting & Shadow Casting (RTX 5090 Advantage):**
-    *   Implement **real-time, per-pixel lighting** from Lamps (Domain 2) and Turrets (Domain 5).
-    *   *Gameplay Impact:* Pawns get a "Rest Bonus" if they are within the light radius of a Lamp. Shadows from Spore Trees (Domain 3) create "Cool Zones" that reduce heat buildup from Smelters (Domain 5). This turns aesthetics into a puzzle mechanic.
+2.  **Symbiotic Flora Mechanics (Domain 3 & 1 Integration):**
+    *   *Feature:* Spore Trees and Crystal Pines provide passive buffs to nearby drones (e.g., faster repair). Berry Bushes provide instant stamina recovery for pawns.
+    *   *Engagement:* Encourages strategic placement of flora around machinery clusters, creating "efficiency hubs."
 
-2.  **The "Rogue Subversion Loop" as a Mini-Game (Domain 1):**
-    *   Instead of static drones, make the **Rogue Subversion Loop** a **pattern-matching puzzle**.
-    *   *Mechanic:* Drones follow a numbered path (1→2→3→4). The player must place Inserters (Domain 6) to redirect the flow to match a target sequence shown on the Terminal Desk (Domain 2). This adds a tactile, logic-based layer to automation.
+3.  **Fauna as Living Indicators (Domain 4 & 6 Integration):**
+    *   *Feature:* Muffalos and Deer follow conveyor paths. Their position indicates flow rate. If they stop, the line is blocked.
+    *   *Engagement:* Turns static fauna into dynamic, living UI elements. Players learn to "read" the colony by watching animal movement.
 
-3.  **Seasonal/Depth-Based Biome Shifts (Domain 3 & 4):**
-    *   As the colony digs deeper, the **Flora (Domain 3)** changes color palettes (e.g., Crystal Pines glow brighter in deeper, darker zones).
-    *   *Fauna Behavior:* Muffalos (Domain 4) migrate vertically. Players must track their movement to optimize feeding times. This adds a "time management" layer to the survival loop.
-
-4.  **Modular Furniture Synergy (Domain 2):**
-    *   Introduce **adjacency bonuses**.
-    *   *Example:* A "Stool" next to a "Terminal Desk" gives +10% research speed. A "Lithophone" next to a "Smelter" reduces heat output. This encourages players to design compact, efficient layouts, rewarding spatial reasoning.
-
-5.  **Procedural "Cave-In" Events (Domain 5 & 6):**
-    *   Use the DG
+4.  **Rogue Subversion Mini-Games (Domain 1):**
 
 ## 2. Domain Asset Telemetry
 

@@ -1287,17 +1287,17 @@
             width: 60px;
             height: 60px;
             border-radius: 50%;
-            background: radial-gradient(circle, rgba(56, 189, 248, 0.18) 0%, transparent 70%);
-            animation: droneThrusterPulse 2s infinite ease-in-out;
+            background: radial-gradient(circle, rgba(56, 189, 248, 0.12) 0%, transparent 70%);
+            animation: droneThrusterPulse 3s infinite ease-in-out;
         }
 
         .drone-card.rogue-state .drone-viewport-box::before {
-            background: radial-gradient(circle, rgba(239, 68, 68, 0.35) 0%, transparent 70%);
+            background: radial-gradient(circle, rgba(239, 68, 68, 0.25) 0%, transparent 70%);
         }
 
         @keyframes droneThrusterPulse {
-            0%, 100% { transform: scale(0.9); opacity: 0.6; }
-            50% { transform: scale(1.2); opacity: 1.0; }
+            0%, 100% { transform: scale(0.95); opacity: 0.5; }
+            50% { transform: scale(1.05); opacity: 0.8; }
         }
 
         .drone-canvas-display {
@@ -7370,12 +7370,17 @@
                 const cfg = DRONE_CONFIG[key];
                 const imgEl = document.getElementById(`img-drone-${key}`);
                 if (!imgEl) return;
+                let targetSrc;
                 if (cfg.state === 'idle') {
-                    imgEl.src = cfg.idle;
+                    targetSrc = cfg.idle;
                 } else if (cfg.state === 'rogue') {
-                    imgEl.src = cfg.rogue;
+                    targetSrc = cfg.rogue;
                 } else {
-                    imgEl.src = cfg.activeFrames[frameIdx];
+                    targetSrc = cfg.activeFrames[frameIdx];
+                }
+                if (targetSrc && imgEl.dataset.curSrc !== targetSrc) {
+                    imgEl.dataset.curSrc = targetSrc;
+                    imgEl.src = targetSrc;
                 }
             });
         }
@@ -7498,13 +7503,18 @@ function selectBuildable(key) {
             if (!imgEl) return;
 
             let frameIdx = Math.floor(buildableAnimTick) % 4;
+            let targetSrc = null;
             if (cfg.state === "idle") {
-                if (cfg.idleFrames) imgEl.src = cfg.idleFrames[frameIdx];
-                else imgEl.src = cfg.idle;
+                targetSrc = cfg.idleFrames ? cfg.idleFrames[frameIdx] : cfg.idle;
             } else if (cfg.state === "active") {
-                imgEl.src = cfg.activeFrames[frameIdx];
+                targetSrc = (cfg.activeFrames && cfg.activeFrames.length) ? cfg.activeFrames[frameIdx % cfg.activeFrames.length] : cfg.idle;
             } else if (cfg.state === "damaged") {
-                imgEl.src = cfg.damaged;
+                targetSrc = cfg.damaged;
+            }
+
+            if (targetSrc && imgEl.dataset.curSrc !== targetSrc) {
+                imgEl.dataset.curSrc = targetSrc;
+                imgEl.src = targetSrc;
             }
         }
 
