@@ -1,61 +1,36 @@
 {
-  "batch_id": "BATCH-30",
+  "batch_id": "BATCH-31",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "Finalize the simulation loop by implementing deterministic state hashing for save/load integrity, optimizing the tick-based event queue for O(1) access, and compressing colonist psychological states into bit-packed structures to reduce memory footprint by 40%.",
+  "overview": "Finalize simulation coverage by implementing deterministic state compression for long-running sessions and optimizing the Monte Carlo convergence logic for the endgame phase. This batch ensures memory stability and logical consistency for 5,500+ tick simulations.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Implement Deterministic State Hashing for Save/Load Integrity",
+      "title": "Implement Zero-Heap Deterministic State Compressor",
       "target_files": [
-        "Source/Engine/Core/StateHash.h",
-        "Source/Engine/Core/StateHash.cpp"
+        "src/engine/core/StateCompressor.h",
+        "src/engine/core/StateCompressor.cpp"
       ],
-      "architectural_spec": "struct StateHash { uint64_t value; }; class StateHasher { public: static constexpr uint64_t Compute(const void* data, size_t size) noexcept; };",
-      "acceptance_criteria": [
-        "Hash computation is deterministic across platforms.",
-        "Zero heap allocations during hashing.",
-        "Unit tests verify consistency for 1000 random states."
-      ],
-      "player_fun_impact": "Ensures reliable save/load functionality without corruption.",
+      "architectural_spec": "Use std::array for fixed-size buffers. Implement a bitwise packing scheme for tick states. No dynamic allocations. Use constexpr for table generation. Ensure strict little-endian serialization.",
+      "acceptance_criteria": "1. Compress 5,500 ticks into <1KB. 2. Decompression yields identical state. 3. Zero heap allocations during compression cycle.",
+      "player_fun_impact": "Faster load times and stable memory usage for long campaigns.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Optimize Tick-Based Event Queue with O(1) Access",
+      "title": "Optimize Monte Carlo Convergence for Endgame",
       "target_files": [
-        "Source/Simulation/EventQueue.h",
-        "Source/Simulation/EventQueue.cpp"
+        "src/sim/physics/MonteCarloSolver.h",
+        "src/sim/physics/MonteCarloSolver.cpp"
       ],
-      "architectural_spec": "class EventQueue { public: void Push(Event e) noexcept; Event Pop() noexcept; private: std::array<Event, 1024> buffer; size_t head = 0; size_t tail = 0; };",
-      "acceptance_criteria": [
-        "Push and Pop operations are O(1).",
-        "No dynamic memory allocation.",
-        "Handles overflow gracefully with static buffer."
-      ],
-      "player_fun_impact": "Reduces simulation lag during high-event-density scenarios.",
+      "architectural_spec": "Implement early-exit criteria for variance < 1e-6. Use SIMD-friendly struct layout for particle states. Cache intermediate sums in registers.",
+      "acceptance_criteria": "1. Convergence achieved in <100 iterations for stable states. 2. No deadlocks in 16,500 step logs. 3. 100% survival rate maintained.",
+      "player_fun_impact": "Smoother physics interactions in dense endgame scenarios.",
       "estimated_complexity": "Small"
-    },
-    {
-      "task_id": "TASK-803",
-      "priority": "P2 - Quality-of-Life",
-      "domain": "Storyteller/AI",
-      "title": "Bit-Packed Colonist Psychological State Compression",
-      "target_files": [
-        "Source/AI/ColonistState.h"
-      ],
-      "architectural_spec": "struct ColonistState { uint8_t mood : 4; uint8_t energy : 4; uint8_t hunger : 4; uint8_t thirst : 4; }; static_assert(sizeof(ColonistState) == 2);",
-      "acceptance_criteria": [
-        "State size reduced to 2 bytes per colonist.",
-        "Accessors are inline and constexpr.",
-        "No performance regression in state updates."
-      ],
-      "player_fun_impact": "Faster state lookups and reduced memory usage for large colonies.",
-      "estimated_complexity": "Atomic"
     }
   ]
 }
