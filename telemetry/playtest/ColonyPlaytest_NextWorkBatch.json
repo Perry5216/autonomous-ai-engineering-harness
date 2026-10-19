@@ -1,49 +1,61 @@
 {
-  "batch_id": "BATCH-52",
+  "batch_id": "BATCH-53",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Finalization",
   "target_version": "v1.2.0",
-  "overview": "This batch finalizes the simulation loop by implementing deterministic state hashing for save/load integrity, optimizing the Monte Carlo convergence check for the 5,500-tick milestone, and establishing the final ascension protocol for colonist psychology states. These steps ensure zero-deadlock stability and prepare the engine for v1.2.0 release.",
+  "overview": "This batch finalizes the simulation loop by implementing deterministic state hashing for save/load integrity, optimizing the tick-based physics resolution for zero-allocation stability, and compressing the storyteller narrative state into a fixed-size ring buffer. These steps ensure 100% coverage of the endgame phase with minimal memory footprint and maximal determinism.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Implement Deterministic State Hashing for Save/Load Integrity",
+      "title": "Implement Zero-Heap Deterministic State Hasher",
       "target_files": [
-        "Source/Engine/Core/StateHasher.h",
-        "Source/Engine/Core/StateHasher.cpp"
+        "src/Engine/Core/StateHasher.h",
+        "src/Engine/Core/StateHasher.cpp"
       ],
-      "architectural_spec": "Use std::span<const uint8_t> for input. Implement FNV-1a 64-bit hash in constexpr context. No dynamic allocation. Handle endianness explicitly via std::endian::native. Provide static inline functions for hash combination. Ensure deterministic output across all platforms.",
-      "acceptance_criteria": "1. Hash of empty state is 0xcbf29ce484222325. 2. Hash of sequential integers 1..100 matches reference. 3. Zero heap allocations during hashing. 4. Compile-time evaluation supported for static states.",
-      "player_fun_impact": "Ensures save files are 100% reliable and load times are instant due to pre-computed validation.",
+      "architectural_spec": "struct StateHasher {\n    uint64_t hash = 0;\n    constexpr void update(uint64_t val) {\n        hash ^= val;\n        hash *= 0x100000001b3ULL;\n    }\n    constexpr void finalize() {\n        hash ^= hash >> 33;\n        hash *= 0xff51afd7ed558ccdULL;\n        hash ^= hash >> 33;\n    }\n};\n// Usage: Update with tick count, entity IDs, and physics vectors.\n// No dynamic allocation. Pure arithmetic.",
+      "acceptance_criteria": [
+        "Hash value is identical across 1000 runs with same seed.",
+        "No heap allocations during hashing.",
+        "Compile time evaluation supported for static states."
+      ],
+      "player_fun_impact": "Ensures save/load consistency and enables fast-forward determinism checks.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Optimize Monte Carlo Convergence Check for Tick 5500",
+      "title": "Optimize Tick-Based Collision Resolution with Fixed Arrays",
       "target_files": [
-        "Source/Simulation/MonteCarlo.h",
-        "Source/Simulation/MonteCarlo.cpp"
+        "src/Simulation/Physics/CollisionResolver.h",
+        "src/Simulation/Physics/CollisionResolver.cpp"
       ],
-      "architectural_spec": "Implement a fixed-size circular buffer (std::array<float, 16>) for recent variance samples. Use Kahan summation for reduced floating-point error. Calculate convergence as variance < 1e-6 over last 16 samples. Return bool converged. No virtual functions.",
-      "acceptance_criteria": "1. Convergence detected within 16 ticks of theoretical limit. 2. Memory footprint < 128 bytes per simulation instance. 3. No false positives in 10,000 test runs. 4. Execution time < 1 microsecond per tick.",
-      "player_fun_impact": "Faster simulation steps and more accurate endgame statistics display.",
+      "architectural_spec": "struct CollisionPair {\n    uint32_t idA;\n    uint32_t idB;\n    float depth;\n};\nstruct PhysicsWorld {\n    static constexpr int MAX_PAIRS = 1024;\n    CollisionPair pairs[MAX_PAIRS];\n    int count = 0;\n    void resolve() {\n        for (int i = 0; i < count; ++i) {\n            // Simple impulse resolution\n            pairs[i].depth = 0.0f;\n        }\n        count = 0;\n    }\n};\n// Pre-allocated array. No std::vector.",
+      "acceptance_criteria": [
+        "Resolution completes in < 1ms for 1024 pairs.",
+        "Zero cache misses on sequential access.",
+        "No dynamic memory allocation."
+      ],
+      "player_fun_impact": "Smooth 60fps simulation even with high entity counts.",
       "estimated_complexity": "Small"
     },
     {
       "task_id": "TASK-803",
       "priority": "P2 - Quality-of-Life",
       "domain": "Storyteller/AI",
-      "title": "Finalize Colonist Psychology Ascension Protocol",
+      "title": "Compress Narrative State into Fixed Ring Buffer",
       "target_files": [
-        "Source/AI/ColonistPsychology.h",
-        "Source/AI/ColonistPsychology.cpp"
+        "src/AI/Storyteller/NarrativeBuffer.h",
+        "src/AI/Storyteller/NarrativeBuffer.cpp"
       ],
-      "architectural_spec": "Define enum class AscensionState { Idle, Processing, Ascended }. Implement state machine with std::optional<AscensionState>. Use std::string_view for names. No dynamic strings. State transitions are atomic. Provide toString() for debug output.",
-      "acceptance_criteria": "1. State transitions are deterministic. 2. No memory leaks in 10,000 cycles. 3. Debug output is human-readable. 4. Integration with StateHasher works correctly.",
-      "player_fun_impact": "Clearer endgame status messages and smoother UI updates during ascension.",
+      "architectural_spec": "struct NarrativeEvent {\n    uint32_t id;\n    uint8_t type;\n    float value;\n};\nstruct NarrativeBuffer {\n    static constexpr int SIZE = 64;\n    NarrativeEvent events[SIZE];\n    int head = 0;\n    void push(NarrativeEvent e) {\n        events[head] = e;\n        head = (head + 1) % SIZE;\n    }\n    NarrativeEvent pop() {\n        int idx = (head - 1 + SIZE) % SIZE;\n        return events[idx];\n    }\n};\n// Fixed size, O(1) access.",
+      "acceptance_criteria": [
+        "Buffer wraps correctly after 64 events.",
+        "No heap allocations.",
+        "Access time < 10ns."
+      ],
+      "player_fun_impact": "Fast narrative context retrieval for AI decisions.",
       "estimated_complexity": "Atomic"
     }
   ]
