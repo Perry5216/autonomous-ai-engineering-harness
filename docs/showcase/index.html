@@ -4955,12 +4955,13 @@
         function renderLocalColony() {
             if (!localColonyGrid.length) return;
 
-            // Ensure square canvas rendering
-            localCanvas.width = 480;
-            localCanvas.height = 480;
-            const cw = 480;
-            const ch = 480;
-            localCtx.clearRect(0, 0, cw, ch);
+            try {
+                // Ensure square canvas rendering without resetting context every frame
+                if (localCanvas.width !== 480) localCanvas.width = 480;
+                if (localCanvas.height !== 480) localCanvas.height = 480;
+                const cw = 480;
+                const ch = 480;
+                localCtx.clearRect(0, 0, cw, ch);
 
             const baseCellSize = 480 / LOCAL_MAP_SIZE; // 15px
             const cellSize = baseCellSize * localZoom;
@@ -5927,6 +5928,11 @@
                 localCtx.fillStyle = "rgba(56, 189, 248, 0.8)";
                 localCtx.fillRect(px + cellSize * 0.5 - 1, py + cellSize * 0.5 - 1, 2, 2);
             }
+            } catch (err) {
+                console.error("renderLocalColony error:", err);
+                const inspectBox = document.getElementById('local-inspect-box');
+                if (inspectBox) inspectBox.innerHTML = `<span style="color:#ef4444;font-weight:bold;">RENDER ERROR: ${err.message}</span>`;
+            }
         }
 
         // Drop Pod Landing Animation
@@ -6744,14 +6750,21 @@ function selectBuildable(key) {
 
         // Initialize on page load
         window.addEventListener("load", () => {
-            preloadPawnSprites();
-            renderProceduralWorld();
-            updateReticlePosition();
-            updateSectorIntel();
-            loadLocalColonySector(selectedSector.x, selectedSector.y);
-            updatePawnDisplay();
-            updateDroneDOMDisplay();
-            requestAnimationFrame(animationLoop);
+            try {
+                preloadPawnSprites();
+                renderProceduralWorld();
+                updateReticlePosition();
+                updateSectorIntel();
+                loadLocalColonySector(selectedSector.x, selectedSector.y);
+                updatePawnDisplay();
+                updateDroneDOMDisplay();
+                renderLocalColony();
+                requestAnimationFrame(animationLoop);
+            } catch (err) {
+                console.error("Initialization error:", err);
+                const inspectBox = document.getElementById('local-inspect-box');
+                if (inspectBox) inspectBox.innerHTML = `<span style="color:#ef4444;font-weight:bold;">INIT ERROR: ${err.message}</span>`;
+            }
         });
     </script>
 </body>
