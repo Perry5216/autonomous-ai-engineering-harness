@@ -1,62 +1,50 @@
 {
-  "batch_id": "BATCH-45",
+  "batch_id": "BATCH-46",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "Finalize simulation coverage by implementing deterministic state hashing for save/load integrity, optimizing colonist psychology state transitions for zero-allocation performance, and establishing a compact tick-based event log for endgame analysis.",
+  "overview": "This batch focuses on finalizing the endgame state by implementing deterministic compression for long-running simulations and optimizing the Monte Carlo convergence logic. These steps ensure that the 5,500-tick campaign state remains stable, memory-efficient, and reproducible without cascading header dependencies.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Implement Deterministic State Hashing for Save/Load Integrity",
+      "title": "Implement Zero-Heap Deterministic State Hasher",
       "target_files": [
         "src/engine/core/StateHasher.h",
         "src/engine/core/StateHasher.cpp"
       ],
-      "architectural_spec": "struct StateHasher {\n    static constexpr uint64_t kPrime = 1099511628211ULL;\n    uint64_t hash = 14695981039346656037ULL;\n    \n    void update(uint64_t value) {\n        hash ^= value;\n        hash *= kPrime;\n    }\n    \n    void update(const float& f) {\n        uint64_t bits;\n        memcpy(&bits, &f, sizeof(float));\n        update(bits);\n    }\n    \n    void update(const int& i) {\n        update(static_cast<uint64_t>(i));\n    }\n    \n    uint64_t finalize() const {\n        return hash;\n    }\n};",
-      "acceptance_criteria": [
-        "Hash function is deterministic across platforms.",
-        "No heap allocations during hashing.",
-        "Unit tests verify hash consistency for identical state sequences."
-      ],
-      "player_fun_impact": "Ensures reliable save/load functionality, preventing corruption in long-running simulations.",
+      "architectural_spec": "1. Define struct `StateSnapshot` with fixed-size arrays for tick, entity count, and checksum.\n2. Implement `constexpr uint64_t ComputeHash(const StateSnapshot& s)` using FNV-1a variant.\n3. Ensure no dynamic allocation; use `std::array` for all members.\n4. Add static assertion for struct size <= 64 bytes.\n5. Provide inline operator== for fast comparison.\n6. Integrate with existing `TickManager` via template specialization.\n7. Handle endianness explicitly using `std::endian::native`.\n8. Return hash as `uint64_t` for direct comparison.\n9. No virtual functions; use CRTP if needed for extension.\n10. Validate against 5,500-tick reference data.",
+      "acceptance_criteria": "1. Hash computation completes in < 10ns for 5,500-tick state.\n2. Zero heap allocations during hashing.\n3. Identical states produce identical hashes across platforms.\n4. Unit tests cover edge cases (empty state, max entities).",
+      "player_fun_impact": "Faster save/load times and reliable deterministic replays for competitive modes.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Optimize Colonist Psychology State Transitions with Zero-Allocation Enums",
+      "title": "Optimize Monte Carlo Convergence Check for 100% Survival",
       "target_files": [
-        "src/simulation/psychology/ColonistState.h",
-        "src/simulation/psychology/ColonistState.cpp"
+        "src/simulation/mc/ConvergenceChecker.h",
+        "src/simulation/mc/ConvergenceChecker.cpp"
       ],
-      "architectural_spec": "enum class ColonistState : uint8_t {\n    Idle = 0,\n    Working = 1,\n    Eating = 2,\n    Sleeping = 3,\n    Panicked = 4,\n    Dead = 5\n};\n\nstruct PsychologyState {\n    ColonistState current;\n    uint32_t tick_entered;\n    \n    void transition(ColonistState next, uint32_t tick) {\n        current = next;\n        tick_entered = tick;\n    }\n    \n    bool is_active() const {\n        return current != ColonistState::Dead;\n    }\n};",
-      "acceptance_criteria": [
-        "State transitions are O(1) with no dynamic memory.",
-        "Enum values are stable across compilations.",
-        "Integration tests confirm correct state propagation in 5,500-tick simulation."
-      ],
-      "player_fun_impact": "Improves simulation speed and responsiveness, allowing for larger colony sizes without lag.",
-      "estimated_complexity": "Atomic"
+      "architectural_spec": "1. Create `struct MCResult` holding survival rate and variance.\n2. Implement `bool IsConverged(const MCResult& r)` with epsilon 1e-6.\n3. Use `std::span` for input data to avoid copies.\n4. Precompute inverse variance for fast division.\n5. Add `static_assert` for epsilon precision.\n6. Cache last 10 results in fixed array for trend analysis.\n7. Return `true` if variance < epsilon for 3 consecutive ticks.\n8. No recursion; use iterative loop for stability.\n9. Integrate with `PhysicsStep` via direct call.\n10. Ensure thread-safe read-only access to cached results.",
+      "acceptance_criteria": "1. Convergence detected within 3 ticks of stability.\n2. No false positives in 10,000 test runs.\n3. Memory footprint < 1KB per checker instance.\n4. Compatible with existing `PhysicsStep` loop.",
+      "player_fun_impact": "Immediate feedback on simulation stability, reducing perceived lag in endgame.",
+      "estimated_complexity": "Small"
     },
     {
       "task_id": "TASK-803",
       "priority": "P2 - Quality-of-Life",
       "domain": "Storyteller/AI",
-      "title": "Compact Tick-Based Event Log for Endgame Analysis",
+      "title": "Compact Footstep Log Serializer for 16,500 Entries",
       "target_files": [
-        "src/storyteller/EventLog.h",
-        "src/storyteller/EventLog.cpp"
+        "src/ai/storyteller/FootstepLog.h",
+        "src/ai/storyteller/FootstepLog.cpp"
       ],
-      "architectural_spec": "struct EventEntry {\n    uint32_t tick;\n    uint8_t type;\n    uint16_t data;\n};\n\nclass EventLog {\n    static constexpr size_t kMaxEvents = 10000;\n    EventEntry events[kMaxEvents];\n    size_t count = 0;\n    \npublic:\n    void log(uint32_t tick, uint8_t type, uint16_t data) {\n        if (count < kMaxEvents) {\n            events[count++] = {tick, type, data};\n        }\n    }\n    \n    size_t size() const { return count; }\n    const EventEntry& get(size_t index) const { return events[index]; }\n};",
-      "acceptance_criteria": [
-        "Log capacity is fixed at 10,000 entries.",
-        "No heap allocations; uses static array.",
-        "Events are retrieved in chronological order."
-      ],
-      "player_fun_impact": "Provides concise, readable summaries of simulation events for quick review and debugging.",
-      "estimated_complexity": "Small"
+      "architectural_spec": "1. Define `struct Footstep` with `uint16_t tick`, `uint8_t x`, `uint8_t y`.\n2. Implement `void Serialize(const std::span<const Footstep>& data, std::byte* buffer)`.\n3. Use bit-packing: 16 bits tick, 8 bits x, 8 bits y = 32 bits per entry.\n4. Total size for 16,500 entries = 66,000 bytes.\n5. Add `constexpr size_t MaxEntries = 16500`.\n6. Provide `Deserialize` function with bounds checking.\n7. Use `std::memcpy` for bulk copy where possible.\n8. No dynamic allocation; buffer provided by caller.\n9. Validate checksum after deserialization.\n10. Ensure little-endian compatibility.",
+      "acceptance_criteria": "1. Serialization completes in < 50 microseconds.\n2. Deserialized data matches original exactly.\n3. Buffer size is exactly 66,000 bytes.\n4. No out-of-bounds access in stress tests.",
+      "player_fun_impact": "Smaller save files and faster loading of long campaigns.",
+      "estimated_complexity": "Atomic"
     }
   ]
 }
