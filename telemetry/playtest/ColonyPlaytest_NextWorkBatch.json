@@ -1,49 +1,49 @@
 {
-  "batch_id": "BATCH-46",
+  "batch_id": "BATCH-47",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "This batch focuses on finalizing the endgame state by implementing deterministic compression for long-running simulations and optimizing the Monte Carlo convergence logic. These steps ensure that the 5,500-tick campaign state remains stable, memory-efficient, and reproducible without cascading header dependencies.",
+  "overview": "This batch focuses on finalizing the ultra-endgame state by implementing deterministic compression for the 5,500-tick simulation history and optimizing the Monte Carlo survival rate calculation for 100% coverage. The goal is to achieve a zero-deadlock, fully compressed state snapshot that supports instant rewind and deterministic replay without heap fragmentation.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Implement Zero-Heap Deterministic State Hasher",
+      "title": "Implement Zero-Heap Deterministic State Compressor",
       "target_files": [
-        "src/engine/core/StateHasher.h",
-        "src/engine/core/StateHasher.cpp"
+        "Source/Runtime/Simulation/StateCompressor.h",
+        "Source/Runtime/Simulation/StateCompressor.cpp"
       ],
-      "architectural_spec": "1. Define struct `StateSnapshot` with fixed-size arrays for tick, entity count, and checksum.\n2. Implement `constexpr uint64_t ComputeHash(const StateSnapshot& s)` using FNV-1a variant.\n3. Ensure no dynamic allocation; use `std::array` for all members.\n4. Add static assertion for struct size <= 64 bytes.\n5. Provide inline operator== for fast comparison.\n6. Integrate with existing `TickManager` via template specialization.\n7. Handle endianness explicitly using `std::endian::native`.\n8. Return hash as `uint64_t` for direct comparison.\n9. No virtual functions; use CRTP if needed for extension.\n10. Validate against 5,500-tick reference data.",
-      "acceptance_criteria": "1. Hash computation completes in < 10ns for 5,500-tick state.\n2. Zero heap allocations during hashing.\n3. Identical states produce identical hashes across platforms.\n4. Unit tests cover edge cases (empty state, max entities).",
-      "player_fun_impact": "Faster save/load times and reliable deterministic replays for competitive modes.",
+      "architectural_spec": "Use std::array for fixed-size buffers. Implement a bitwise packing algorithm for tick states (position, velocity, health) into 64-bit integers. No dynamic allocation. Use constexpr for table lookups. Ensure all operations are noexcept.",
+      "acceptance_criteria": "1. Compress 5,500 ticks into <1MB. 2. Decompress in <1ms. 3. Zero heap allocations during compression/decompression. 4. Bit-exact match with original state.",
+      "player_fun_impact": "Instant save/load times and smaller save files for faster iteration.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Optimize Monte Carlo Convergence Check for 100% Survival",
+      "title": "Optimize Monte Carlo Survival Rate Calculation",
       "target_files": [
-        "src/simulation/mc/ConvergenceChecker.h",
-        "src/simulation/mc/ConvergenceChecker.cpp"
+        "Source/Runtime/Simulation/MonteCarlo.h",
+        "Source/Runtime/Simulation/MonteCarlo.cpp"
       ],
-      "architectural_spec": "1. Create `struct MCResult` holding survival rate and variance.\n2. Implement `bool IsConverged(const MCResult& r)` with epsilon 1e-6.\n3. Use `std::span` for input data to avoid copies.\n4. Precompute inverse variance for fast division.\n5. Add `static_assert` for epsilon precision.\n6. Cache last 10 results in fixed array for trend analysis.\n7. Return `true` if variance < epsilon for 3 consecutive ticks.\n8. No recursion; use iterative loop for stability.\n9. Integrate with `PhysicsStep` via direct call.\n10. Ensure thread-safe read-only access to cached results.",
-      "acceptance_criteria": "1. Convergence detected within 3 ticks of stability.\n2. No false positives in 10,000 test runs.\n3. Memory footprint < 1KB per checker instance.\n4. Compatible with existing `PhysicsStep` loop.",
-      "player_fun_impact": "Immediate feedback on simulation stability, reducing perceived lag in endgame.",
+      "architectural_spec": "Implement a fixed-point arithmetic engine for survival probability. Use SIMD intrinsics (SSE4.2) for batch processing of 16,500 footsteps. Cache intermediate results in a static array. Avoid floating-point division in the inner loop.",
+      "acceptance_criteria": "1. Calculate survival rate for 16,500 steps in <0.5ms. 2. 100% accuracy match with reference double-precision results. 3. No cache misses in the hot loop.",
+      "player_fun_impact": "Faster simulation ticks and more responsive UI updates during endgame.",
       "estimated_complexity": "Small"
     },
     {
       "task_id": "TASK-803",
       "priority": "P2 - Quality-of-Life",
       "domain": "Storyteller/AI",
-      "title": "Compact Footstep Log Serializer for 16,500 Entries",
+      "title": "Add Deterministic Replay Checksum Validation",
       "target_files": [
-        "src/ai/storyteller/FootstepLog.h",
-        "src/ai/storyteller/FootstepLog.cpp"
+        "Source/Runtime/Storyteller/ReplayValidator.h",
+        "Source/Runtime/Storyteller/ReplayValidator.cpp"
       ],
-      "architectural_spec": "1. Define `struct Footstep` with `uint16_t tick`, `uint8_t x`, `uint8_t y`.\n2. Implement `void Serialize(const std::span<const Footstep>& data, std::byte* buffer)`.\n3. Use bit-packing: 16 bits tick, 8 bits x, 8 bits y = 32 bits per entry.\n4. Total size for 16,500 entries = 66,000 bytes.\n5. Add `constexpr size_t MaxEntries = 16500`.\n6. Provide `Deserialize` function with bounds checking.\n7. Use `std::memcpy` for bulk copy where possible.\n8. No dynamic allocation; buffer provided by caller.\n9. Validate checksum after deserialization.\n10. Ensure little-endian compatibility.",
-      "acceptance_criteria": "1. Serialization completes in < 50 microseconds.\n2. Deserialized data matches original exactly.\n3. Buffer size is exactly 66,000 bytes.\n4. No out-of-bounds access in stress tests.",
-      "player_fun_impact": "Smaller save files and faster loading of long campaigns.",
+      "architectural_spec": "Implement a rolling CRC32 checksum for each tick's state. Store checksums in a std::array<uint32_t, 5500>. Provide a constexpr function to validate the entire sequence against a master checksum. Handle edge cases for empty sequences.",
+      "acceptance_criteria": "1. Validate 5,500 ticks in <0.1ms. 2. Detect any single-bit flip in the state history. 3. Zero dependencies on external libraries.",
+      "player_fun_impact": "Reliable save-game integrity checks and faster debugging of simulation desyncs.",
       "estimated_complexity": "Atomic"
     }
   ]
