@@ -1459,6 +1459,142 @@
             box-shadow: 0 0 16px rgba(34, 197, 94, 0.8);
         }
 
+
+        /* ------------------------------------------------------------- */
+        /* ITEM & COMMODITY TIER LIST (TIERS 0 TO 4) STYLES              */
+        /* ------------------------------------------------------------- */
+        .item-tier-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .item-tier-card {
+            background: #060b16;
+            border: 1px solid var(--panel-border);
+            border-radius: 4px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+        }
+
+        .item-tier-card:hover {
+            border-color: var(--accent-cyan);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(56, 189, 248, 0.15);
+            background: #091222;
+        }
+
+        .item-tier-card.selected {
+            border-color: var(--accent-amber) !important;
+            background: #0f192b !important;
+            box-shadow: 0 0 16px rgba(245, 158, 11, 0.3) !important;
+        }
+
+        .item-card-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .item-card-icon-box {
+            width: 38px;
+            height: 38px;
+            background: #020408;
+            border: 1px solid var(--panel-border);
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            box-shadow: inset 0 0 8px rgba(0,0,0,0.8);
+        }
+
+        .item-card-icon {
+            width: 28px;
+            height: 28px;
+            image-rendering: pixelated;
+        }
+
+        .item-card-meta {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .item-card-title {
+            font-size: 9.5px;
+            font-weight: bold;
+            color: var(--text-main);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .item-card-sub {
+            font-size: 7.5px;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .item-tier-badge {
+            font-size: 7px;
+            font-weight: bold;
+            padding: 2px 5px;
+            border-radius: 2px;
+            width: fit-content;
+            letter-spacing: 0.5px;
+        }
+
+        .tier-badge-0 { background: rgba(100, 116, 139, 0.2); color: #94a3b8; border: 1px solid #64748b; }
+        .tier-badge-1 { background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid #38bdf8; }
+        .tier-badge-2 { background: rgba(34, 197, 94, 0.2); color: #22c55e; border: 1px solid #22c55e; }
+        .tier-badge-3 { background: rgba(192, 132, 252, 0.2); color: #c084fc; border: 1px solid #c084fc; }
+        .tier-badge-4 { background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid #f59e0b; }
+
+        .item-card-stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 7.5px;
+            color: var(--text-muted);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding-top: 4px;
+            margin-top: 2px;
+        }
+
+        .item-card-val {
+            color: var(--accent-amber);
+            font-weight: bold;
+        }
+
+        .recipe-flow-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 8px;
+            font-family: var(--font-mono);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .recipe-flow-chip:hover {
+            background: rgba(56, 189, 248, 0.15);
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+        }
     </style>
 </head>
 <body>
@@ -1738,6 +1874,7 @@
                 <button id="btn-overlay-pawns" class="btn-toggle active" onclick="toggleLocalPawnsOverlay()">PAWNS</button>
                 <button id="btn-overlay-hazards" class="btn-toggle" onclick="toggleLocalHazardsOverlay()">HAZARDS</button>
                 <button id="btn-overlay-ores" class="btn-toggle" onclick="toggleLocalOresOverlay()">MINERALS</button>
+                <button id="btn-overlay-rooms" class="btn-toggle active" onclick="toggleLocalRoomsOverlay()">ROOMS</button>
                 <button id="btn-overlay-collision" class="btn-toggle" onclick="toggleLocalCollisionOverlay()">COLLISION</button>
             </div>
 
@@ -2864,6 +3001,39 @@
         </div>
     </div>
 
+    <!-- FULL-WIDTH SECTION: COLONY ITEM & COMMODITY TIER LIST (TIERS 0 TO 4) -->
+    <div class="section-card" id="item-tierlist-section" style="margin-top: 16px; border-top-color: var(--accent-amber);">
+        <div class="card-header">
+            <div>
+                <div class="card-title">COLONY COMMODITY &amp; INDUSTRIAL MANUFACTURING TIER LIST // PROTOCOL MATRIX</div>
+                <div class="card-subtitle">24 Physical Pixel Art Commodities · 5 Tech Progression Tiers · Market Values · Work Complexity · Crafting Recipes</div>
+            </div>
+            <div class="badge-telemetry" style="border-color: var(--accent-amber); color: var(--accent-amber); background: rgba(245, 158, 11, 0.1);">
+                24 PHYSICAL ASSETS · 5 PROGRESSION TIERS
+            </div>
+        </div>
+
+        <!-- Filter Buttons Bar -->
+        <div class="carto-controls-row" style="margin-top: 12px; margin-bottom: 12px; justify-content: flex-start; gap: 8px; flex-wrap: wrap;">
+            <button class="btn-toggle active" id="btn-item-tier-all" onclick="filterItemTierList('all')">ALL COMMODITIES (24)</button>
+            <button class="btn-toggle" id="btn-item-tier-0" style="border-color:#64748b; color:#94a3b8;" onclick="filterItemTierList(0)">T0 RAW EXTRACTIONS (6)</button>
+            <button class="btn-toggle" id="btn-item-tier-1" style="border-color:#38bdf8; color:#38bdf8;" onclick="filterItemTierList(1)">T1 REFINED METALS &amp; FOOD (6)</button>
+            <button class="btn-toggle" id="btn-item-tier-2" style="border-color:#22c55e; color:#22c55e;" onclick="filterItemTierList(2)">T2 ADVANCED COMPOSITES (7)</button>
+            <button class="btn-toggle" id="btn-item-tier-3" style="border-color:#c084fc; color:#c084fc;" onclick="filterItemTierList(3)">T3 HIGH-TECH CYBERNETICS (4)</button>
+            <button class="btn-toggle" id="btn-item-tier-4" style="border-color:#f59e0b; color:#f59e0b;" onclick="filterItemTierList(4)">T4 PRECURSOR EXOTICS (1)</button>
+        </div>
+
+        <!-- Grid of 24 Item Cards -->
+        <div id="item-tier-grid" class="item-tier-grid">
+            <!-- Populated dynamically via renderItemTierList() -->
+        </div>
+
+        <!-- Live Manufacturing Recipe & Telemetry Inspector -->
+        <div id="item-recipe-inspector" class="item-recipe-inspector" style="margin-top: 14px; background: rgba(9, 14, 26, 0.95); border: 1px solid var(--accent-cyan); padding: 12px 16px; border-radius: 4px;">
+            <!-- Populated dynamically via inspectItemRecipe() -->
+        </div>
+    </div>
+
     <!-- FULL-WIDTH SECTION: SUBTERRANEAN ECOSYSTEM (FLORA & WILDLIFE) -->
     <div class="section-card" id="ecosystem-section" style="margin-top: 16px; border-top-color: var(--accent-green);">
         <div class="card-header">
@@ -3943,9 +4113,20 @@
                     this.addBox(`bld_${bld.key}`, bld.name, bld.x, bld.y, bld.w, bld.h, CollisionLayer.Machinery, CollisionResponse.Impassable);
                 });
 
-                // 3. Deployed Furniture
+                // 3. Deployed Furniture (Tables, Desks, Shelves, Lithophones are Impassable)
                 DEPLOYED_FURNITURE.forEach(furn => {
-                    this.addBox(`furn_${furn.key}`, furn.key, furn.x, furn.y, furn.w, furn.h, CollisionLayer.Furniture, CollisionResponse.Cover);
+                    const isSolidObstacle = (furn.key === 'furn_table' || furn.key === 'furn_shelf' || furn.key === 'furn_lithophone' || furn.key === 'furn_desk');
+                    const response = isSolidObstacle ? CollisionResponse.Impassable : CollisionResponse.Cover;
+                    this.addBox(`furn_${furn.key}`, furn.label || furn.key, furn.x, furn.y, furn.w || 1, furn.h || 1, CollisionLayer.Furniture, response);
+                });
+
+                // 3.5 Logistics & Inserter Machinery
+                DEPLOYED_CONVEYORS.forEach((c, idx) => {
+                    if (c.type === 'inserter' || c.type === 'chute') {
+                        this.addBox(`log_${idx}`, c.label || c.type, c.x, c.y, 1, 1, CollisionLayer.Machinery, CollisionResponse.Impassable);
+                    } else {
+                        this.addBox(`log_${idx}`, c.label || c.type, c.x, c.y, 1, 1, CollisionLayer.Structure, CollisionResponse.Slow);
+                    }
                 });
 
                 // 4. Colonists
@@ -3962,12 +4143,155 @@
 
         const colonyCollisionSystem = new ColonyCollisionSystem();
         let showLocalCollision = false;
+        let showLocalRooms = true;
 
         function toggleLocalCollisionOverlay() {
             showLocalCollision = !showLocalCollision;
             const btn = document.getElementById("btn-overlay-collision");
             if (btn) btn.classList.toggle("active", showLocalCollision);
             renderLocalColony();
+        }
+
+        function toggleLocalRoomsOverlay() {
+            showLocalRooms = !showLocalRooms;
+            const btn = document.getElementById("btn-overlay-rooms");
+            if (btn) btn.classList.toggle("active", showLocalRooms);
+            renderLocalColony();
+        }
+
+        // =========================================================================
+        // COLONY ARCHITECTURAL ROOM REGISTRY & ZONING TELEMETRY
+        // =========================================================================
+        const COLONY_ROOM_DEFS = [
+            {
+                id: "mess_hall",
+                name: "Mess Hall & Social Tavern",
+                badge: "MESS HALL // EXTRAVAGANT",
+                type: "Social & Dining",
+                tier: "Extravagant (+8 Mood)",
+                x: 8, y: 7, w: 7, h: 5,
+                color: "rgba(245, 158, 11, 0.08)",
+                borderColor: "#f59e0b",
+                doors: [
+                    { x: 11, y: 7, label: "Blast Hatch N" },
+                    { x: 8, y: 10, label: "Turbine Access W" },
+                    { x: 15, y: 10, label: "Airlock E" },
+                    { x: 11, y: 12, label: "Vault Gate S" },
+                    { x: 9, y: 12, label: "Bio Hatch SW" }
+                ]
+            },
+            {
+                id: "hydro_lab",
+                name: "Research Lab & Hydroponics Wing",
+                badge: "HYDRO-BIOME & RESEARCH",
+                type: "Biomass & Agriculture",
+                tier: "Standard (+2 Mood)",
+                x: 6, y: 12, w: 4, h: 5,
+                color: "rgba(34, 197, 94, 0.08)",
+                borderColor: "#22c55e",
+                doors: [
+                    { x: 10, y: 14, label: "Bio-Seal E" },
+                    { x: 9, y: 12, label: "Bio Hatch N" }
+                ]
+            },
+            {
+                id: "tokamak_vault",
+                name: "Tokamak Power Reactor Vault",
+                badge: "TOKAMAK REACTOR VAULT // HAZARD",
+                type: "Power Generation & High Voltage",
+                tier: "Industrial Radiation Shielded",
+                x: 10, y: 12, w: 5, h: 5,
+                color: "rgba(56, 189, 248, 0.09)",
+                borderColor: "#38bdf8",
+                doors: [
+                    { x: 11, y: 12, label: "Vault Gate N" },
+                    { x: 10, y: 14, label: "Bio-Seal W" },
+                    { x: 15, y: 14, label: "Blast Door E" }
+                ]
+            },
+            {
+                id: "logistics_yard",
+                name: "Fabrication & Logistics Yard",
+                badge: "FABRICATION & LOGISTICS YARD",
+                type: "Industrial Manufacturing",
+                tier: "Automated Factory Tier 3",
+                x: 15, y: 7, w: 10, h: 9,
+                color: "rgba(168, 85, 247, 0.07)",
+                borderColor: "#a855f7",
+                doors: [
+                    { x: 15, y: 10, label: "Airlock W" },
+                    { x: 15, y: 14, label: "Blast Door W" },
+                    { x: 19, y: 16, label: "Perimeter Gate S" }
+                ]
+            }
+        ];
+
+        function getRoomAtCell(gx, gy) {
+            const off = getCompoundOffset();
+            for (let i = 0; i < COLONY_ROOM_DEFS.length; i++) {
+                const r = COLONY_ROOM_DEFS[i];
+                const rx = r.x + off.x;
+                const ry = r.y + off.y;
+                if (gx >= rx && gx < rx + r.w && gy >= ry && gy < ry + r.h) {
+                    return r;
+                }
+            }
+            return null;
+        }
+
+        // Real-time modular spatial collision test preventing pass-through glitches
+        function isPositionBlocked(x, y, radius = 0.35) {
+            if (x < 1.5 || x >= LOCAL_MAP_SIZE - 1.5 || y < 1.5 || y >= LOCAL_MAP_SIZE - 1.5) return true;
+            if (!localColonyGrid || !localColonyGrid.length) return false;
+
+            // 1. Grid Cell Solid Walls and Hazards
+            const minGX = Math.max(0, Math.floor(x - radius));
+            const maxGX = Math.min(LOCAL_MAP_SIZE - 1, Math.floor(x + radius));
+            const minGY = Math.max(0, Math.floor(y - radius));
+            const maxGY = Math.min(LOCAL_MAP_SIZE - 1, Math.floor(y + radius));
+
+            for (let gy = minGY; gy <= maxGY; gy++) {
+                for (let gx = minGX; gx <= maxGX; gx++) {
+                    const cell = localColonyGrid[gy][gx];
+                    if (cell.isWall || cell.isLava) return true;
+                }
+            }
+
+            // 2. Deployed Machinery / Industrial Buildings
+            for (let i = 0; i < DEPLOYED_BUILDINGS.length; i++) {
+                const b = DEPLOYED_BUILDINGS[i];
+                if (x + radius > b.x && x - radius < b.x + b.w &&
+                    y + radius > b.y && y - radius < b.y + b.h) {
+                    return true;
+                }
+            }
+
+            // 3. Impassable Solid Furniture (Dining Table, Storage Shelf, Lithophone, Terminal Desk)
+            for (let i = 0; i < DEPLOYED_FURNITURE.length; i++) {
+                const f = DEPLOYED_FURNITURE[i];
+                const isSolid = (f.key === 'furn_table' || f.key === 'furn_shelf' || f.key === 'furn_lithophone' || f.key === 'furn_desk');
+                if (isSolid) {
+                    const fw = f.w || 1;
+                    const fh = f.h || 1;
+                    if (x + radius > f.x && x - radius < f.x + fw &&
+                        y + radius > f.y && y - radius < f.y + fh) {
+                        return true;
+                    }
+                }
+            }
+
+            // 4. Inserters & Chutes from Logistics
+            for (let i = 0; i < DEPLOYED_CONVEYORS.length; i++) {
+                const c = DEPLOYED_CONVEYORS[i];
+                if (c.type === 'inserter' || c.type === 'chute') {
+                    if (x + radius > c.x && x - radius < c.x + 1 &&
+                        y + radius > c.y && y - radius < c.y + 1) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         // // PROCEDURAL LOCAL COLONY EMBARKATION ENGINE (WORLD-TO-LOCAL TRANSLATION)
@@ -4002,14 +4326,14 @@
         ];
 
         const BASE_DEPLOYED_BUILDINGS = [
-            { key: "turbine", name: "Geothermal Turbine", x: 8, y: 9, w: 2, h: 2, state: "active" },
-            { key: "smelter", name: "Electric Arc Smelter", x: 15, y: 9, w: 2, h: 2, state: "idle" },
-            { key: "turret", name: "Point-Defense Coil Turret", x: 17, y: 12, w: 1, h: 1, state: "idle" },
-            { key: "hydro", name: "Hydroponics Basalt Basin", x: 8, y: 13, w: 2, h: 1, state: "active" },
+            { key: "turbine", name: "Geothermal Turbine", x: 6, y: 9, w: 2, h: 2, state: "active" },
+            { key: "smelter", name: "Electric Arc Smelter", x: 16, y: 9, w: 2, h: 2, state: "idle" },
+            { key: "turret", name: "Point-Defense Coil Turret", x: 18, y: 12, w: 1, h: 1, state: "idle" },
+            { key: "hydro", name: "Hydroponics Basalt Basin", x: 7, y: 14, w: 2, h: 1, state: "active" },
             { key: "tokamak", name: "Compact Tokamak Core", x: 11, y: 14, w: 2, h: 2, state: "active" },
-            { key: "research", name: "Sub-Strata Research Bench", x: 14, y: 13, w: 2, h: 1, state: "active" },
+            { key: "research", name: "Sub-Strata Research Bench", x: 13, y: 13, w: 2, h: 1, state: "active" },
             { key: "rad_deflector", name: "Rad-Deflector Core", x: 13, y: 9, w: 1, h: 1, state: "active" },
-            { key: "drone_bay", name: "Drone Hangar Bay", x: 17, y: 8, w: 2, h: 2, state: "active" }
+            { key: "drone_bay", name: "Drone Hangar Bay", x: 17, y: 7.5, w: 2, h: 2, state: "active" }
         ];
 
         const BASE_DEPLOYED_FURNITURE = [
@@ -4018,7 +4342,7 @@
             { key: "furn_bench", x: 11, y: 11.2, w: 2, h: 0.8, label: "Mess Bench" },
             { key: "furn_lithophone", x: 14, y: 10, w: 1, h: 1, label: "Lithophone" },
             { key: "furn_lamp_on", x: 12, y: 8, w: 0.6, h: 1.2, label: "Fluorescent Lamp" },
-            { key: "furn_desk", x: 9, y: 12, w: 1, h: 1, label: "Terminal Desk" },
+            { key: "furn_desk", x: 8, y: 13, w: 1, h: 1, label: "Terminal Desk" },
             { key: "furn_shelf", x: 9, y: 11, w: 1, h: 1, label: "Storage Shelf" },
             { key: "furn_lantern", x: 9, y: 8, w: 1, h: 1, label: "Fungal Lantern" }
         ];
@@ -4301,6 +4625,105 @@
                 }
             }
 
+            // Sync compound offsets
+            rebuildColonyCompoundLayout();
+
+            // Mark colony structures as occupied
+            const occupiedTiles = new Set();
+            DEPLOYED_BUILDINGS.forEach(b => {
+                for (let dy = 0; dy < b.h; dy++) {
+                    for (let dx = 0; dx < b.w; dx++) {
+                        occupiedTiles.add(`${b.x + dx},${b.y + dy}`);
+                    }
+                }
+            });
+            DEPLOYED_FURNITURE.forEach(f => {
+                for (let dy = 0; dy < Math.ceil(f.h || 1); dy++) {
+                    for (let dx = 0; dx < Math.ceil(f.w || 1); dx++) {
+                        occupiedTiles.add(`${f.x + dx},${f.y + dy}`);
+                    }
+                }
+            });
+            DEPLOYED_CONVEYORS.forEach(c => {
+                occupiedTiles.add(`${c.x},${c.y}`);
+            });
+
+            // Construct Architectural Room Enclosures & High-Performance Flooring
+            const off = getCompoundOffset();
+
+            // 1. Assign room-specific flooring
+            COLONY_ROOM_DEFS.forEach(room => {
+                const rx = room.x + off.x;
+                const ry = room.y + off.y;
+                for (let y = ry; y < ry + room.h; y++) {
+                    for (let x = rx; x < rx + room.w; x++) {
+                        if (y < 0 || y >= LOCAL_MAP_SIZE || x < 0 || x >= LOCAL_MAP_SIZE) continue;
+                        const cell = localColonyGrid[y][x];
+                        if (cell.isWall) continue;
+                        if (room.id === 'mess_hall') {
+                            cell.terrain = "excavated_basalt";
+                            cell.floorSpriteKey = `floor_basalt_${getFloorVariantIndex(x, y, currentSeed, 8)}`;
+                        } else if (room.id === 'hydro_lab') {
+                            cell.terrain = "spore_humus";
+                            cell.floorSpriteKey = `floor_spore_${getFloorVariantIndex(x, y, currentSeed, 4)}`;
+                        } else if (room.id === 'tokamak_vault') {
+                            cell.terrain = "hazard_plating";
+                            cell.floorSpriteKey = ((x + y) % 2 === 0) ? "floor_hazard_0" : "floor_grate";
+                        } else if (room.id === 'logistics_yard') {
+                            cell.terrain = "precursor_alloy_floor";
+                            cell.floorSpriteKey = `floor_plating_${getFloorVariantIndex(x, y, currentSeed, 4)}`;
+                        }
+                    }
+                }
+            });
+
+            // 2. Identify designated blast hatch doorways
+            const doorwaySet = new Set();
+            COLONY_ROOM_DEFS.forEach(r => {
+                r.doors.forEach(d => {
+                    doorwaySet.add(`${d.x + off.x},${d.y + off.y}`);
+                });
+            });
+
+            // Helper to place Plasteel Blast Walls
+            function placeRoomWall(gx, gy) {
+                if (gx < 2 || gx >= LOCAL_MAP_SIZE - 2 || gy < 2 || gy >= LOCAL_MAP_SIZE - 2) return;
+                if (doorwaySet.has(`${gx},${gy}`)) {
+                    const c = localColonyGrid[gy][gx];
+                    c.isWall = false;
+                    c.isDoorway = true;
+                    c.walkSpeed = 100;
+                    return;
+                }
+                if (occupiedTiles.has(`${gx},${gy}`)) return;
+                const c = localColonyGrid[gy][gx];
+                c.isWall = true;
+                c.isAuto = true;
+                c.autoPrefix = "wall_plasteel";
+                c.terrain = "precursor_plasteel_wall";
+                c.walkSpeed = 0;
+            }
+
+            // Mess Hall perimeter walls
+            for (let x = 8 + off.x; x <= 15 + off.x; x++) placeRoomWall(x, 7 + off.y);
+            for (let y = 7 + off.y; y <= 12 + off.y; y++) placeRoomWall(8 + off.x, y);
+            for (let y = 7 + off.y; y <= 12 + off.y; y++) placeRoomWall(15 + off.x, y);
+            for (let x = 6 + off.x; x <= 15 + off.x; x++) placeRoomWall(x, 12 + off.y);
+
+            // Hydroponics & Research Lab walls
+            for (let y = 12 + off.y; y <= 17 + off.y; y++) placeRoomWall(6 + off.x, y);
+            for (let x = 6 + off.x; x <= 10 + off.x; x++) placeRoomWall(x, 17 + off.y);
+            for (let y = 12 + off.y; y <= 17 + off.y; y++) placeRoomWall(10 + off.x, y);
+
+            // Tokamak Reactor Vault walls
+            for (let x = 10 + off.x; x <= 15 + off.x; x++) placeRoomWall(x, 17 + off.y);
+            for (let y = 12 + off.y; y <= 17 + off.y; y++) placeRoomWall(15 + off.x, y);
+
+            // Logistics & Fabrication Yard perimeter
+            for (let x = 15 + off.x; x <= 25 + off.x; x++) placeRoomWall(x, 7 + off.y);
+            for (let y = 7 + off.y; y <= 16 + off.y; y++) placeRoomWall(25 + off.x, y);
+            for (let x = 15 + off.x; x <= 25 + off.x; x++) placeRoomWall(x, 16 + off.y);
+
             // Procedurally spawn Flora and Fauna strictly on open, walkable cavern floors
             const prng = (function(s) {
                 let t = s >>> 0;
@@ -4314,29 +4737,8 @@
 
             DEPLOYED_FLORA = [];
             DEPLOYED_WILDLIFE = [];
-            const occupiedTiles = new Set();
-
-            // Mark colony buildings and furniture as occupied
-            DEPLOYED_BUILDINGS.forEach(b => {
-                for (let dy = 0; dy < b.h; dy++) {
-                    for (let dx = 0; dx < b.w; dx++) {
-                        occupiedTiles.add(`${b.x + dx},${b.y + dy}`);
-                    }
-                }
-            });
-            DEPLOYED_FURNITURE.forEach(f => {
-                for (let dy = 0; dy < (f.h || 1); dy++) {
-                    for (let dx = 0; dx < (f.w || 1); dx++) {
-                        occupiedTiles.add(`${f.x + dx},${f.y + dy}`);
-                    }
-                }
-            });
-            DEPLOYED_CONVEYORS.forEach(c => {
-                occupiedTiles.add(`${c.x},${c.y}`);
-            });
 
             // Collect all candidate open floor cells outside the colony compound
-            const off = getCompoundOffset();
             const openFloorCandidates = [];
             for (let y = 3; y < LOCAL_MAP_SIZE - 3; y++) {
                 for (let x = 3; x < LOCAL_MAP_SIZE - 3; x++) {
@@ -4817,6 +5219,16 @@
         preloadTileSprite('bld_drone_bay_idle', 'Buildables/bld_drone_bay_idle.png');
         preloadTileSprite('bld_drone_bay_damaged', 'Buildables/bld_drone_bay_damaged.png');
 
+        // 24 Physical Colony Commodity Items Preload
+        [
+            "item_battery_cell", "item_bio_resin", "item_composite_rebar", "item_electronic_component",
+            "item_fungal_ale", "item_herbal_tincture", "item_hydraulic_actuator", "item_hydro_paste",
+            "item_industrial_slag", "item_iron_ore", "item_kinetic_slug_box", "item_lichen_ration",
+            "item_lithium_brine", "item_micro_controller", "item_nanite_medicine", "item_o2_canister",
+            "item_plasteel_plate", "item_quartz_crystal", "item_raw_spores", "item_silicon_wafer",
+            "item_steel_ingot", "item_sulfur_chunk", "item_superconducting_solenoid", "item_uraninite_core"
+        ].forEach(itemKey => preloadTileSprite(itemKey, `Items/${itemKey}.png`));
+
         let activeTerrainBrush = null;
         const TERRAIN_BRUSH_DEFS = {
             floor_basalt: { name: "Basalt Flagstone", isWall: false, walkSpeed: 100, tempOffset: 0, floorPrefix: "floor_basalt" },
@@ -4984,6 +5396,11 @@
             }
             const hitAnimal = DEPLOYED_WILDLIFE.find(a => Math.round(a.x) === gx && Math.round(a.y) === gy);
                         // Real-time modular collision query
+            const cellRoom = getRoomAtCell(gx, gy);
+            if (cellRoom) {
+                statusStr += ` · <span style="color: ${cellRoom.borderColor}; font-weight: bold;">[ROOM: ${cellRoom.badge}]</span>`;
+            }
+
             const cellCols = colonyCollisionSystem.queryCell(gx, gy);
             if (cellCols.length > 0) {
                 const c = cellCols[0];
@@ -5643,50 +6060,20 @@
                 const faunaFrame = Math.floor(localAnimationTick / 8) % 4;
                 DEPLOYED_WILDLIFE.forEach(animal => {
                     // Slight wandering motion
-                    // Collision-aware wandering motion
+                    // Collision-aware wandering motion using unified spatial obstruction solver
                     const rad = (animal.species === 'muffalo' ? 0.65 : 0.45);
                     const nextX = animal.x + animal.vx;
                     const nextY = animal.y + animal.vy;
 
-                    // Test X-axis movement
-                    let blockedX = false;
-                    const testX = (animal.vx > 0) ? nextX + rad : nextX - rad;
-                    const cellX1 = Math.floor(testX);
-                    const cellY1 = Math.floor(animal.y - rad * 0.4);
-                    const cellY2 = Math.floor(animal.y + rad * 0.4);
-
-                    for (let cy = cellY1; cy <= cellY2; cy++) {
-                        if (cellX1 < 1 || cellX1 >= LOCAL_MAP_SIZE - 1 || cy < 1 || cy >= LOCAL_MAP_SIZE - 1 ||
-                            !localColonyGrid[cy] || !localColonyGrid[cy][cellX1] ||
-                            localColonyGrid[cy][cellX1].isWall || localColonyGrid[cy][cellX1].isLava) {
-                            blockedX = true;
-                            break;
-                        }
-                    }
-
-                    if (blockedX) {
+                    // Test X-axis movement against walls, lava, machinery, tables, and desks
+                    if (isPositionBlocked(nextX, animal.y, rad * 0.45)) {
                         animal.vx = -animal.vx + (Math.random() - 0.5) * 0.003;
                     } else {
                         animal.x = nextX;
                     }
 
-                    // Test Y-axis movement
-                    let blockedY = false;
-                    const testY = (animal.vy > 0) ? nextY + rad : nextY - rad;
-                    const cellX3 = Math.floor(animal.x - rad * 0.4);
-                    const cellX4 = Math.floor(animal.x + rad * 0.4);
-                    const cellY3 = Math.floor(testY);
-
-                    for (let cx = cellX3; cx <= cellX4; cx++) {
-                        if (cx < 1 || cx >= LOCAL_MAP_SIZE - 1 || cellY3 < 1 || cellY3 >= LOCAL_MAP_SIZE - 1 ||
-                            !localColonyGrid[cellY3] || !localColonyGrid[cellY3][cx] ||
-                            localColonyGrid[cellY3][cx].isWall || localColonyGrid[cellY3][cx].isLava) {
-                            blockedY = true;
-                            break;
-                        }
-                    }
-
-                    if (blockedY) {
+                    // Test Y-axis movement against walls, lava, machinery, tables, and desks
+                    if (isPositionBlocked(animal.x, nextY, rad * 0.45)) {
                         animal.vy = -animal.vy + (Math.random() - 0.5) * 0.003;
                     } else {
                         animal.y = nextY;
@@ -5907,10 +6294,11 @@
                 let curX = drone.baseX + Math.sin(localAnimationTick * 0.03 + drone.baseY) * 1.4;
                 let curY = drone.baseY + Math.cos(localAnimationTick * 0.025 + drone.baseX) * 0.9;
                 if (drone.key === 'sentry') {
-                    // Sentry rover rolls along perimeter line
+                    // Sentry rover patrols strictly along the open security perimeter corridor
                     const off = getCompoundOffset();
-                    curX = (17.5 + off.x) + Math.sin(localAnimationTick * 0.02) * 2.5;
-                    curY = (12.5 + off.y) + Math.cos(localAnimationTick * 0.02) * 1.5;
+                    const t = (localAnimationTick * 0.015);
+                    curX = (17.5 + off.x) + Math.cos(t) * 1.8;
+                    curY = (14.5 + off.y) + Math.sin(t) * 0.7;
                 }
                 drone.x = curX;
                 drone.y = curY;
@@ -6142,7 +6530,7 @@
                     const targetX = localHoverCell.x + 0.5;
                     const targetY = localHoverCell.y + 0.5;
 
-                    const ray = colonyCollisionSystem.raycast(startX, startY, targetX, targetY, CollisionLayer.Terrain | CollisionLayer.Machinery);
+                    const ray = colonyCollisionSystem.raycast(startX, startY, targetX, targetY, CollisionLayer.Terrain | CollisionLayer.Machinery | CollisionLayer.Furniture);
 
                     const sx = startX * cellSize - offsetX;
                     const sy = startY * cellSize - offsetY;
@@ -6987,6 +7375,425 @@ function selectBuildable(key) {
             setTimeout(() => toast.remove(), 2500);
         }
 
+        // =========================================================================
+        // 24 PHYSICAL COLONY COMMODITY ITEMS & TIER LIST MATRIX ENGINE
+        // =========================================================================
+        const COLONY_ITEMS = [
+            // TIER 0: RAW EXTRACTIONS (6 Items)
+            {
+                id: "item_iron_ore",
+                name: "Raw Magnetite Iron Chunk",
+                tier: 0,
+                category: "Raw Ore",
+                value: 2,
+                work: 4.0,
+                station: "Sub-Strata Basalt Drill",
+                recipe: "Extract from Subterranean Iron Vein",
+                desc: "Dense ferrous lump extracted from igneous basalt fissures. Basic feedstock for structural steel forging.",
+                inputs: []
+            },
+            {
+                id: "item_raw_spores",
+                name: "Bio-Spore Cluster",
+                tier: 0,
+                category: "Organic",
+                value: 3,
+                work: 3.5,
+                station: "Hydroponics Harvest",
+                desc: "Luminescent fungal fruiting bodies collected from cavern canopies. Primary nutrient and biopolymer precursor.",
+                inputs: []
+            },
+            {
+                id: "item_sulfur_chunk",
+                name: "Elemental Sulfur Chunk",
+                tier: 0,
+                category: "Chemical",
+                value: 4,
+                work: 5.0,
+                station: "Fumarole Condenser",
+                desc: "Bright yellow crystalline sulfur harvested near volcanic vents. Crucial for solid rocket propellants and munitions.",
+                inputs: []
+            },
+            {
+                id: "item_quartz_crystal",
+                name: "Piezoelectric Quartz",
+                tier: 0,
+                category: "Crystal",
+                value: 6,
+                work: 6.0,
+                station: "Bedrock Resonator",
+                desc: "High-purity quartz prism capable of ultra-precise resonant oscillation. Fundamental substrate for high-speed processors.",
+                inputs: []
+            },
+            {
+                id: "item_lithium_brine",
+                name: "Lithium Brine Canister",
+                tier: 0,
+                category: "Liquid Chemical",
+                value: 5,
+                work: 5.5,
+                station: "Deep Aquifer Siphon",
+                desc: "Heavy saline solution saturated with dissolved alkali lithium salts. Required for chemical power storage cells.",
+                inputs: []
+            },
+            {
+                id: "item_industrial_slag",
+                name: "Vitrified Industrial Slag",
+                tier: 0,
+                category: "Byproduct",
+                value: 1,
+                work: 2.0,
+                station: "Electric Arc Smelter",
+                desc: "Dense silicate slag purged from smelting runs. Recycled into reinforced composites and basalt concrete.",
+                inputs: []
+            },
+
+            // TIER 1: REFINED METALS & FOOD (6 Items)
+            {
+                id: "item_steel_ingot",
+                name: "Structural Steel Ingot",
+                tier: 1,
+                category: "Refined Metal",
+                value: 12,
+                work: 15.0,
+                station: "Electric Arc Smelter",
+                recipe: "2x Raw Magnetite Iron Chunk",
+                desc: "Standard metallurgical building block with high tensile yield. Deployed in bulkheads, frames, and weapons.",
+                inputs: [{ id: "item_iron_ore", count: 2 }]
+            },
+            {
+                id: "item_silicon_wafer",
+                name: "Monocrystalline Silicon Wafer",
+                tier: 1,
+                category: "Semiconductor",
+                value: 18,
+                work: 20.0,
+                station: "Electric Arc Smelter",
+                recipe: "2x Piezoelectric Quartz + Thermal Flux",
+                desc: "Ultra-flat polished disk of hyper-pure semiconductor silicon. Ready for circuit lithography etching.",
+                inputs: [{ id: "item_quartz_crystal", count: 2 }]
+            },
+            {
+                id: "item_bio_resin",
+                name: "Polymerized Bio-Resin",
+                tier: 1,
+                category: "Composite",
+                value: 14,
+                work: 18.0,
+                station: "Chemical Bio-Refinery",
+                recipe: "3x Bio-Spore Cluster",
+                desc: "Dense organic polymer chain processed from fungal secretions. Functions as lightweight insulation and sealant.",
+                inputs: [{ id: "item_raw_spores", count: 3 }]
+            },
+            {
+                id: "item_hydro_paste",
+                name: "Nutritious Algal Paste",
+                tier: 1,
+                category: "Rations",
+                value: 8,
+                work: 6.0,
+                station: "Nutrient Dispenser",
+                recipe: "2x Bio-Spore Cluster",
+                desc: "Balanced caloric slurry engineered for colonist survival. Bland taste (-1 Mood) but eliminates starvation risk.",
+                inputs: [{ id: "item_raw_spores", count: 2 }]
+            },
+            {
+                id: "item_lichen_ration",
+                name: "Preserved Lichen Hardtack",
+                tier: 1,
+                category: "Rations",
+                value: 12,
+                work: 10.0,
+                station: "Mess Hall Cookstove",
+                recipe: "1x Bio-Spore + 1x Lithium Brine Salts",
+                desc: "Dehydrated survival wafers. Stable shelf-life exceeding 10 orbital seasons without refrigeration.",
+                inputs: [{ id: "item_raw_spores", count: 1 }, { id: "item_lithium_brine", count: 1 }]
+            },
+            {
+                id: "item_o2_canister",
+                name: "Pressurized O2 Canister",
+                tier: 1,
+                category: "Life Support",
+                value: 16,
+                work: 12.0,
+                station: "Hydro Electrolyzer",
+                recipe: "Aquifer Water Hydrolysis",
+                desc: "High-pressure breathable oxygen cylinder rated for 300 bar. Sustains vacuum suits and deep excursions.",
+                inputs: []
+            },
+
+            // TIER 2: ADVANCED COMPOSITES & MUNITIONS (7 Items)
+            {
+                id: "item_composite_rebar",
+                name: "Tensile Composite Rebar",
+                tier: 2,
+                category: "Building Material",
+                value: 28,
+                work: 25.0,
+                station: "Fabrication Pultrusion Rig",
+                recipe: "1x Steel Ingot + 1x Slag + 1x Bio-Resin",
+                desc: "High-strength ribbed reinforcement rod wrapped in cross-woven polymer fibers. Required for blast-rated walls.",
+                inputs: [{ id: "item_steel_ingot", count: 1 }, { id: "item_industrial_slag", count: 1 }, { id: "item_bio_resin", count: 1 }]
+            },
+            {
+                id: "item_electronic_component",
+                name: "Surface-Mount Component",
+                tier: 2,
+                category: "Electronics",
+                value: 36,
+                work: 30.0,
+                station: "Electronics Assembly Bench",
+                recipe: "1x Silicon Wafer + Copper Leads",
+                desc: "Multi-layered logic PCB loaded with discrete surface capacitors and relays. Essential for automated machinery.",
+                inputs: [{ id: "item_silicon_wafer", count: 1 }]
+            },
+            {
+                id: "item_hydraulic_actuator",
+                name: "Heavy Hydraulic Piston",
+                tier: 2,
+                category: "Machinery",
+                value: 42,
+                work: 28.0,
+                station: "Machining Lathe",
+                recipe: "2x Steel Ingot + 1x Bio-Resin Fluid",
+                desc: "Precision honed chromoly cylinder capable of 50 kN compressive force. Powers drone limbs and industrial presses.",
+                inputs: [{ id: "item_steel_ingot", count: 2 }, { id: "item_bio_resin", count: 1 }]
+            },
+            {
+                id: "item_battery_cell",
+                name: "Lithium Deep-Cycle Cell",
+                tier: 2,
+                category: "Energy Storage",
+                value: 45,
+                work: 35.0,
+                station: "Chemical Lab Bench",
+                recipe: "2x Lithium Brine + 1x Silicon Wafer",
+                desc: "High-density solid-state power cell. Stores up to 1.2 kWh of continuous electrical charge for grid backup.",
+                inputs: [{ id: "item_lithium_brine", count: 2 }, { id: "item_silicon_wafer", count: 1 }]
+            },
+            {
+                id: "item_kinetic_slug_box",
+                name: "20mm Flak Ammo Crate",
+                tier: 2,
+                category: "Munitions",
+                value: 32,
+                work: 22.0,
+                station: "Munitions Loading Press",
+                recipe: "1x Steel Ingot + 2x Elemental Sulfur",
+                desc: "High-velocity sabot slugs filled with compressed sulfur pyrotechnic charges for automated coil turrets.",
+                inputs: [{ id: "item_steel_ingot", count: 1 }, { id: "item_sulfur_chunk", count: 2 }]
+            },
+            {
+                id: "item_fungal_ale",
+                name: "Fermented Spore Ale",
+                tier: 2,
+                category: "Luxury Drink",
+                value: 24,
+                work: 60.0,
+                station: "Brewing Fermentation Vat",
+                recipe: "4x Bio-Spore Cluster + 20 Days Brew",
+                desc: "Rich, effervescent subterranean stout with psychoactive fungal undertones. Grants +6 Mood to imbibing colonists.",
+                inputs: [{ id: "item_raw_spores", count: 4 }]
+            },
+            {
+                id: "item_herbal_tincture",
+                name: "Concentrated Healroot Salve",
+                tier: 2,
+                category: "Medical",
+                value: 30,
+                work: 25.0,
+                station: "Apothecary Mortar",
+                recipe: "2x Cavern Healroot Extract",
+                desc: "Antiseptic coagulant salve extracted from indigenous healroot leaves. Cures minor infections and accelerates clotting.",
+                inputs: []
+            },
+
+            // TIER 3: HIGH-TECH CYBERNETICS (4 Items)
+            {
+                id: "item_plasteel_plate",
+                name: "Forged Plasteel Armor Plate",
+                tier: 3,
+                category: "Super-Alloy",
+                value: 75,
+                work: 50.0,
+                station: "Electric Arc Smelter",
+                recipe: "2x Steel Ingot + Titanium + Bio-Resin",
+                desc: "Hyper-dense metallurgical compound bridging polymer flexibility with diamond-phase tensile durability.",
+                inputs: [{ id: "item_steel_ingot", count: 2 }, { id: "item_bio_resin", count: 1 }]
+            },
+            {
+                id: "item_micro_controller",
+                name: "Sub-Micron Micro-Controller",
+                tier: 3,
+                category: "Cybernetics",
+                value: 90,
+                work: 60.0,
+                station: "Cleanroom Lithography Cell",
+                recipe: "1x Silicon Wafer + 1x Electronic Component",
+                desc: "Cryo-etched parallel logic processor. Manages targeting neural nets, autonomous drones, and fusion governors.",
+                inputs: [{ id: "item_silicon_wafer", count: 1 }, { id: "item_electronic_component", count: 1 }]
+            },
+            {
+                id: "item_superconducting_solenoid",
+                name: "Superconducting Solenoid",
+                tier: 3,
+                category: "High-Voltage",
+                value: 110,
+                work: 70.0,
+                station: "Cryo-Precision Forge",
+                recipe: "1x Plasteel Plate + 2x Quartz Crystal",
+                desc: "Zero-resistance magnetic induction loop maintained at cryogenic permafrost temperatures. Powers Tokamaks.",
+                inputs: [{ id: "item_plasteel_plate", count: 1 }, { id: "item_quartz_crystal", count: 2 }]
+            },
+            {
+                id: "item_nanite_medicine",
+                name: "Trauma-Grade Nanite Injector",
+                tier: 3,
+                category: "Advanced Medicine",
+                value: 135,
+                work: 80.0,
+                station: "Medical Nanite Assembler",
+                recipe: "1x Herbal Tincture + 1x Micro-Controller",
+                desc: "Microscopic programmed nanorobots that rebuild ruptured arterial vessels and neutralize lethal neurotoxins in seconds.",
+                inputs: [{ id: "item_herbal_tincture", count: 1 }, { id: "item_micro_controller", count: 1 }]
+            },
+
+            // TIER 4: PRECURSOR EXOTICS (1 Item)
+            {
+                id: "item_uraninite_core",
+                name: "Stabilized Uraninite Core",
+                tier: 4,
+                category: "Exotic Energy",
+                value: 320,
+                work: 180.0,
+                station: "Compact Tokamak Core",
+                recipe: "Enriched Uranium + Superconducting Solenoid",
+                desc: "Super-critical antimatter-doped fission fuel rod harvested from ancient precursor vault ruins. Powers the planetary colony grid.",
+                inputs: [{ id: "item_superconducting_solenoid", count: 1 }]
+            }
+        ];
+
+        let activeItemTierFilter = 'all';
+        let selectedItemId = 'item_steel_ingot';
+
+        function filterItemTierList(tier) {
+            playTactileSound('click');
+            activeItemTierFilter = tier;
+            document.querySelectorAll("#item-tierlist-section .btn-toggle").forEach(btn => {
+                btn.classList.toggle("active", btn.id === `btn-item-tier-${tier}`);
+            });
+            renderItemTierList();
+        }
+
+        function inspectItemRecipe(itemId) {
+            playTactileSound('click');
+            selectedItemId = itemId;
+            const item = COLONY_ITEMS.find(it => it.id === itemId);
+            if (!item) return;
+
+            document.querySelectorAll(".item-tier-card").forEach(c => {
+                c.classList.toggle("selected", c.getAttribute("data-item-id") === itemId);
+            });
+
+            const tierNames = [
+                "TIER 0 // RAW EXTRACTIONS",
+                "TIER 1 // REFINED METALS & FOOD",
+                "TIER 2 // ADVANCED COMPOSITES",
+                "TIER 3 // HIGH-TECH CYBERNETICS",
+                "TIER 4 // PRECURSOR EXOTICS"
+            ];
+            const tierColors = ["#94a3b8", "#38bdf8", "#22c55e", "#c084fc", "#f59e0b"];
+
+            const insp = document.getElementById("item-recipe-inspector");
+            if (!insp) return;
+
+            let inputsHtml = "";
+            if (item.inputs && item.inputs.length > 0) {
+                inputsHtml = item.inputs.map(inp => {
+                    const subItem = COLONY_ITEMS.find(s => s.id === inp.id) || { name: inp.id, value: 0 };
+                    return `<button class="recipe-flow-chip" onclick="inspectItemRecipe('${inp.id}')">
+                        <img src="Items/${inp.id}.png" class="flow-node-icon" alt="${subItem.name}">
+                        <span>${inp.count}× ${subItem.name.toUpperCase()}</span>
+                    </button>`;
+                }).join(" <span style='color:var(--text-muted);font-size:10px;'>+</span> ");
+            } else {
+                inputsHtml = `<span style="color:var(--text-muted);font-size:8px;">[BASE SUB-STRATA EXTRACTION — NO CRAFTING PRECURSORS REQUIRED]</span>`;
+            }
+
+            insp.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--panel-border); padding-bottom:8px; margin-bottom:10px;">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <div class="item-card-icon-box" style="width:48px; height:48px; border-color:${tierColors[item.tier]};">
+                            <img src="Items/${item.id}.png" style="width:36px; height:36px; image-rendering:pixelated;" alt="${item.name}">
+                        </div>
+                        <div>
+                            <div style="font-size:13px; font-weight:bold; color:var(--text-main); letter-spacing:0.5px;">${item.name.toUpperCase()}</div>
+                            <div style="font-size:9px; color:${tierColors[item.tier]}; font-weight:bold; margin-top:2px;">${tierNames[item.tier]} · CATEGORY: ${item.category.toUpperCase()}</div>
+                        </div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:14px; font-weight:bold; color:var(--accent-amber);">${item.value} SILVER (Ag)</div>
+                        <div style="font-size:8px; color:var(--text-muted); margin-top:2px;">WORK COMPLEXITY: ${item.work}s · STATION: ${item.station.toUpperCase()}</div>
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns: 2fr 1fr; gap:14px; align-items:start;">
+                    <div>
+                        <div style="font-size:8.5px; color:var(--text-muted); margin-bottom:8px; line-height:1.4;">${item.desc}</div>
+                        <div style="font-size:8px; font-weight:bold; color:var(--accent-cyan); margin-bottom:5px;">MANUFACTURING INPUT FORMULA:</div>
+                        <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                            ${inputsHtml}
+                            <span style="color:var(--accent-green);font-size:10px;font-weight:bold;">&rarr;</span>
+                            <span class="recipe-flow-chip" style="border-color:var(--accent-amber); color:var(--accent-amber); background:rgba(245,158,11,0.1);">
+                                <img src="Items/${item.id}.png" class="flow-node-icon" alt="${item.name}">
+                                <span>1× ${item.name.toUpperCase()}</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div style="background:rgba(0,0,0,0.5); border:1px solid var(--panel-border); padding:8px 10px; border-radius:3px;">
+                        <div style="font-size:8px; font-weight:bold; color:var(--accent-amber); border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:4px; margin-bottom:6px;">LOGISTICS TELEMETRY</div>
+                        <div style="font-size:7.5px; display:flex; justify-content:space-between; margin-bottom:3px;"><span style="color:var(--text-muted);">BELT STACK SIZE:</span><span style="font-weight:bold;">75 UNITS</span></div>
+                        <div style="font-size:7.5px; display:flex; justify-content:space-between; margin-bottom:3px;"><span style="color:var(--text-muted);">MASS PER UNIT:</span><span style="font-weight:bold;">0.85 KG</span></div>
+                        <div style="font-size:7.5px; display:flex; justify-content:space-between; margin-bottom:3px;"><span style="color:var(--text-muted);">CRYO STABILITY:</span><span style="color:var(--accent-green);font-weight:bold;">100% NOMINAL</span></div>
+                        <div style="font-size:7.5px; display:flex; justify-content:space-between;"><span style="color:var(--text-muted);">HAZMAT CLASS:</span><span style="color:${item.tier >= 3 ? 'var(--accent-red)' : 'var(--accent-cyan)'};font-weight:bold;">${item.tier >= 4 ? 'CLASS 4 FISSION' : item.tier >= 3 ? 'CLASS 2 TOXIC' : 'CLASS 0 SAFE'}</span></div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderItemTierList() {
+            const grid = document.getElementById("item-tier-grid");
+            if (!grid) return;
+
+            const filtered = (activeItemTierFilter === 'all')
+                ? COLONY_ITEMS
+                : COLONY_ITEMS.filter(it => it.tier === Number(activeItemTierFilter));
+
+            const tierColors = ["#94a3b8", "#38bdf8", "#22c55e", "#c084fc", "#f59e0b"];
+
+            grid.innerHTML = filtered.map(item => {
+                const isSel = (item.id === selectedItemId);
+                return `
+                    <div class="item-tier-card ${isSel ? 'selected' : ''}" data-item-id="${item.id}" onclick="inspectItemRecipe('${item.id}')">
+                        <div class="item-card-header">
+                            <div class="item-card-icon-box">
+                                <img src="Items/${item.id}.png" class="item-card-icon" alt="${item.name}">
+                            </div>
+                            <div class="item-card-meta">
+                                <div class="item-card-title" title="${item.name}">${item.name}</div>
+                                <div class="item-card-sub">${item.category}</div>
+                                <div class="item-tier-badge tier-badge-${item.tier}">TIER ${item.tier}</div>
+                            </div>
+                        </div>
+                        <div class="item-card-stats">
+                            <span>WORK: ${item.work}s</span>
+                            <span class="item-card-val">${item.value} Ag</span>
+                        </div>
+                    </div>
+                `;
+            }).join("");
+        }
+
         // Animation Loop for real-time fluids, buildables, drones and pawns
         let lastFrameTime = 0;
         function animationLoop(timestamp) {
@@ -7018,6 +7825,8 @@ function selectBuildable(key) {
                 loadLocalColonySector(selectedSector.x, selectedSector.y);
                 updatePawnDisplay();
                 updateDroneDOMDisplay();
+                renderItemTierList();
+                inspectItemRecipe('item_steel_ingot');
                 renderLocalColony();
                 requestAnimationFrame(animationLoop);
             } catch (err) {
