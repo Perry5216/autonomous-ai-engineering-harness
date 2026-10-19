@@ -1,56 +1,84 @@
-# Project Deep-Mantle :: Engineering Work Batch: BATCH-21
+# Project Deep-Mantle :: Engineering Work Batch: BATCH-22
 
 ## Ultra-Endgame Ascension & Deterministic State Compression (Target: `v1.2.0`)
 
 - **Architect**: `DGX Spark Cluster Lead Systems Engineer`
 - **QA Verifier**: `RTX 5090 Blackwell Reflex QA Director`
-- **Date**: `2026-10-19 12:45:03`
+- **Date**: `2026-10-19 12:52:07`
 
 ### Batch Overview
-This batch finalizes the simulation core by implementing deterministic state hashing for rapid save/load verification and introducing a lightweight, stack-based psychological state machine for colonist decision-making. These additions close the final gaps in simulation determinism and AI responsiveness without introducing heap fragmentation or cascading header dependencies.
+Finalize simulation coverage by implementing deterministic state serialization for endgame snapshots and optimizing Monte Carlo convergence metrics. This batch closes the loop on long-running simulation stability and provides precise, low-overhead state recovery mechanisms for the 5,500+ tick campaign horizon.
 
 ---
 
 ### Prioritized Engineering Tasks
 
-#### [TASK-801] Deterministic State Hashing for Save/Load Verification (`P0 - Critical`)
+#### [TASK-801] Implement Zero-Copy Deterministic State Snapshotter (`P0 - Critical`)
 
 - **Domain**: `Engine/C++20`
 - **Estimated Complexity**: `Atomic`
 - **Target Files**:
-  - `Source/Engine/Core/StateHasher.h`
-  - `Source/Engine/Core/StateHasher.cpp`
+  - `src/engine/core/StateSnapshot.h`
+  - `src/engine/core/StateSnapshot.cpp`
 - **Architectural Specification**:
-  Implement a constexpr-friendly, non-recursive hash function using FNV-1a 64-bit. The hasher must accept a contiguous span of POD structs representing the world state. Use std::span<const uint8_t> for input. No dynamic allocation. The hash must be stable across different compiler versions (C++20 standard). Include a static_assert for struct alignment. Provide a single inline function `ComputeStateHash` that iterates through the span, mixing bits using standard FNV constants. Ensure the function is `noexcept` and `constexpr` where possible. Handle endianness explicitly using `std::endian::native` checks. The output is a single `uint64_t`. This allows rapid comparison of simulation states for determinism checks in Monte Carlo runs.
+  struct SnapshotHeader { uint64_t tick; uint32_t hash; };
+class StateSnapshot {
+  std::span<const uint8_t> m_data;
+  SnapshotHeader m_header;
+public:
+  void Capture(const SimulationState& state);
+  bool Restore(SimulationState& state) const;
+  uint32_t ComputeHash() const;
+};
+// Uses std::span for zero-copy access. No dynamic allocation in Capture/Restore.
+// Hashing uses FNV-1a for speed and determinism.
 - **Acceptance Criteria**:
-  ['Hash function produces identical uint64_t for identical state spans across 1000 Monte Carlo runs.', 'Zero heap allocations during hashing.', 'Compilation time < 100ms for the header.', 'Static asserts pass for alignment and size.']
+  ['Snapshot capture time < 1ms for 5,500 tick state.', 'Restore produces bit-identical SimulationState.', 'Zero heap allocations during Capture/Restore cycle.']
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Instant save/load verification, ensuring no desyncs in long-running simulations.
+  Instant save/load with no stutter; reliable rollback for debugging.
 
-#### [TASK-802] Stack-Based Colonist Psychological State Machine (`P1 - High`)
+#### [TASK-802] Optimize Monte Carlo Convergence Check for 100% Survival (`P1 - High`)
 
 - **Domain**: `Simulation/Physics`
 - **Estimated Complexity**: `Small`
 - **Target Files**:
-  - `Source/Simulation/AI/ColonistPsych.h`
-  - `Source/Simulation/AI/ColonistPsych.cpp`
+  - `src/simulation/MonteCarlo.h`
+  - `src/simulation/MonteCarlo.cpp`
 - **Architectural Specification**:
-  Define a fixed-size array of 16 `PsychState` structs. Each struct contains: `uint8_t id`, `float urgency`, `uint8_t priority`. Implement a linear scan update loop. No virtual functions. Use `std::array` for storage. The state machine transitions based on simple numeric thresholds (e.g., if hunger > 0.8, set state to EAT). All logic is inline in the header for cache locality. Provide a `Update(float dt)` method that iterates through the active states. Use `__builtin_expect` for branch prediction hints on common states. Ensure the struct is 16-byte aligned for SIMD-friendly processing. No pointers in the struct. This replaces the previous heap-allocated state list.
+  struct MCResult { float mean; float variance; bool converged; };
+class MonteCarloEngine {
+  std::array<float, 1024> m_samples;
+  size_t m_count;
+public:
+  void AddSample(float val);
+  MCResult GetResult() const;
+  bool IsConverged(float epsilon = 1e-6f) const;
+};
+// Fixed-size array for cache locality. Welford's online algorithm for variance.
 - **Acceptance Criteria**:
-  ['State transitions occur within 1 tick.', 'Memory footprint per colonist < 64 bytes.', 'No virtual dispatch overhead.', '100% survival rate maintained in 5,500 tick test.']
+  ['Convergence detected within 1000 samples for stable systems.', 'Variance calculation matches IEEE 754 reference within 1e-7.', 'No dynamic resizing of sample buffer.']
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Faster AI decision-making, leading to more responsive colonist behavior in dense scenes.
+  Faster simulation ticks; clearer feedback on system stability.
 
-#### [TASK-803] Compact Event Log Ring Buffer (`P2 - Quality-of-Life`)
+#### [TASK-803] Compact Footstep Log Compression (16,500 entries) (`P2 - Quality-of-Life`)
 
 - **Domain**: `Storyteller/AI`
 - **Estimated Complexity**: `Atomic`
 - **Target Files**:
-  - `Source/Storyteller/EventLog.h`
+  - `src/ai/FootstepLog.h`
+  - `src/ai/FootstepLog.cpp`
 - **Architectural Specification**:
-  Implement a circular buffer of 1024 `Event` structs. Each `Event` is 32 bytes: `uint64_t timestamp`, `uint32_t type_id`, `uint32_t payload`. Use `std::array<Event, 1024>`. Provide `Push` and `Pop` methods. `Push` overwrites the oldest entry if full. `Pop` returns the oldest entry. Use index arithmetic with modulo 1024 (power of two optimization). All methods are `inline`. No dynamic allocation. This log is used for the final ascension summary. Ensure thread-safety is not required as the simulation is single-threaded in this phase. Provide a `GetRecentEvents(int count)` method that returns a `std::span<const Event>`.
+  struct Footstep { uint16_t tick; uint8_t x; uint8_t y; };
+class FootstepLog {
+  std::vector<Footstep> m_entries;
+public:
+  void Log(uint16_t tick, uint8_t x, uint8_t y);
+  std::span<const Footstep> GetRange(uint16_t start, uint16_t end) const;
+  size_t CompressTo(std::span<uint8_t> buffer) const;
+};
+// Uses fixed-width integers. CompressTo uses RLE for repeated coordinates.
 - **Acceptance Criteria**:
-  ['Ring buffer wraps correctly after 1024 events.', 'Zero heap allocations.', 'Access time O(1) for push/pop.', 'Span return is valid for the lifetime of the buffer.']
+  ['16,500 entries compressed to < 10KB.', 'Decompression is O(N) and branchless where possible.', 'Memory footprint reduced by > 60% vs naive struct array.']
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Quick review of key simulation events in the endgame summary screen.
+  Smaller save files; faster loading of long campaigns.
 
