@@ -1,64 +1,49 @@
 {
-  "batch_id": "BATCH-64",
+  "batch_id": "BATCH-65",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "This batch finalizes the simulation loop by implementing deterministic state serialization for save/load integrity, optimizing the tick-based physics solver for cache locality, and introducing a lightweight psychological state machine for colonist behavior. These changes ensure 100% coverage of the core simulation loop with minimal memory footprint and zero heap allocations.",
+  "overview": "Finalize the simulation loop by implementing deterministic state hashing for rapid save/load verification and optimizing the Monte Carlo convergence logic for the endgame phase. This batch closes the last gaps in simulation coverage by ensuring 100% reproducibility of the 5,500-tick state and reducing memory footprint for long-running sessions.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Deterministic State Compression Serializer",
+      "title": "Implement Deterministic State Hashing for Save Verification",
       "target_files": [
-        "src/engine/core/StateSerializer.h",
-        "src/engine/core/StateSerializer.cpp"
+        "Source/Engine/Core/StateHasher.h",
+        "Source/Engine/Core/StateHasher.cpp"
       ],
-      "architectural_spec": "Implement a zero-heap, stack-based serializer using C++20 concepts. Use a fixed-size buffer (4KB) for state snapshots. Define a concept `Serializable` requiring `static constexpr size_t Size` and `void Serialize(char* buffer) const`. The serializer iterates through a static array of pointers to `Serializable` objects, writing binary data directly to the buffer. No dynamic allocation. Handle endianness explicitly using `std::endian::native`. Ensure deterministic output by sorting member fields by offset before serialization.",
-      "acceptance_criteria": [
-        "Serializer produces identical byte streams for identical state inputs across 1000 runs.",
-        "Zero heap allocations during serialization/deserialization.",
-        "Deserialization restores state exactly, verified by checksum comparison.",
-        "Compilation time < 2 seconds for the header."
-      ],
-      "player_fun_impact": "Instant save/load times with no stuttering, ensuring seamless progression in long sessions.",
+      "architectural_spec": "1. Define struct StateHash { uint64_t value; }.\n2. Implement constexpr uint64_t FNV1a(const char* data, size_t len).\n3. Create class StateHasher with static method Compute(const SimulationState& s).\n4. Iterate through all primitive members of SimulationState.\n5. Apply FNV1a to each member's binary representation.\n6. Combine results using XOR folding.\n7. Ensure no heap allocations in Compute.\n8. Use std::bit_cast for type-erased hashing.\n9. Handle nested structs via recursive template expansion.\n10. Return final 64-bit hash.\n11. Add unit test for known state vectors.\n12. Verify endianness handling (little-endian assumed).\n13. Optimize loop unrolling for fixed-size arrays.\n14. Ensure compatibility with C++20 concepts.\n15. Document hash collision probability (<1e-18).",
+      "acceptance_criteria": "1. Hash computation completes in <1ms for 5,500-tick state.\n2. Identical states produce identical hashes.\n3. Zero heap allocations during hashing.\n4. Unit tests pass for 100 random state vectors.",
+      "player_fun_impact": "Instant save/load verification, reducing perceived load times and ensuring data integrity.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Cache-Optimized Tick Solver for 5,500+ Entities",
+      "title": "Optimize Monte Carlo Convergence for Endgame Phase",
       "target_files": [
-        "src/sim/physics/TickSolver.h",
-        "src/sim/physics/TickSolver.cpp"
+        "Source/Simulation/MonteCarlo.h",
+        "Source/Simulation/MonteCarlo.cpp"
       ],
-      "architectural_spec": "Refactor the physics tick loop to use Structure-of-Arrays (SoA) layout for position, velocity, and acceleration. Implement a single-pass integration step using `std::span` for contiguous memory access. Use `__builtin_expect` for branch prediction hints on collision checks. Limit the solver to 60 lines of logic by using a fixed-step Euler integration with a pre-computed inverse timestep. No virtual functions; use template specialization for 2D vs 3D vectors.",
-      "acceptance_criteria": [
-        "Physics tick completes in < 1ms for 5,500 entities.",
-        "Memory access patterns show 100% L1 cache hit rate in profiler.",
-        "No deadlocks or race conditions in single-threaded execution.",
-        "Deterministic results match previous batch outputs."
-      ],
-      "player_fun_impact": "Smooth, consistent frame rates even with maximum entity counts, preventing lag spikes.",
+      "architectural_spec": "1. Define struct MCResult { float mean; float variance; }.\n2. Implement class MonteCarlo with static method Converge(const std::span<float>& samples).\n3. Use Welford's online algorithm for mean/variance.\n4. Stop iteration when variance < 1e-6.\n5. Pre-allocate fixed-size buffer for samples (max 1024).\n6. Use std::accumulate for final mean calculation.\n7. Implement early exit if 10 consecutive samples are identical.\n8. Ensure thread-safe static initialization.\n9. Handle empty span by returning {0.0f, 0.0f}.\n10. Add constexpr support for small sample sets.\n11. Profile memory usage (target < 4KB per instance).\n12. Integrate with StateHasher for result verification.\n13. Document convergence criteria in header.\n14. Test with 5,500-tick simulation data.\n15. Verify no floating-point drift over 10k iterations.",
+      "acceptance_criteria": "1. Convergence achieved in <50 iterations for stable states.\n2. Memory footprint < 4KB per simulation step.\n3. Results match reference implementation within 1e-6 tolerance.",
+      "player_fun_impact": "Faster simulation ticks, leading to smoother gameplay and quicker endgame resolution.",
       "estimated_complexity": "Small"
     },
     {
       "task_id": "TASK-803",
       "priority": "P2 - Quality-of-Life",
       "domain": "Storyteller/AI",
-      "title": "Lightweight Colonist Psychological State Machine",
+      "title": "Cache Precomputed Endgame Narrative Beats",
       "target_files": [
-        "src/ai/ColonistPsychology.h",
-        "src/ai/ColonistPsychology.cpp"
+        "Source/Storyteller/NarrativeCache.h",
+        "Source/Storyteller/NarrativeCache.cpp"
       ],
-      "architectural_spec": "Implement a finite state machine (FSM) for colonist psychology using a `std::array` of state transitions. States: IDLE, WORKING, RESTING, PANIC. Transitions are triggered by integer flags (e.g., `energy < 20`). Use a `constexpr` lookup table for state transitions to avoid branching. Each colonist holds a `uint8_t` current state and a `uint8_t` previous state. Logic is contained within a single `update()` function that processes all colonists in a tight loop.",
-      "acceptance_criteria": [
-        "State transitions occur within 1 tick of condition fulfillment.",
-        "No memory leaks or dangling pointers.",
-        "FSM handles 5,500 colonists in < 0.5ms.",
-        "Unit tests cover all 4 states and 8 possible transitions."
-      ],
-      "player_fun_impact": "Colonists react quickly and predictably to environmental changes, enhancing immersion.",
+      "architectural_spec": "1. Define struct NarrativeBeat { const char* text; uint32_t id; }.\n2. Create static array of 100 precomputed beats.\n3. Implement class NarrativeCache with static method GetBeat(uint32_t id).\n4. Use binary search for O(log n) lookup.\n5. Ensure all strings are null-terminated.\n6. Add constexpr array initialization.\n7. Handle out-of-bounds IDs by returning default beat.\n8. Integrate with StateHasher for cache validation.\n9. Document beat structure in header.\n10. Test with 5,500-tick simulation data.\n11. Verify no heap allocations.\n12. Ensure thread-safe access.\n13. Add unit tests for boundary conditions.\n14. Profile lookup time (<10ns).\n15. Confirm compatibility with C++20 concepts.",
+      "acceptance_criteria": "1. Lookup time < 10ns per beat.\n2. Zero heap allocations.\n3. All 100 beats accessible without error.",
+      "player_fun_impact": "Immediate narrative feedback during endgame, enhancing immersion.",
       "estimated_complexity": "Atomic"
     }
   ]
