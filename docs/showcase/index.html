@@ -4719,8 +4719,6 @@
                             if (shoreImg && shoreImg.complete && shoreImg.naturalWidth > 0) {
                                 localCtx.drawImage(shoreImg, px, py, cellSize + 0.5, cellSize + 0.5);
                             }
-                            localCtx.fillStyle = "rgba(255, 115, 0, 0.22)";
-                            localCtx.fillRect(px, py, cellSize, cellSize);
                         }
                     } else if (cell.isWater || cell.terrain === "river_water" || cell.terrain === "liquid_water") {
                         const frame = Math.floor(localAnimationTick / 8) % 4;
@@ -4847,21 +4845,16 @@
                             if (cImg && cImg.complete && cImg.naturalWidth > 0) localCtx.drawImage(cImg, px, py, cellSize + 0.5, cellSize + 0.5);
                         }
 
-                        // Loose Talus / Scree Rubble Debris Spilling from Cliff Base
+                        // Ambient Occlusion Drop Shadow cast by South-facing Cliff onto Floor
                         if (hasRockN) {
-                            const seedP = (x * 17 + y * 31) % 5;
-                            localCtx.fillStyle = "#12151d";
-                            localCtx.fillRect(px + cellSize * 0.2 + seedP, py + 1, 3, 2);
-                            localCtx.fillRect(px + cellSize * 0.6, py + 2, 3, 2);
-                            localCtx.fillStyle = "#4a5568";
-                            localCtx.fillRect(px + cellSize * 0.2 + seedP, py + 1, 1, 1);
-                            localCtx.fillRect(px + cellSize * 0.6, py + 2, 1, 1);
+                            localCtx.fillStyle = "rgba(4, 5, 7, 0.45)";
+                            localCtx.fillRect(px, py, cellSize + 0.5, 3.5);
+                            localCtx.fillStyle = "rgba(4, 5, 7, 0.20)";
+                            localCtx.fillRect(px, py + 3.5, cellSize + 0.5, 2.5);
                         }
                         if (hasRockW) {
-                            localCtx.fillStyle = "#12151d";
-                            localCtx.fillRect(px + 1, py + cellSize * 0.35, 2, 3);
-                            localCtx.fillStyle = "#4a5568";
-                            localCtx.fillRect(px + 1, py + cellSize * 0.35, 1, 1);
+                            localCtx.fillStyle = "rgba(4, 5, 7, 0.35)";
+                            localCtx.fillRect(px, py, 2.5, cellSize + 0.5);
                         }
                     }
 
