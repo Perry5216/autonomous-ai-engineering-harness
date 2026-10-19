@@ -1,48 +1,65 @@
 {
-  "batch_id": "BATCH-10",
+  "batch_id": "BATCH-11",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "Finalize simulation coverage by implementing deterministic state hashing for save/load integrity, optimizing colonist psychology state transitions for zero-allocation updates, and establishing a fixed-point physics accumulator for endgame stability.",
+  "overview": "Finalize simulation coverage by implementing deterministic state hashing for save/load integrity, optimizing colonist psychology state transitions for zero-allocation updates, and establishing a compact tick-based event log for endgame analysis.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Deterministic State Hashing for Save Integrity",
+      "title": "Deterministic State Hashing for Save/Load Integrity",
       "target_files": [
         "Source/Runtime/Core/StateHash.h",
         "Source/Runtime/Core/StateHash.cpp"
       ],
-      "architectural_spec": "Implement a constexpr-friendly FNV-1a hash for POD structs. Use std::span for contiguous memory traversal. No virtual functions. Static inline functions for 100% inlining. Handle endianness via std::endian::native checks. Max 40 lines.",
-      "acceptance_criteria": "Hash values are identical across x86_64 and ARM64 builds. Zero heap allocations during hashing. Unit tests pass for 1000 random state permutations.",
-      "player_fun_impact": "Ensures save games are never corrupted, providing a reliable experience for long-session players.",
+      "architectural_spec": "Implement a FNV-1a 64-bit hash function for core state structs. Use constexpr where possible. No dynamic allocation. Hash inputs: tick count, colonist count, resource totals. Output: uint64_t. Integrate into SaveSystem::Serialize and LoadSystem::Deserialize for checksum validation.",
+      "acceptance_criteria": [
+        "Hash function is constexpr-compatible.",
+        "Zero heap allocations during hashing.",
+        "Checksum mismatch triggers immediate load failure with error code.",
+        "Unit tests verify hash stability across 1000 random state permutations."
+      ],
+      "player_fun_impact": "Ensures save files are never corrupted, providing reliable resume functionality.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Fixed-Point Accumulator for Endgame Stability",
+      "title": "Zero-Allocation Colonist Psychology State Machine",
       "target_files": [
-        "Source/Runtime/Simulation/FixedPoint.h"
+        "Source/Runtime/Simulation/ColonistPsychology.h",
+        "Source/Runtime/Simulation/ColonistPsychology.cpp"
       ],
-      "architectural_spec": "Define a 64-bit fixed-point type with 32-bit integer and 32-bit fractional parts. Implement addition, subtraction, and multiplication as constexpr. Avoid floating-point drift in long-running simulations. Max 50 lines.",
-      "acceptance_criteria": "10,000 iterations of addition/subtraction yield exact results. No NaN or Infinity states. Compatible with existing float-based renderer via explicit conversion.",
-      "player_fun_impact": "Prevents 'jitter' in object positions after 5000+ ticks, keeping the visual experience crisp.",
-      "estimated_complexity": "Atomic"
+      "architectural_spec": "Replace std::vector-based state history with a fixed-size circular buffer (size 16) for recent psychological states. Use enum class for states (Idle, Working, Resting, Panicked). Implement transition logic using switch-case for O(1) updates. No virtual functions.",
+      "acceptance_criteria": [
+        "Memory footprint per colonist reduced by 40%.",
+        "State transitions complete in < 10ns.",
+        "No dynamic memory allocation during tick updates.",
+        "All 16,500 logged footsteps reproduce identical state sequences."
+      ],
+      "player_fun_impact": "Faster simulation ticks, allowing more complex worlds without lag.",
+      "estimated_complexity": "Small"
     },
     {
       "task_id": "TASK-803",
       "priority": "P2 - Quality-of-Life",
       "domain": "Storyteller/AI",
-      "title": "Zero-Alloc Psychology State Machine",
+      "title": "Compact Tick-Based Event Log for Endgame Analysis",
       "target_files": [
-        "Source/Runtime/AI/Psychology.h"
+        "Source/Runtime/Storyteller/EventLog.h",
+        "Source/Runtime/Storyteller/EventLog.cpp"
       ],
-      "architectural_spec": "Use a union-based state representation for colonist moods. Implement a transition table using std::array of function pointers. No dynamic memory. State changes are O(1). Max 55 lines.",
-      "acceptance_criteria": "State transitions occur in <1ns. No memory fragmentation observed in profiler. All 12 mood states reachable from initial state.",
-      "player_fun_impact": "Faster simulation ticks allow for more complex colony layouts without lag.",
-      "estimated_complexity": "Small"
+      "architectural_spec": "Implement a bit-packed event log for the last 1000 ticks. Each event is 32 bits: 16-bit tick, 8-bit event type, 8-bit value. Use std::array<uint32_t, 1000>. Provide iterator for sequential access. No string storage; use enum indices for event types.",
+      "acceptance_criteria": [
+        "Log fits in 4KB static memory.",
+        "Event insertion is O(1).",
+        "Event retrieval is O(1) via index.",
+        "Log correctly records all 5,500 ticks with no overflow errors."
+      ],
+      "player_fun_impact": "Enables detailed post-game analysis and debugging of simulation behavior.",
+      "estimated_complexity": "Atomic"
     }
   ]
 }
