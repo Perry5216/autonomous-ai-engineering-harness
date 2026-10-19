@@ -1,64 +1,49 @@
 {
-  "batch_id": "BATCH-11",
+  "batch_id": "BATCH-12",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "Finalize simulation coverage by implementing deterministic state hashing for save/load integrity, optimizing colonist psychology state transitions for zero-allocation updates, and establishing a compact tick-based event log for endgame analysis.",
+  "overview": "This batch focuses on finalizing the ultra-endgame state by implementing deterministic compression for the 5,500-tick simulation history and optimizing the Monte Carlo survival verification loop. The goal is to achieve 100% simulation coverage with minimal memory footprint and zero deadlocks, ensuring the 'Deep-Mantle' campaign concludes with a verified, reproducible state.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Deterministic State Hashing for Save/Load Integrity",
+      "title": "Implement Deterministic Bit-Packed State Compression for Tick History",
       "target_files": [
-        "Source/Runtime/Core/StateHash.h",
-        "Source/Runtime/Core/StateHash.cpp"
+        "src/engine/core/StateCompressor.h",
+        "src/engine/core/StateCompressor.cpp"
       ],
-      "architectural_spec": "Implement a FNV-1a 64-bit hash function for core state structs. Use constexpr where possible. No dynamic allocation. Hash inputs: tick count, colonist count, resource totals. Output: uint64_t. Integrate into SaveSystem::Serialize and LoadSystem::Deserialize for checksum validation.",
-      "acceptance_criteria": [
-        "Hash function is constexpr-compatible.",
-        "Zero heap allocations during hashing.",
-        "Checksum mismatch triggers immediate load failure with error code.",
-        "Unit tests verify hash stability across 1000 random state permutations."
-      ],
-      "player_fun_impact": "Ensures save files are never corrupted, providing reliable resume functionality.",
+      "architectural_spec": "Use std::array<uint64_t, N> for fixed-size storage. Implement a custom bit-packer using constexpr functions. No dynamic allocation. Each tick state is compressed into a 64-bit word using field masks. Decompression uses bitwise shifts and masks. Ensure strict little-endian compatibility. Include static_asserts for size checks.",
+      "acceptance_criteria": "1. Compression ratio > 85% for 5,500 ticks. 2. Decompression is O(1) per tick. 3. Zero heap allocations during compression/decompression. 4. Unit tests verify bit-perfect reconstruction.",
+      "player_fun_impact": "Faster load times for endgame saves; smoother scrubbing through the 5,500-tick history.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Zero-Allocation Colonist Psychology State Machine",
+      "title": "Optimize Monte Carlo Survival Rate Verification Loop",
       "target_files": [
-        "Source/Runtime/Simulation/ColonistPsychology.h",
-        "Source/Runtime/Simulation/ColonistPsychology.cpp"
+        "src/simulation/MonteCarloVerifier.h",
+        "src/simulation/MonteCarloVerifier.cpp"
       ],
-      "architectural_spec": "Replace std::vector-based state history with a fixed-size circular buffer (size 16) for recent psychological states. Use enum class for states (Idle, Working, Resting, Panicked). Implement transition logic using switch-case for O(1) updates. No virtual functions.",
-      "acceptance_criteria": [
-        "Memory footprint per colonist reduced by 40%.",
-        "State transitions complete in < 10ns.",
-        "No dynamic memory allocation during tick updates.",
-        "All 16,500 logged footsteps reproduce identical state sequences."
-      ],
-      "player_fun_impact": "Faster simulation ticks, allowing more complex worlds without lag.",
+      "architectural_spec": "Refactor the verification loop to use a fixed-size circular buffer for intermediate states. Use std::span for view access. Implement a fast-path for the 100% survival rate check using early exit on first mismatch. Avoid virtual calls in the hot loop; use template specialization for the 16,500 footsteps log.",
+      "acceptance_criteria": "1. Verification completes in < 10ms for 5,500 ticks. 2. Memory usage remains constant regardless of tick count. 3. 100% survival rate confirmed without false positives.",
+      "player_fun_impact": "Immediate feedback on simulation integrity; no lag when checking campaign completion status.",
       "estimated_complexity": "Small"
     },
     {
       "task_id": "TASK-803",
       "priority": "P2 - Quality-of-Life",
       "domain": "Storyteller/AI",
-      "title": "Compact Tick-Based Event Log for Endgame Analysis",
+      "title": "Generate Deterministic Endgame Summary from Compressed State",
       "target_files": [
-        "Source/Runtime/Storyteller/EventLog.h",
-        "Source/Runtime/Storyteller/EventLog.cpp"
+        "src/storyteller/EndgameSummary.h",
+        "src/storyteller/EndgameSummary.cpp"
       ],
-      "architectural_spec": "Implement a bit-packed event log for the last 1000 ticks. Each event is 32 bits: 16-bit tick, 8-bit event type, 8-bit value. Use std::array<uint32_t, 1000>. Provide iterator for sequential access. No string storage; use enum indices for event types.",
-      "acceptance_criteria": [
-        "Log fits in 4KB static memory.",
-        "Event insertion is O(1).",
-        "Event retrieval is O(1) via index.",
-        "Log correctly records all 5,500 ticks with no overflow errors."
-      ],
-      "player_fun_impact": "Enables detailed post-game analysis and debugging of simulation behavior.",
+      "architectural_spec": "Parse the compressed state from TASK-801. Extract key metrics (survival rate, footstep count, deadlock count) using direct index access. Format output using std::format (C++20). No intermediate string allocations; use a fixed-size char buffer for the summary.",
+      "acceptance_criteria": "1. Summary generated in < 1ms. 2. Output matches the 5,500 ticks / 0 deadlocks / 16,500 footsteps / 100% survival rate exactly. 3. No heap allocations.",
+      "player_fun_impact": "Instant, clear, and accurate endgame report for the player.",
       "estimated_complexity": "Atomic"
     }
   ]
