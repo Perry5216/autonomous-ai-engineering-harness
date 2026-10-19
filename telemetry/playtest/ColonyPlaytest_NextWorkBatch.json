@@ -1,49 +1,64 @@
 {
-  "batch_id": "BATCH-24",
+  "batch_id": "BATCH-25",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "Finalize simulation coverage by implementing deterministic state compression for endgame snapshots and optimizing colonist psychology state machines for zero-latency transitions. These atomic tasks close the last gaps in memory efficiency and simulation determinism without introducing cascading dependencies.",
+  "overview": "This batch focuses on finalizing the simulation loop by implementing deterministic state serialization for save/load integrity and optimizing the tick-based physics integration for ultra-endgame stability. These tasks close the final gaps in simulation coverage by ensuring reproducible state transitions and minimizing memory fragmentation during long-running sessions.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Implement Bit-Packed Deterministic State Serializer",
+      "title": "Implement Deterministic State Hashing for Save/Load Integrity",
       "target_files": [
-        "Source/Engine/Core/StateSerializer.h",
-        "Source/Engine/Core/StateSerializer.cpp"
+        "src/engine/core/StateSerializer.h",
+        "src/engine/core/StateSerializer.cpp"
       ],
-      "architectural_spec": "1. Define struct `PackedState` using `std::array<uint64_t, 4>` for 256-bit fixed capacity.\n2. Implement `serialize()` using `std::bit_cast` and manual bit-shifting for enum/bool/int packing.\n3. Implement `deserialize()` with constexpr-friendly bit extraction.\n4. Ensure zero heap allocations via `std::span` views.\n5. Add static_assert for size <= 32 bytes.\n6. No virtual functions; use CRTP for serializer interface if needed.\n7. Handle endianness via `std::endian::native` checks.\n8. Provide `operator==` for deterministic comparison.\n9. Include `#pragma once` and minimal includes (<array>, <cstdint>, <bit>).\n10. Test with 1000 random states for round-trip fidelity.",
-      "acceptance_criteria": "1. Round-trip serialization/deserialization is bit-exact.\n2. Memory footprint is exactly 32 bytes per state.\n3. Zero heap allocations during serialization.\n4. All unit tests pass with 100% coverage.",
-      "player_fun_impact": "Faster save/load times and smaller save files, improving responsiveness in long campaigns.",
+      "architectural_spec": "Implement a zero-heap, constexpr-friendly state hasher using FNV-1a 64-bit algorithm. The serializer must traverse the component array linearly. Use std::span for contiguous memory access. No dynamic allocations during hashing. The hash must be stable across different compilation units if the struct layout is identical. Include a static_assert for struct size alignment. The implementation should fit within 40 lines of logic, focusing on the hash accumulation loop and the finalization step.",
+      "acceptance_criteria": [
+        "Hash value is identical for the same state across 1000 runs.",
+        "No heap allocations occur during hashing.",
+        "Compilation time increases by < 5ms.",
+        "Unit tests pass for edge cases (empty state, max capacity)."
+      ],
+      "player_fun_impact": "Ensures 100% reliable save/load functionality, preventing progress loss in long campaigns.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Optimize Footstep Logging with Ring Buffer",
+      "title": "Optimize Fixed-Step Integration for Ultra-Endgame Stability",
       "target_files": [
-        "Source/Simulation/Physics/FootstepLogger.h",
-        "Source/Simulation/Physics/FootstepLogger.cpp"
+        "src/simulation/physics/Integrator.h",
+        "src/simulation/physics/Integrator.cpp"
       ],
-      "architectural_spec": "1. Define `struct Footstep` with `uint32_t tick`, `Vec2 pos`, `uint8_t type`.\n2. Implement `class FootstepRingBuffer` with fixed capacity 16500.\n3. Use `std::array<Footstep, 16500>` for storage.\n4. Implement `push()` with modulo arithmetic for index wrapping.\n5. Implement `get_last_n(n)` returning `std::span<const Footstep>`.\n6. Ensure no dynamic resizing; capacity is compile-time constant.\n7. Add `clear()` method resetting head index.\n8. Use `alignas(8)` for cache-line alignment.\n9. Provide `size()` and `capacity()` constexpr methods.\n10. Validate against 16,500 tick limit in tests.",
-      "acceptance_criteria": "1. Buffer holds exactly 16,500 entries without reallocation.\n2. Access time for last N entries is O(1).\n3. Memory usage is predictable and fixed.\n4. No data loss in circular buffer logic.",
-      "player_fun_impact": "Consistent performance during long simulations, preventing memory bloat in extended games.",
+      "architectural_spec": "Refactor the semi-implicit Euler integrator to use a fixed timestep of 1/60s. Implement a 'catch-up' loop for variable frame times using a while loop with a max iteration count of 4 to prevent spiral of death. Use float32 for all calculations to maintain cache locality. Store position and velocity in a packed struct. The logic should handle the accumulation of delta time and the step execution in under 50 lines. Ensure no floating-point drift by resetting the accumulator modulo the fixed step.",
+      "acceptance_criteria": [
+        "Physics simulation remains stable at 10,000+ ticks.",
+        "No visible jitter in object movement.",
+        "Frame time variance is < 1ms.",
+        "Memory usage for physics state remains constant."
+      ],
+      "player_fun_impact": "Provides smooth, predictable motion for all entities, enhancing the visual clarity of the simulation.",
       "estimated_complexity": "Small"
     },
     {
       "task_id": "TASK-803",
       "priority": "P2 - Quality-of-Life",
       "domain": "Storyteller/AI",
-      "title": "Cache Colonist Psychology State Transitions",
+      "title": "Compact Event Log Buffer for Long-Running Sessions",
       "target_files": [
-        "Source/Storyteller/AI/PsychologyCache.h",
-        "Source/Storyteller/AI/PsychologyCache.cpp"
+        "src/storyteller/EventLog.h",
+        "src/storyteller/EventLog.cpp"
       ],
-      "architectural_spec": "1. Define enum `PsychState` with 8 values.\n2. Create `struct TransitionTable` with `std::array<PsychState, 64>` for 8x8 matrix.\n3. Implement `init_table()` with constexpr logic for deterministic transitions.\n4. Provide `get_next(state, event)` returning `PsychState`.\n5. Use `std::array` for zero-overhead storage.\n6. Ensure all transitions are precomputed at compile time.\n7. Add `is_terminal(state)` helper.\n8. No dynamic memory; all data is static.\n9. Include unit tests for all 64 transitions.\n10. Validate against 5,500 tick simulation logs.",
-      "acceptance_criteria": "1. All 64 state transitions are correct and deterministic.\n2. Lookup time is O(1) with no branching overhead.\n3. No heap allocations.\n4. Matches existing simulation logs exactly.",
-      "player_fun_impact": "Smoother and more predictable colonist behavior, enhancing strategic planning.",
+      "architectural_spec": "Implement a circular buffer for the event log with a fixed capacity of 1024 entries. Use a struct with a 32-bit timestamp and a 16-bit event ID. The push operation should overwrite the oldest entry when full. Provide a method to retrieve the last N events using a simple index calculation. The implementation should be header-only if possible, or split into a minimal .cpp file. Total logic lines should not exceed 30. Ensure thread-safety is not required as the simulation is single-threaded.",
+      "acceptance_criteria": [
+        "Memory footprint of the event log is constant.",
+        "Retrieval of the last 10 events is O(1).",
+        "No memory leaks detected in Valgrind.",
+        "Log entries are correctly ordered by timestamp."
+      ],
+      "player_fun_impact": "Reduces memory usage in long campaigns, allowing for more complex entity counts without performance degradation.",
       "estimated_complexity": "Atomic"
     }
   ]
