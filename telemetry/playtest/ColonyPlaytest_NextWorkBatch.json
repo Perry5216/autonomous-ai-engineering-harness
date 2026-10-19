@@ -1,49 +1,49 @@
 {
-  "batch_id": "BATCH-40",
+  "batch_id": "BATCH-41",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "Finalize the simulation loop by implementing deterministic state hashing for save/load integrity, optimizing the tick-based physics solver for zero-allocation stability, and compressing the storyteller event log into a bit-packed format for rapid replay.",
+  "overview": "Finalize simulation coverage by implementing deterministic state hashing for save/load integrity, optimizing colonist psychology decay curves for long-term stability, and establishing a zero-allocation event bus for endgame ascension triggers.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Implement Zero-Heap Deterministic State Hasher",
+      "title": "Deterministic State Hashing for Save Integrity",
       "target_files": [
         "src/engine/core/StateHasher.h",
         "src/engine/core/StateHasher.cpp"
       ],
-      "architectural_spec": "Use std::span for input data. Implement FNV-1a 64-bit hash in constexpr. No dynamic allocation. Cache last hash in a static thread_local variable for O(1) comparison. Handle endianness explicitly via std::endian::native.",
-      "acceptance_criteria": "Hash is stable across 1000 runs. 0 heap allocations. <10ns per hash operation.",
-      "player_fun_impact": "Instant save/load verification, preventing 'corrupt save' errors.",
+      "architectural_spec": "Implement a constexpr-friendly FNV-1a hash for struct-based state snapshots. Use std::array for fixed-size buffers. No dynamic allocation. Hash order must be stable across compiler versions. Integrate with existing I/O pipeline via template specialization for POD types.",
+      "acceptance_criteria": "1. Hash output is identical across 1000 runs. 2. Zero heap allocations during hashing. 3. Compile time < 50ms for 100 structs.",
+      "player_fun_impact": "Instant, reliable save/load cycles with no corruption warnings.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Optimize Tick-Based Collision Solver with SIMD",
+      "title": "Optimized Psychology Decay Curves",
       "target_files": [
-        "src/simulation/physics/CollisionSolver.h",
-        "src/simulation/physics/CollisionSolver.cpp"
+        "src/sim/psychology/DecayModel.h",
+        "src/sim/psychology/DecayModel.cpp"
       ],
-      "architectural_spec": "Use std::array<CollisionPair, 1024> for static pool. Implement 4-wide SIMD intersection tests using <immintrin.h>. Unroll loops for 4-element batches. No virtual functions in hot path.",
-      "acceptance_criteria": "10,000 collisions resolved in <1ms. No cache misses in hot loop.",
-      "player_fun_impact": "Smoother frame rates during large-scale colony events.",
+      "architectural_spec": "Replace iterative decay loops with closed-form exponential solutions using std::exp. Precompute lookup tables for common time steps (1, 5, 10 ticks). Use float precision for speed. Ensure monotonic convergence to baseline.",
+      "acceptance_criteria": "1. Decay values match reference within 1e-6. 2. 10x faster than iterative method. 3. No NaN propagation.",
+      "player_fun_impact": "Smoother, more predictable colonist mood transitions in long sessions.",
       "estimated_complexity": "Small"
     },
     {
       "task_id": "TASK-803",
       "priority": "P2 - Quality-of-Life",
       "domain": "Storyteller/AI",
-      "title": "Bit-Packed Event Log Compression",
+      "title": "Zero-Allocation Event Bus for Ascension",
       "target_files": [
-        "src/storyteller/EventLog.h",
-        "src/storyteller/EventLog.cpp"
+        "src/ai/EventBus.h",
+        "src/ai/EventBus.cpp"
       ],
-      "architectural_spec": "Define enum class EventType : uint8_t. Pack timestamp (32-bit) and type (8-bit) into 64-bit uint. Use std::bit_cast for serialization. Decompress via bitwise shifts.",
-      "acceptance_criteria": "Log size reduced by 75%. Decompression speed > 1GB/s.",
-      "player_fun_impact": "Faster UI rendering for event history.",
+      "architectural_spec": "Implement a fixed-capacity ring buffer for event dispatch. Use std::variant for event types. Dispatch via function pointers stored in a static array. No std::function overhead. Support 16 concurrent listeners.",
+      "acceptance_criteria": "1. Dispatch latency < 10ns. 2. No heap allocations. 3. Handles 10k events/sec without drop.",
+      "player_fun_impact": "Responsive UI updates during complex endgame sequences.",
       "estimated_complexity": "Atomic"
     }
   ]

@@ -4497,12 +4497,15 @@
             const ch = localCanvas.height;
             const cellSize = (cw / LOCAL_MAP_SIZE) * localZoom;
 
-            // Pan offset when zoomed in centered on colony landing zone (12, 11)
+            // Pan offset when zoomed in centered on colony landing zone
             let offsetX = 0;
             let offsetY = 0;
+            const off = getCompoundOffset();
             if (localZoom > 1) {
-                offsetX = (13 * cellSize) - (cw / 2);
-                offsetY = (11 * cellSize) - (ch / 2);
+                const centerColonyX = 16 + off.x;
+                const centerColonyY = 12 + off.y;
+                offsetX = (centerColonyX * cellSize) - (cw / 2);
+                offsetY = (centerColonyY * cellSize) - (ch / 2);
             }
 
             const gx = Math.floor((clickX + offsetX) / cellSize);
@@ -4897,7 +4900,7 @@
                 paintCell(gx, gy, activeTerrainBrush);
                 return;
             }
-            const hitPawn = DEPLOYED_COLONISTS.find(p => p.x === gx && p.y === gy);
+            const hitPawn = DEPLOYED_COLONISTS.find(p => Math.abs(p.x - gx) < 0.9 && Math.abs(p.y - gy) < 0.9);
             if (hitPawn) {
                 selectArchetype(hitPawn.arch);
             }
@@ -4906,7 +4909,7 @@
         function updateLocalInspectBox(gx, gy) {
             if (!localColonyGrid[gy] || !localColonyGrid[gy][gx]) return;
             const cell = localColonyGrid[gy][gx];
-            const pawn = DEPLOYED_COLONISTS.find(p => p.x === gx && p.y === gy);
+            const pawn = DEPLOYED_COLONISTS.find(p => Math.abs(p.x - gx) < 0.9 && Math.abs(p.y - gy) < 0.9);
 
             let statusStr = `<strong>CELL [${gx.toString().padStart(2, '0')}, ${gy.toString().padStart(2, '0')}]</strong> · TERRAIN: ${cell.terrain.toUpperCase().replace('_', ' ')} · TEMP: ${cell.temp}°C · WALK: ${cell.walkSpeed}%`;
             if (cell.oreType) statusStr += ` · <span style="color: var(--accent-amber);">ORE: ${cell.oreType.toUpperCase()}</span>`;
@@ -4968,9 +4971,12 @@
 
             let offsetX = 0;
             let offsetY = 0;
+            const off = getCompoundOffset();
             if (localZoom > 1) {
-                offsetX = (13 * cellSize) - (cw / 2);
-                offsetY = (11 * cellSize) - (ch / 2);
+                const centerColonyX = 16 + off.x;
+                const centerColonyY = 12 + off.y;
+                offsetX = (centerColonyX * cellSize) - (cw / 2);
+                offsetY = (centerColonyY * cellSize) - (ch / 2);
             }
 
             // High-contrast, authentic subterranean color palette
@@ -5218,10 +5224,11 @@
                 }
             }
 
-                        // 2. Draw Cleared Landing Zone Perimeter & Supply Crates
+            // 2. Draw Cleared Landing Zone Perimeter & Supply Crates
             {
-                const lzX = 8 * cellSize - offsetX;
-                const lzY = 8 * cellSize - offsetY;
+                const off = getCompoundOffset();
+                const lzX = (8 + off.x) * cellSize - offsetX;
+                const lzY = (8 + off.y) * cellSize - offsetY;
                 const lzW = 11 * cellSize;
                 const lzH = 8 * cellSize;
 
@@ -5254,11 +5261,11 @@
 
                 // Physical Supply Crates & Cargo Containers deployed in landing zone
                 const crates = [
-                    { x: 9, y: 10, item: "item_steel_ingot" },
-                    { x: 9, y: 11, item: "item_composite_rebar" },
-                    { x: 10, y: 12, item: "item_plasteel_plate" },
-                    { x: 12, y: 12, item: "item_nanite_medicine" },
-                    { x: 13, y: 12, item: "item_electronic_component" }
+                    { x: 9 + off.x, y: 10 + off.y, item: "item_steel_ingot" },
+                    { x: 9 + off.x, y: 11 + off.y, item: "item_composite_rebar" },
+                    { x: 10 + off.x, y: 12 + off.y, item: "item_plasteel_plate" },
+                    { x: 12 + off.x, y: 12 + off.y, item: "item_nanite_medicine" },
+                    { x: 13 + off.x, y: 12 + off.y, item: "item_electronic_component" }
                 ];
                 crates.forEach(cr => {
                     const cx = cr.x * cellSize - offsetX;
@@ -5280,51 +5287,135 @@
                         }
                     }
                 });
+            }
 
-                // 2.5 Draw Deployed Machinery & Buildables on Local Colony Grid
-                DEPLOYED_BUILDINGS.forEach(bld => {
-                    const bx = bld.x * cellSize - offsetX;
-                    const by = bld.y * cellSize - offsetY;
-                    const bw = bld.w * cellSize;
-                    const bh = bld.h * cellSize;
+            // 2.45 Draw Subterranean High-Voltage Power Conduit Network (Tactile Base Wiring)
+            {
+                const off = getCompoundOffset();
+                const cableRuns = [
+                    // Turbine -> Tokamak Core
+                    [ { x: 9 + off.x, y: 10 + off.y }, { x: 10 + off.x, y: 12 + off.y }, { x: 11.5 + off.x, y: 14 + off.y } ],
+                    // Tokamak -> Electric Arc Smelter
+                    [ { x: 12.5 + off.x, y: 14 + off.y }, { x: 15.5 + off.x, y: 12 + off.y }, { x: 15.5 + off.x, y: 10 + off.y } ],
+                    // Smelter -> Factory Conveyor Inserter
+                    [ { x: 16.5 + off.x, y: 10 + off.y }, { x: 19 + off.x, y: 10 + off.y } ],
+                    // Tokamak -> Sub-Strata Research Bench
+                    [ { x: 12.5 + off.x, y: 14.5 + off.y }, { x: 14 + off.x, y: 13.5 + off.y } ],
+                    // Turbine -> Terminal Desk & Hydroponics
+                    [ { x: 9 + off.x, y: 10.5 + off.y }, { x: 9.5 + off.x, y: 12 + off.y }, { x: 9 + off.x, y: 13 + off.y } ]
+                ];
 
-                    if (bx + bw < 0 || bx > cw || by + bh < 0 || by > ch) return;
-
-                    // Heavy base structural drop shadow
-                    localCtx.fillStyle = "rgba(0, 0, 0, 0.7)";
-                    localCtx.fillRect(bx + 2, by + bh - 4, bw - 4, 6);
-
-                    // Render active animated sprite from DOM
-                    const imgEl = document.getElementById(`img-bld-${bld.key}`);
-                    if (imgEl && imgEl.complete && imgEl.naturalWidth > 0) {
-                        localCtx.drawImage(imgEl, bx, by, bw, bh);
-                    } else {
-                        localCtx.fillStyle = "#38bdf8";
-                        localCtx.fillRect(bx + 2, by + 2, bw - 4, bh - 4);
+                localCtx.save();
+                cableRuns.forEach(run => {
+                    if (run.length < 2) return;
+                    // Outer rubber insulated duct
+                    localCtx.strokeStyle = "rgba(15, 23, 42, 0.85)";
+                    localCtx.lineWidth = Math.max(2.5, cellSize * 0.18);
+                    localCtx.lineCap = "round";
+                    localCtx.lineJoin = "round";
+                    localCtx.beginPath();
+                    const p0 = { x: run[0].x * cellSize - offsetX, y: run[0].y * cellSize - offsetY };
+                    localCtx.moveTo(p0.x, p0.y);
+                    for (let i = 1; i < run.length; i++) {
+                        const pi = { x: run[i].x * cellSize - offsetX, y: run[i].y * cellSize - offsetY };
+                        localCtx.lineTo(pi.x, pi.y);
                     }
+                    localCtx.stroke();
 
-                    // Structure highlight border
-                    if (bld.key === selectedBuildableKey) {
-                        localCtx.strokeStyle = "var(--accent-amber)";
-                        localCtx.lineWidth = 1.5;
-                        localCtx.strokeRect(bx, by, bw, bh);
-                    }
+                    // Inner animated energy trace
+                    localCtx.strokeStyle = "rgba(245, 158, 11, 0.9)";
+                    localCtx.lineWidth = Math.max(1, cellSize * 0.08);
+                    localCtx.setLineDash([3, 4]);
+                    localCtx.lineDashOffset = -(localAnimationTick * 0.35) % 7;
+                    localCtx.stroke();
                 });
 
-                // 2.6 Draw Deployed Furniture (Tables, Benches, Desks, Lithophones)
-                DEPLOYED_FURNITURE.forEach(furn => {
-                    const fx = furn.x * cellSize - offsetX;
-                    const fy = furn.y * cellSize - offsetY;
-                    const fw = (furn.w || 1) * cellSize;
-                    const fh = (furn.h || 1) * cellSize;
-                    if (fx + fw < 0 || fx > cw || fy + fh < 0 || fy > ch) return;
-                    localCtx.fillStyle = "rgba(0, 0, 0, 0.5)";
-                    localCtx.fillRect(fx + 2, fy + fh - 3, fw - 4, 4);
-                    const img = TILE_SPRITE_CACHE[furn.key];
-                    if (img && img.complete && img.naturalWidth > 0) {
-                        localCtx.drawImage(img, fx, fy, fw, fh);
+                // Conduit Junction Box Node with status LED
+                const junctionNodes = [
+                    { x: 10 + off.x, y: 12 + off.y },
+                    { x: 12.5 + off.x, y: 14 + off.y },
+                    { x: 15.5 + off.x, y: 12 + off.y }
+                ];
+                junctionNodes.forEach(node => {
+                    const nx = node.x * cellSize - offsetX;
+                    const ny = node.y * cellSize - offsetY;
+                    if (nx >= 0 && nx <= cw && ny >= 0 && ny <= ch) {
+                        localCtx.fillStyle = "#1e293b";
+                        localCtx.fillRect(nx - 3, ny - 3, 6, 6);
+                        localCtx.strokeStyle = "rgba(245, 158, 11, 0.6)";
+                        localCtx.lineWidth = 1;
+                        localCtx.strokeRect(nx - 3, ny - 3, 6, 6);
+                        // Blinking status diode
+                        const ledAlpha = Math.sin(localAnimationTick * 0.1 + node.x) > 0 ? 0.95 : 0.3;
+                        localCtx.fillStyle = `rgba(34, 197, 94, ${ledAlpha})`;
+                        localCtx.fillRect(nx - 1, ny - 1, 2, 2);
                     }
                 });
+                localCtx.restore();
+            }
+
+            // 2.5 Draw Deployed Machinery & Buildables on Local Colony Grid
+            DEPLOYED_BUILDINGS.forEach(bld => {
+                const bx = bld.x * cellSize - offsetX;
+                const by = bld.y * cellSize - offsetY;
+                const bw = bld.w * cellSize;
+                const bh = bld.h * cellSize;
+
+                if (bx + bw < 0 || bx > cw || by + bh < 0 || by > ch) return;
+
+                // Heavy base structural drop shadow
+                localCtx.fillStyle = "rgba(0, 0, 0, 0.7)";
+                localCtx.fillRect(bx + 2, by + bh - 4, bw - 4, 6);
+
+                // Render active animated sprite from DOM
+                const imgEl = document.getElementById(`img-bld-${bld.key}`);
+                if (imgEl && imgEl.complete && imgEl.naturalWidth > 0) {
+                    localCtx.drawImage(imgEl, bx, by, bw, bh);
+                } else {
+                    localCtx.fillStyle = "#38bdf8";
+                    localCtx.fillRect(bx + 2, by + 2, bw - 4, bh - 4);
+                }
+
+                // Structure highlight border
+                if (bld.key === selectedBuildableKey) {
+                    localCtx.strokeStyle = "var(--accent-amber)";
+                    localCtx.lineWidth = 1.5;
+                    localCtx.strokeRect(bx, by, bw, bh);
+                }
+            });
+
+            // 2.6 Draw Deployed Furniture (Tables, Benches, Desks, Lithophones)
+            DEPLOYED_FURNITURE.forEach(furn => {
+                const fx = furn.x * cellSize - offsetX;
+                const fy = furn.y * cellSize - offsetY;
+                const fw = (furn.w || 1) * cellSize;
+                const fh = (furn.h || 1) * cellSize;
+                if (fx + fw < 0 || fx > cw || fy + fh < 0 || fy > ch) return;
+                localCtx.fillStyle = "rgba(0, 0, 0, 0.5)";
+                localCtx.fillRect(fx + 2, fy + fh - 3, fw - 4, 4);
+                const img = TILE_SPRITE_CACHE[furn.key];
+                if (img && img.complete && img.naturalWidth > 0) {
+                    localCtx.drawImage(img, fx, fy, fw, fh);
+                }
+
+                // Authentic lived-in tabletop details on dining table
+                if (furn.key === 'furn_table') {
+                    // Two metal mess ration trays with food portions
+                    localCtx.fillStyle = "rgba(203, 213, 225, 0.85)";
+                    localCtx.fillRect(fx + fw * 0.18, fy + fh * 0.28, cellSize * 0.38, cellSize * 0.24);
+                    localCtx.fillRect(fx + fw * 0.62, fy + fh * 0.28, cellSize * 0.38, cellSize * 0.24);
+                    // Food portions (nutrient mush / herbal stew)
+                    localCtx.fillStyle = "#84cc16";
+                    localCtx.fillRect(fx + fw * 0.22, fy + fh * 0.33, cellSize * 0.14, cellSize * 0.12);
+                    localCtx.fillStyle = "#f97316";
+                    localCtx.fillRect(fx + fw * 0.66, fy + fh * 0.33, cellSize * 0.14, cellSize * 0.12);
+                    // Stainless steel canteen / coffee mug
+                    localCtx.fillStyle = "#94a3b8";
+                    localCtx.beginPath();
+                    localCtx.arc(fx + fw * 0.48, fy + fh * 0.40, cellSize * 0.08, 0, Math.PI * 2);
+                    localCtx.fill();
+                }
+            });
 
                 // 2.7 Draw Active Factory Conveyor Belt Loop
                 const convFrame = Math.floor(localAnimationTick / 6) % 4;
@@ -5414,23 +5505,74 @@
                     }
                 }
 
-                // 2.9 Draw Subterranean Trees & Bioluminescent Flora
+                // 2.9 Draw Subterranean Trees & Bioluminescent Flora with Smooth Radial Halos
                 DEPLOYED_FLORA.forEach(tree => {
                     const tx = tree.x * cellSize - offsetX;
                     const ty = tree.y * cellSize - offsetY;
                     const tw = (tree.w || 1) * cellSize;
                     const th = (tree.h || 1) * cellSize;
                     if (tx + tw < 0 || tx > cw || ty + th < 0 || ty > ch) return;
+
+                    const centerX = tx + tw * 0.5;
+                    const baseY = ty + th * 0.88;
+
+                    // 1. Soft grounded base contact shadow
+                    localCtx.fillStyle = "rgba(0, 0, 0, 0.45)";
+                    localCtx.beginPath();
+                    localCtx.ellipse(centerX, baseY, tw * 0.38, cellSize * 0.16, 0, 0, Math.PI * 2);
+                    localCtx.fill();
+
+                    // 2. Bioluminescent multi-stop radial gradient glow on cavern floor
+                    let glowColor = null;
+                    let glowRadius = tw * 0.75;
                     if (tree.key === 'foliage_spore_tree') {
-                        const glowPulse = Math.sin(localAnimationTick * 0.08 + tree.x) * 4;
-                        localCtx.fillStyle = "rgba(168, 85, 247, 0.22)";
+                        const pulse = Math.sin(localAnimationTick * 0.07 + tree.x) * 3;
+                        glowRadius = tw * 0.95 + pulse;
+                        glowColor = { r: 168, g: 85, b: 247, alpha: 0.32 };
+                    } else if (tree.key === 'foliage_crystal_pine') {
+                        const pulse = Math.sin(localAnimationTick * 0.06 + tree.y) * 2;
+                        glowRadius = tw * 0.8 + pulse;
+                        glowColor = { r: 56, g: 189, b: 248, alpha: 0.28 };
+                    } else if (tree.key === 'foliage_healroot') {
+                        const pulse = Math.sin(localAnimationTick * 0.08 + tree.x + tree.y) * 1.5;
+                        glowRadius = tw * 0.7 + pulse;
+                        glowColor = { r: 52, g: 211, b: 153, alpha: 0.26 };
+                    } else if (tree.key === 'foliage_berry_bush') {
+                        const pulse = Math.sin(localAnimationTick * 0.05 + tree.x) * 1.5;
+                        glowRadius = tw * 0.6 + pulse;
+                        glowColor = { r: 251, g: 191, b: 36, alpha: 0.20 };
+                    }
+
+                    if (glowColor) {
+                        const radGrad = localCtx.createRadialGradient(centerX, baseY, 2, centerX, baseY, glowRadius);
+                        radGrad.addColorStop(0, `rgba(${glowColor.r}, ${glowColor.g}, ${glowColor.b}, ${glowColor.alpha})`);
+                        radGrad.addColorStop(0.45, `rgba(${glowColor.r}, ${glowColor.g}, ${glowColor.b}, ${glowColor.alpha * 0.45})`);
+                        radGrad.addColorStop(1, `rgba(${glowColor.r}, ${glowColor.g}, ${glowColor.b}, 0.0)`);
+                        localCtx.fillStyle = radGrad;
                         localCtx.beginPath();
-                        localCtx.arc(tx + tw * 0.5, ty + th * 0.5, tw * 0.75 + glowPulse, 0, Math.PI * 2);
+                        localCtx.arc(centerX, baseY, glowRadius, 0, Math.PI * 2);
                         localCtx.fill();
                     }
+
+                    // 3. Render Crisp Pixel Art Sprite
                     const img = TILE_SPRITE_CACHE[tree.key];
                     if (img && img.complete && img.naturalWidth > 0) {
                         localCtx.drawImage(img, tx, ty - (tree.h > 1 ? cellSize * 0.4 : 0), tw, th);
+                    }
+
+                    // 4. Subtle ambient drifting micro-spores / frost glitter
+                    if (tree.key === 'foliage_spore_tree') {
+                        const sporePulse = (localAnimationTick * 0.04 + tree.x * 3) % Math.PI;
+                        const sporeX = centerX + Math.cos(sporePulse * 2) * (tw * 0.4);
+                        const sporeY = ty + cellSize * 0.2 - Math.sin(sporePulse) * 8;
+                        localCtx.fillStyle = `rgba(216, 180, 254, ${Math.sin(sporePulse) * 0.8})`;
+                        localCtx.fillRect(sporeX, sporeY, 2, 2);
+                    } else if (tree.key === 'foliage_crystal_pine') {
+                        const glintPulse = (localAnimationTick * 0.05 + tree.y * 2) % Math.PI;
+                        const glintX = centerX + Math.sin(glintPulse * 3) * (tw * 0.3);
+                        const glintY = ty + cellSize * 0.3 - Math.cos(glintPulse) * 4;
+                        localCtx.fillStyle = `rgba(186, 230, 253, ${Math.sin(glintPulse) * 0.75})`;
+                        localCtx.fillRect(glintX, glintY, 1.5, 1.5);
                     }
                 });
 
@@ -5514,7 +5656,6 @@
                     localCtx.fillStyle = (animal.state === 'DOMESTICATED') ? '#22c55e' : (animal.state === 'HUNTING') ? '#ef4444' : '#f59e0b';
                     localCtx.fillText(badgeText, ax + cellSize * 0.5 - tw * 0.5, ay + 3);
                 });
-            }
 
             // 3. Tactical Grid Lines applied strictly to excavated floor cells in Pass 1 to preserve monolithic rock mass
 
@@ -5556,6 +5697,44 @@
                         localCtx.fillRect(px + cellSize * 0.2, py + cellSize * 0.15 + bob, cellSize * 0.6, cellSize * 0.7);
                     }
 
+                    // Workstation Idle Micro-Ambiance
+                    if (pawn.arch === 'miner') {
+                        // Operations Console terminal upward holographic glow
+                        localCtx.fillStyle = "rgba(56, 189, 248, 0.14)";
+                        localCtx.beginPath();
+                        localCtx.moveTo(px + cellSize * 0.2, py + cellSize * 0.8);
+                        localCtx.lineTo(px - cellSize * 0.2, py + cellSize * 0.3);
+                        localCtx.lineTo(px + cellSize * 0.8, py + cellSize * 0.3);
+                        localCtx.fill();
+                    } else if (pawn.arch === 'engineer') {
+                        // Smelter maintenance welding spark bursts
+                        const sparkCycle = (localAnimationTick + 20) % 70;
+                        if (sparkCycle < 16) {
+                            for (let s = 0; s < 3; s++) {
+                                const sparkAngle = -0.5 - (s * 0.4);
+                                const sparkDist = 6 + (sparkCycle * 1.2) + s * 3;
+                                localCtx.fillStyle = `rgba(251, 146, 60, ${1.0 - sparkCycle / 16})`;
+                                localCtx.fillRect(px + cellSize * 0.75 + Math.cos(sparkAngle) * sparkDist,
+                                                  py + cellSize * 0.55 + Math.sin(sparkAngle) * sparkDist, 2, 2);
+                            }
+                        }
+                    } else if (pawn.arch === 'medic') {
+                        // Hydroponics aerator bubbling
+                        const bPhase = (localAnimationTick * 0.08) % Math.PI;
+                        localCtx.fillStyle = `rgba(52, 211, 153, ${0.4 + Math.sin(bPhase) * 0.4})`;
+                        localCtx.fillRect(px - 5, py + cellSize * 0.5 - bPhase * 8, 2, 2);
+                    } else if (pawn.arch === 'soldier') {
+                        // Defense sentry perimeter laser scanning guide
+                        const laserScan = Math.sin(localAnimationTick * 0.035) * 0.28;
+                        localCtx.strokeStyle = "rgba(239, 68, 68, 0.45)";
+                        localCtx.lineWidth = 1;
+                        localCtx.beginPath();
+                        localCtx.moveTo(px + cellSize * 0.65, py + cellSize * 0.55);
+                        localCtx.lineTo(px + cellSize * 0.65 + Math.cos(laserScan) * cellSize * 2.2,
+                                        py + cellSize * 0.55 + Math.sin(laserScan) * cellSize * 2.2);
+                        localCtx.stroke();
+                    }
+
                     // Floating Nameplate
                     const nameplate = pawn.name.split(' ')[0];
                     localCtx.font = "bold 9px monospace";
@@ -5566,68 +5745,90 @@
                     localCtx.lineWidth = 1;
                     localCtx.strokeRect(px + cellSize * 0.5 - tw * 0.5 - 4, py - 6 + bob, tw + 8, 12);
 
-                    // Emergent Thought Bubble
+                    // Emergent Thought Bubble (Staggered active speaker cycle + hover inspect)
                     if (showThoughtBubbles) {
-                        const thoughtIdx = Math.floor((localAnimationTick + pIdx * 150) / 250) % 5;
-                        let thoughtText = (PAWN_THOUGHTS[pawn.arch] || PAWN_THOUGHTS.miner)[thoughtIdx];
-                        let borderColor = "rgba(56, 189, 248, 0.4)";
-                        let textColor = "#e2e8f0";
+                        const isHazardMode = (droneNetworkState === 'ROGUE' || activeHazard === 'aquifer_blowout' || activeHazard === 'gas_pocket');
+                        const activeSpeakerIdx = Math.floor(localAnimationTick / 220) % DEPLOYED_COLONISTS.length;
+                        const isHoveredPawn = (localHoverCell && Math.abs(pawn.x - localHoverCell.x) < 0.9 && Math.abs(pawn.y - localHoverCell.y) < 0.9);
+                        const isSpeaker = isHazardMode || isHoveredPawn || (pIdx === activeSpeakerIdx);
 
-                        if (droneNetworkState === 'ROGUE') {
-                            const rogueThoughts = {
-                                miner: "⚠️ DRONES TURNED HOSTILE! TAKE COVER!",
-                                engineer: "⚡ EMP ARMED! HIT THE BREAKER!",
-                                medic: "🩹 CASUALTY IN SECTOR 12! RETREAT!",
-                                soldier: "🛡️ ENGAGING TREAD-WARDEN ROVER!"
-                            };
-                            thoughtText = rogueThoughts[pawn.arch] || "⚠️ DANGER!";
-                            borderColor = "var(--accent-red)";
-                            textColor = "#fca5a5";
-                        } else if (activeHazard === 'aquifer_blowout') {
-                            const aquiferThoughts = {
-                                miner: "🌊 AQUIFER BREACH! TUNNEL FLOODING!",
-                                engineer: "🌊 WATER SHORTING CONDUITS! PUMP!",
-                                medic: "🌊 GET OUT OF THE SUB-ZERO WATER!",
-                                soldier: "🌊 SEAL BULKHEAD AIRLOCK!"
-                            };
-                            thoughtText = aquiferThoughts[pawn.arch] || "🌊 FLOOD!";
-                            borderColor = "var(--accent-cyan)";
-                            textColor = "#bae6fd";
-                        } else if (activeHazard === 'gas_pocket') {
-                            const gasThoughts = {
-                                miner: "🔥 GAS FISSURE! NO SPARKS!",
-                                engineer: "🔥 SCRUBBERS AT 100% OVERDRIVE!",
-                                medic: "🔥 REBREATHERS ON! TOXIC FUMES!",
-                                soldier: "🔥 HOLD FIRE! EXPLOSION RISK!"
-                            };
-                            thoughtText = gasThoughts[pawn.arch] || "☣️ GAS!";
-                            borderColor = "var(--accent-amber)";
-                            textColor = "#fde68a";
+                        if (isSpeaker) {
+                            const thoughtIdx = Math.floor((localAnimationTick + pIdx * 90) / 200) % 5;
+                            let thoughtText = (PAWN_THOUGHTS[pawn.arch] || PAWN_THOUGHTS.miner)[thoughtIdx];
+                            let borderColor = "rgba(56, 189, 248, 0.65)";
+                            let textColor = "#f1f5f9";
+
+                            if (droneNetworkState === 'ROGUE') {
+                                const rogueThoughts = {
+                                    miner: "⚠️ DRONES HOSTILE! TAKE COVER!",
+                                    engineer: "⚡ EMP ARMED! HIT BREAKER!",
+                                    medic: "🩹 CASUALTY IN SECTOR 12!",
+                                    soldier: "🛡️ ENGAGING TREAD-WARDEN!"
+                                };
+                                thoughtText = rogueThoughts[pawn.arch] || "⚠️ DANGER!";
+                                borderColor = "rgba(239, 68, 68, 0.85)";
+                                textColor = "#fca5a5";
+                            } else if (activeHazard === 'aquifer_blowout') {
+                                const aquiferThoughts = {
+                                    miner: "🌊 AQUIFER BREACH! FLOODING!",
+                                    engineer: "🌊 WATER SHORTING CIRCUITS!",
+                                    medic: "🌊 EVACUATE TO HIGH GROUND!",
+                                    soldier: "🌊 SEAL BULKHEAD AIRLOCK!"
+                                };
+                                thoughtText = aquiferThoughts[pawn.arch] || "🌊 FLOOD!";
+                                borderColor = "rgba(56, 189, 248, 0.85)";
+                                textColor = "#bae6fd";
+                            } else if (activeHazard === 'gas_pocket') {
+                                const gasThoughts = {
+                                    miner: "🔥 GAS FISSURE! NO SPARKS!",
+                                    engineer: "🔥 SCRUBBERS AT OVERDRIVE!",
+                                    medic: "🔥 REBREATHERS ENGAGED!",
+                                    soldier: "🔥 HOLD FIRE! EXPLOSION RISK!"
+                                };
+                                thoughtText = gasThoughts[pawn.arch] || "☣️ GAS!";
+                                borderColor = "rgba(245, 158, 11, 0.85)";
+                                textColor = "#fde68a";
+                            }
+
+                            localCtx.font = "bold 8px 'Segoe UI', monospace";
+                            const bTw = localCtx.measureText(thoughtText).width;
+                            const bW = bTw + 14;
+                            const bH = 15;
+                            const bX = px + cellSize * 0.5 - bW * 0.5;
+                            const bY = py - 24 + bob;
+
+                            // Gentle speech box shadow
+                            localCtx.fillStyle = "rgba(0, 0, 0, 0.6)";
+                            localCtx.beginPath();
+                            localCtx.roundRect(bX + 1, bY + 1, bW, bH, 3);
+                            localCtx.fill();
+
+                            // Bubble Background (Glassmorphism Dark)
+                            localCtx.fillStyle = "rgba(6, 10, 18, 0.94)";
+                            localCtx.beginPath();
+                            localCtx.roundRect(bX, bY, bW, bH, 3);
+                            localCtx.fill();
+                            localCtx.strokeStyle = borderColor;
+                            localCtx.lineWidth = 1;
+                            localCtx.stroke();
+
+                            // Triangular Callout Tail
+                            localCtx.fillStyle = "rgba(6, 10, 18, 0.94)";
+                            localCtx.beginPath();
+                            localCtx.moveTo(px + cellSize * 0.5 - 3, bY + bH);
+                            localCtx.lineTo(px + cellSize * 0.5, bY + bH + 4);
+                            localCtx.lineTo(px + cellSize * 0.5 + 3, bY + bH);
+                            localCtx.fill();
+                            localCtx.strokeStyle = borderColor;
+                            localCtx.beginPath();
+                            localCtx.moveTo(px + cellSize * 0.5 - 3, bY + bH);
+                            localCtx.lineTo(px + cellSize * 0.5, bY + bH + 4);
+                            localCtx.lineTo(px + cellSize * 0.5 + 3, bY + bH);
+                            localCtx.stroke();
+
+                            localCtx.fillStyle = textColor;
+                            localCtx.fillText(thoughtText, bX + 7, bY + 10.5);
                         }
-
-                        localCtx.font = "8px 'Segoe UI', monospace";
-                        const bTw = localCtx.measureText(thoughtText).width;
-                        const bW = bTw + 12;
-                        const bH = 14;
-                        const bX = px + cellSize * 0.5 - bW * 0.5;
-                        const bY = py - 23 + bob;
-
-                        localCtx.fillStyle = "rgba(4, 7, 14, 0.92)";
-                        localCtx.beginPath();
-                        localCtx.roundRect(bX, bY, bW, bH, 3);
-                        localCtx.fill();
-                        localCtx.strokeStyle = borderColor;
-                        localCtx.lineWidth = 1;
-                        localCtx.stroke();
-
-                        localCtx.beginPath();
-                        localCtx.moveTo(px + cellSize * 0.5 - 2, bY + bH);
-                        localCtx.lineTo(px + cellSize * 0.5, bY + bH + 3);
-                        localCtx.lineTo(px + cellSize * 0.5 + 2, bY + bH);
-                        localCtx.fill();
-
-                        localCtx.fillStyle = textColor;
-                        localCtx.fillText(thoughtText, bX + 6, bY + 10);
                     }
 
                     localCtx.fillStyle = "#f8fafc";
@@ -5644,8 +5845,9 @@
                 let curY = drone.baseY + Math.cos(localAnimationTick * 0.025 + drone.baseX) * 0.9;
                 if (drone.key === 'sentry') {
                     // Sentry rover rolls along perimeter line
-                    curX = 17.5 + Math.sin(localAnimationTick * 0.02) * 2.5;
-                    curY = 12.5 + Math.cos(localAnimationTick * 0.02) * 1.5;
+                    const off = getCompoundOffset();
+                    curX = (17.5 + off.x) + Math.sin(localAnimationTick * 0.02) * 2.5;
+                    curY = (12.5 + off.y) + Math.cos(localAnimationTick * 0.02) * 1.5;
                 }
                 drone.x = curX;
                 drone.y = curY;
