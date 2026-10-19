@@ -2,106 +2,86 @@
 
 - **Author**: DGX Spark Lead Systems & Game Designer
 - **Reviewed by**: RTX 5090 Blackwell Commercial QA Director
-- **Date**: `2026-10-19 17:04:25`
+- **Date**: `2026-10-19 17:16:38`
 
 ---
 
 # Project Deep-Mantle: Post-5090 Audit & Depth Roadmap
 
-**Status:** Verified. The 5090 Blackwell test confirms the transition from static data entry to **visceral, emergent simulation**. The 5500-tick stability proves the core loop is robust; the 0% pathing oscillation proves the spatial logic is clean.
+**Status:** Verified Stable | **Engine:** ezEngine (C++20) | **Playtester:** 5090 Blackwell
 
-Here is the evaluation of how the 5 new features eradicate the "spreadsheet feel," followed by the immediate implementation roadmap.
+The 5090 Blackwell test results confirm that **Project Deep-Mantle** has successfully transitioned from a static data-entry exercise to a living, breathing simulation. The elimination of pathing oscillations and the successful integration of dynamic thought bubbles prove that the core loop is now visceral rather than computational.
 
----
+### 1. Why This Transforms the Experience from a Dry Spreadsheet to an Addictive Colony
 
-### 1. Why This Transforms the Experience: From Data Entry to Living Simulation
+The shift from "Spreadsheet" to "Living Simulation" is achieved by decoupling the *data* from the *presentation*, allowing the player to feel the weight of the world rather than just reading it.
 
-The "spreadsheet simulator" problem arises when players feel they are merely filling in cells rather than observing a living system. The 5 implemented features solve this by creating **immediate visual and cognitive feedback loops**.
+*   **Spatial Heatmap as Visual Intuition:** Instead of reading a table of "16,500 footsteps," the player *sees* the colony breathe. The heatmap transforms abstract logistics into immediate visual feedback. High-traffic zones glow, indicating bottlenecks; cold zones indicate neglect. This allows for instant, intuitive problem-solving without pausing to parse numbers.
+*   **Thought Bubbles as Narrative Anchors:** In a spreadsheet, a colonist is `ID: 42, Mood: 85`. In Deep-Mantle, Spark’s bubble showing "Hungry" or Perry’s "Inspired by Geode" creates immediate emotional attachment. These floating UI elements provide context-aware storytelling directly in the viewport, reducing cognitive load and increasing immersion.
+*   **Zero-Anomaly Stability as Flow State:** The confirmation of 0 pathing oscillations and 0 anomalies across 5,500 ticks means the player never breaks immersion to debug. The simulation runs with the reliability of a clockwork mechanism, allowing the player to enter a "flow state" where they are managing, not troubleshooting.
+*   **Dynamic Micro-Events:** The 15 triggered micro-events prove the world is reactive. The player is not watching a static diorama; they are witnessing a causal chain (e.g., a heat spike causes a mineral condensation, which triggers a "Curious" thought bubble). This causality is the hallmark of emergent gameplay.
 
-| Feature | Spreadsheet State (Before) | Living Simulation State (After) | Why It’s Fun |
-| :--- | :--- | :--- | :--- |
-| **Spatial Heatmap** | Static grid numbers (e.g., "Tile 42: 3 visits"). | **Glowing, pulsing trails** on the 3D map. Hot zones pulse red; cold zones fade blue. | Players *see* the colony’s heartbeat. They instantly understand bottlenecks without reading a table. It turns logistics into a visual puzzle. |
-| **Monte Carlo Fuzzing** | Linear, predictable event chains (1→2→3). | **Chaotic, branching outcomes** visualized as fractal-like event trees in the UI. | Creates "surprise" moments. The player feels the world is *reacting* to them, not just following a script. It mimics the organic complexity of Dwarf Fortress. |
-| **Boredom Pacing Sensor** | Fixed timer events (e.g., "Day 10: Rain"). | **Dynamic micro-events** triggered by player inactivity or rapid completion. | Eliminates dead air. If the player is idle, the world *hustles* (e.g., a quick cave-in reveals a gem). If they’re busy, the world breathes. It feels responsive, like a good jazz drummer. |
-| **In-Engine Thought Bubbles** | Text logs in a side panel (e.g., "Spark: Happy"). | **Floating, animated icons** above characters’ heads in the 3D viewport. | Directly connects the player’s eye to the character’s state. No context switching. It creates emotional attachment through immediate, visual empathy. |
-| **Self-Healing Patch Drafter** | Manual error logs requiring restarts. | **Seamless, invisible corrections** with subtle visual "glints" on fixed objects. | Maintains immersion. The player never breaks flow to check a console. The world feels *alive* and self-correcting, like a biological organism. |
-
-**Verdict:** The experience is no longer about *reading* the colony; it is about *watching* it breathe. The 5500-tick stability proves the engine can handle this density without lag, which is critical for immersion.
-
----
+**Verdict:** The game is no longer a list of values; it is a visual narrative driven by spatial and cognitive feedback loops.
 
 ### 2. How the Event-Delta Boredom Sensor Eliminates Pacing Droughts
 
-The **Event-Delta Boredom Sensor** is not a timer; it is a **dynamic pressure valve**. It measures the "information density" of the last 10 ticks and adjusts the next event’s complexity and frequency.
+The **Boredom Pacing Sensor** operates on a differential timing model, ensuring that the player’s attention is never left idle, nor overwhelmed.
 
-#### Mechanism:
-1.  **Input:** Number of completed actions, number of new thoughts generated, and time since last major event.
-2.  **Calculation:** `Delta = (Actions_Completed / Ticks) - (Expected_Rate)`
-3.  **Output:**
-    *   **If Delta > 0 (Player is fast/engaged):** The sensor *slows* the event rate slightly to allow for reflection, but introduces **complex, multi-step puzzles** (e.g., "3 resources needed for 1 upgrade").
-    *   **If Delta < 0 (Player is idle/overwhelmed):** The sensor *accelerates* the event rate with **simple, high-reward micro-events** (e.g., "Quick gem find," "Instant food bonus").
-
-#### Example from 5090 Test:
-*   **Ticks 1000-1050:** Player completed 15 actions (high engagement).
-    *   *Sensor Response:* Paused minor events for 5 ticks. Triggered **1 Complex Incident** (Threat: 548.2 pts) requiring strategic planning.
-*   **Ticks 1050-1100:** Player completed 8 actions (slower, thinking).
-    *   *Sensor Response:* Triggered **3 Micro-Events** (Spark found a coin, Perry fixed a pipe, Blackwell spotted a rare fungus).
-    *   *Result:* The player never felt "stuck" or "bored." The pacing *matched* their cognitive load.
-
-**Impact:** This creates a **flow state**. The player is never waiting for the next event; the next event arrives *exactly* when their attention is ready.
-
----
+*   **Mechanism:** The sensor tracks the time elapsed since the last *meaningful* interaction (e.g., a completed construction, a resolved incident, or a thought bubble update).
+*   **Delta Calculation:**
+    *   If `TimeSinceLastEvent < Threshold_Min`: The sensor suppresses new events to prevent UI clutter (avoiding "noise").
+    *   If `TimeSinceLastEvent > Threshold_Max`: The sensor injects a **Micro-Event** (e.g., a minor tremor, a rare mineral spark, or a colonist’s idle animation change).
+*   **Impact on Gameplay:**
+    *   **Eliminates Dead Air:** In traditional sims, players stare at static screens. Here, the 15 triggered micro-events ensure that every 3-5 seconds, there is a visual or logical change.
+    *   **Pacing Rhythm:** The sensor creates a "breathing" rhythm. High-intensity phases (incident resolution) are followed by low-intensity observational phases (heatmap cooling, thought bubbles settling), guided by the sensor’s dynamic injection.
+    *   **Active Observation:** Because micro-events are tied to spatial data (e.g., "Heatmap Zone 4 cooled"), the player is encouraged to scan the viewport, reinforcing the spatial awareness loop.
 
 ### 3. Next 5 Concrete Gameplay Loops to Implement
 
-To deepen the emergent gameplay and leverage the 5090’s verified stability, we implement these 5 loops. Each builds on the previous, creating a **nested hierarchy of complexity**.
+To deepen the emergent complexity while maintaining the "non-spreadsheet" feel, the following loops are prioritized for the next sprint:
 
-#### Loop 1: **The Symbiotic Resource Chain**
-*   **Concept:** Resources are not just numbers; they have **state-dependent properties**.
+#### Loop 1: **Thermal Gradient Crafting (Spatial Logic)**
+*   **Concept:** Utilize the Spatial Heatmap directly in crafting recipes.
 *   **Implementation:**
-    *   *Iron* mined near *Heat Sources* becomes "Hot Iron" (faster crafting, lower durability).
-    *   *Iron* mined near *Water* becomes "Cold Iron" (slower crafting, higher durability).
-    *   *Loop:* Players must **manage spatial placement** of mines relative to environmental features to optimize resource quality.
-*   **Why It’s Fun:** Turns mining into a spatial puzzle. The heatmap directly informs strategy.
+    *   *Input:* Place a raw crystal in a zone with Heat Level 3-5.
+    *   *Output:* "Tempered Crystal" (higher durability).
+    *   *Feedback:* The heatmap color shifts visibly as the item cools/heats.
+*   **Why:** Turns the background heatmap into an active gameplay mechanic. Players must position stations based on thermal flow, not just proximity.
 
-#### Loop 2: **The Thought-Driven Architecture**
-*   **Concept:** Character thoughts **physically alter** the colony layout.
+#### Loop 2: **Thought Chain Reactions (Cognitive Logic)**
+*   **Concept:** Colonist thoughts influence nearby colonists’ thoughts via proximity.
 *   **Implementation:**
-    *   *Spark* (Curious) → Builds **Observation Towers** (reveal hidden map tiles).
-    *   *Perry* (Orderly) → Builds **Straight-Line Corridors** (faster movement, less exploration).
-    *   *Blackwell* (Analytical) → Builds **Data Nodes** (increase Monte Carlo prediction accuracy).
-    *   *Loop:* The colony’s *shape* emerges from the *personalities* of the colonists. No two colonies look the same.
-*   **Why It’s Fun:** Directly links character identity to world geometry. Visual and logical.
+    *   *Spark* is "Inspired" (from a geode).
+    *   *Perry* is within 2 tiles of Spark.
+    *   *Effect:* Perry gains a "Motivated" buff for 10 ticks.
+    *   *UI:* A faint line connects the thought bubbles, showing the chain.
+*   **Why:** Creates a visual web of social dynamics. Players optimize colony layout not just for logistics, but for "idea propagation."
 
-#### Loop 3: **The Cascading Incident Chain**
-*   **Concept:** Incidents are not isolated; they **trigger follow-up events** based on the previous outcome.
+#### Loop 3: **Self-Healing Patch Drafter (Meta-Loop)**
+*   **Concept:** The game generates its own tutorial hints based on the last 10 ticks of player behavior.
 *   **Implementation:**
-    *   *Incident 1:* Cave-in (Threat: 548.2).
-    *   *Outcome:* If resolved quickly → *Incident 2:* "Dust Cloud" (slows movement).
-    *   *Outcome:* If resolved slowly → *Incident 2:* "Structural Instability" (more cave-ins).
-    *   *Loop:* Players must **prioritize** which incidents to address first, as each choice branches the event tree.
-*   **Why It’s Fun:** Creates a sense of **consequence**. Every decision matters. The Monte Carlo fuzzing ensures no two chains are identical.
+    *   If the player ignores a "Low Oxygen" warning for 3 ticks, the Drafter generates a concise, bold hint: *"Oxygen dropping. Check Ventilation Station 2."*
+    *   If the player is idle, it suggests: *"Heatmap shows Zone 4 cooling. Consider moving a heater."*
+*   **Why:** Reduces cognitive load by providing context-aware, just-in-time instructions, keeping the player engaged without pausing the sim.
 
-#### Loop 4: **The Dynamic Economy of Attention**
-*   **Concept:** The **Boredom Sensor** directly influences the **Economy**.
+#### Loop 4: **Monte Carlo Fuzzing for Anomaly Discovery (Exploratory Loop)**
+*   **Concept:** Use the fuzzing engine to generate "Rare Event" variants for the Storyteller AI.
 *   **Implementation:**
-    *   *High Attention (Fast Play):* Resources yield **1.5x** value, but degrade **2x** faster.
-    *   *Low Attention (Slow Play):* Resources yield **1.0x** value, but degrade **1.0x** faster.
-    *   *Loop:* Players must **balance speed vs. sustainability**. Do they rush for bonus resources, or play steady for long-term stability?
-*   **Why It’s Fun:** Adds a **strategic layer** to the pacing. It’s not just "fast is good"; it’s "fast is risky."
+    *   The fuzzer runs 100 iterations of a specific incident (e.g., "Cave-in") with slight parameter variations.
+    *   The most interesting outcome (e.g., "Cave-in reveals a hidden aquifer") is selected for the next playthrough.
+    *   *UI:* The Storyteller announces: *"The earth shifted. An aquifer is found."*
+*   **Why:** Ensures high replayability. Each session feels unique because the fuzzer pre-selects the most narratively rich outcomes.
 
-#### Loop 5: **The Self-Healing Narrative**
-*   **Concept:** The **Self-Healing Patch Drafter** generates **in-game lore** based on fixes.
+#### Loop 5: **Ascension Milestone Visualization (Progression Loop)**
+*   **Concept:** Visualize the `PlanetaryAscensionComplete` progress as a physical structure growing in the viewport.
 *   **Implementation:**
-    *   *Fix 1:* Pathing oscillation corrected → *Lore:* "The miners learned to walk in a spiral."
-    *   *Fix 2:* Resource overflow corrected → *Lore:* "The granary expanded its roots."
-    *   *Loop:* The **patch notes become the story**. Players read the *changes* as *events*.
-*   **Why It’s Fun:** Makes the technical underpinnings **narrative**. The player feels like they are *discovering* the world’s logic, not just reading a manual.
+    *   As wealth/threat metrics change, a central "Spire" in the colony center grows taller or changes color.
+    *   *Stage 1:* Base built (Gray).
+    *   *Stage 2:* Energy stable (Blue glow).
+    *   *Stage 3:* Ascension ready (Golden pulse).
+*   **Why:** Provides an immediate, at-a-glance understanding of progress without opening a menu. The spire’s state is a direct reflection of the 5,500-tick simulation’s health.
 
 ---
 
-### Final Recommendation
-
-**Implement Loops 1-5 immediately.** They are **low-computation, high-impact** and directly leverage the 5 new features. The 5090 test proves the engine can handle the complexity. The result will be a **visceral, living colony** that feels less like a spreadsheet and more like a **breathing organism**.
-
-**Next Step:** Run a 1000-tick test on **Loop 1 (Symbiotic Resource Chain)** to verify spatial heatmap integration.
+**Final Assessment:**
+Project Deep-Mantle is now a cohesive, visually driven simulation. The 5 implemented features have successfully bridged the gap between data and experience. The next steps focus on deepening the interconnectivity of these systems, ensuring that every pixel on the screen serves a functional, narrative, or logistical purpose.

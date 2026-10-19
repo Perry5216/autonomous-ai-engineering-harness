@@ -1,8 +1,8 @@
 {
-  "batch_id": "BATCH-55",
+  "batch_id": "BATCH-56",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Finalization",
   "target_version": "v1.2.0",
-  "overview": "This batch finalizes the simulation loop by implementing deterministic state hashing for save/load integrity, optimizing the tick-based physics integration for ultra-endgame stability, and compressing colonist psychological states into a bit-packed format to reduce memory footprint during long-running simulations.",
+  "overview": "This batch finalizes the simulation loop by implementing deterministic state hashing for save/load integrity, optimizing the Monte Carlo convergence check for the 5,500-tick milestone, and establishing the final ascension state machine. These tasks close the last gaps in simulation coverage, ensuring zero deadlocks and perfect reproducibility for the endgame.",
   "tasks": [
     {
       "task_id": "TASK-801",
@@ -10,40 +10,40 @@
       "domain": "Engine/C++20",
       "title": "Implement Deterministic State Hashing for Save/Load Integrity",
       "target_files": [
-        "Source/Runtime/State/StateHasher.h",
-        "Source/Runtime/State/StateHasher.cpp"
+        "Source/Engine/Core/StateHasher.h",
+        "Source/Engine/Core/StateHasher.cpp"
       ],
-      "architectural_spec": "Use std::hash with a custom FNV-1a implementation for 64-bit integers. Iterate through all active subsystems (Physics, AI, Graphics) in a fixed order. Combine hashes using XOR and rotation. Ensure no floating-point non-determinism by using fixed-point arithmetic for hash inputs. Zero heap allocations during hashing.",
-      "acceptance_criteria": "1. Hash value is identical across 1000 consecutive runs with same seed. 2. Hash computation completes in <1ms for 5,500 ticks. 3. No memory leaks detected.",
-      "player_fun_impact": "Ensures reliable save/load functionality, preventing progress loss in long campaigns.",
+      "architectural_spec": "1. Define `struct StateHasher` with `static constexpr uint64_t ComputeHash(const std::span<const uint8_t>& data)`.\n2. Use FNV-1a algorithm for speed and determinism.\n3. Implement `static_assert` for compile-time hash of static config.\n4. Ensure no heap allocations; use `std::array` for intermediate buffers.\n5. Integrate with `SaveGame` system to verify checksums on load.\n6. Handle endianness explicitly using `std::endian::native`.\n7. Return `uint64_t` directly; no wrapper structs.\n8. Add `constexpr` support for all static data.\n9. Validate against known test vectors in unit tests.\n10. Ensure zero dependencies on STL containers beyond `std::span`.",
+      "acceptance_criteria": "1. Hash computation completes in <1\u00b5s for 1KB data.\n2. Unit tests pass for 100 random seeds.\n3. No heap allocations in hot path.\n4. Save/Load cycle preserves exact state hash.",
+      "player_fun_impact": "Guarantees 100% reproducible simulations, eliminating 'ghost' bugs in long-running campaigns.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Optimize Tick-Based Physics Integration for Ultra-Endgame Stability",
+      "title": "Optimize Monte Carlo Convergence Check for 5,500-Tick Milestone",
       "target_files": [
-        "Source/Runtime/Physics/Integration.h",
-        "Source/Runtime/Physics/Integration.cpp"
+        "Source/Simulation/MonteCarlo.h",
+        "Source/Simulation/MonteCarlo.cpp"
       ],
-      "architectural_spec": "Implement a semi-implicit Euler integrator with fixed timestep. Use a circular buffer for position/velocity history to enable interpolation without heap allocation. Clamp maximum velocity to prevent numerical explosion. Ensure all calculations use double precision for intermediate steps but store as float for memory efficiency.",
-      "acceptance_criteria": "1. Position drift < 1e-6 over 10,000 ticks. 2. No NaN values in position/velocity arrays. 3. Integration step completes in <0.5ms.",
-      "player_fun_impact": "Provides smooth and stable physics behavior, enhancing visual fidelity and interaction responsiveness.",
+      "architectural_spec": "1. Create `struct MonteCarloConvergence` with `bool IsConverged(uint64_t tick)`.\n2. Use fixed-point arithmetic for variance calculation.\n3. Pre-compute convergence thresholds for ticks 1-5500.\n4. Store thresholds in `static constexpr std::array<float, 5500>`.\n5. Implement binary search for threshold lookup.\n6. Cache last 3 variance values in `std::array<float, 3>`.\n7. Return `true` if variance < threshold for 3 consecutive ticks.\n8. Zero heap allocations; all data static.\n9. Integrate with `SimulationLoop::Update()`.\n10. Ensure thread-safe read-only access via `const` methods.",
+      "acceptance_criteria": "1. Convergence detected exactly at tick 5,500.\n2. Lookup time <10ns per tick.\n3. No false positives in 10,000 test runs.\n4. Memory footprint <10KB.",
+      "player_fun_impact": "Faster simulation termination, reducing wait times for endgame results.",
       "estimated_complexity": "Small"
     },
     {
       "task_id": "TASK-803",
       "priority": "P2 - Quality-of-Life",
       "domain": "Storyteller/AI",
-      "title": "Compress Colonist Psychological States into Bit-Packed Format",
+      "title": "Finalize Ascension State Machine with Zero-Cascade Dependencies",
       "target_files": [
-        "Source/Runtime/AI/ColonistState.h",
-        "Source/Runtime/AI/ColonistState.cpp"
+        "Source/Storyteller/AscensionState.h",
+        "Source/Storyteller/AscensionState.cpp"
       ],
-      "architectural_spec": "Define a struct with bit-fields for mood, hunger, and energy levels. Use std::bit_cast for efficient serialization. Implement a compact decoder that unpacks these fields into a standard struct for AI logic. Ensure all operations are constexpr where possible.",
-      "acceptance_criteria": "1. Memory usage reduced by 50% compared to previous format. 2. Decode/encode operations complete in <0.1ms. 3. No data loss during compression/decompression.",
-      "player_fun_impact": "Improves performance and reduces memory usage, allowing for larger and more complex simulations.",
+      "architectural_spec": "1. Define `enum class AscensionPhase { Init, Running, Converged, Finalized }`.\n2. Implement `class AscensionStateMachine` with `void Update(uint64_t tick)`.\n3. Use `std::variant` for phase-specific data.\n4. Store state in `static constexpr` arrays.\n5. Implement `GetPhase()` as `constexpr`.\n6. No virtual functions; use switch-case dispatch.\n7. Integrate with `MonteCarloConvergence` result.\n8. Log phase transitions to `std::array<char, 256>`.\n9. Ensure no dynamic memory allocation.\n10. Provide `ToString()` for debugging.",
+      "acceptance_criteria": "1. State transitions occur exactly at defined ticks.\n2. No memory leaks in 1000 cycles.\n3. Debug output matches expected sequence.\n4. Compile time <100ms.",
+      "player_fun_impact": "Clear, deterministic endgame narrative progression with no lag.",
       "estimated_complexity": "Atomic"
     }
   ]
