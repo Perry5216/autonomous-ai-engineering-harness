@@ -1,72 +1,93 @@
-# Project Deep-Mantle :: Engineering Work Batch: BATCH-74
+# Project Deep-Mantle :: Engineering Work Batch: BATCH-75
 
 ## Ultra-Endgame Ascension & Deterministic State Compression (Target: `v1.2.0`)
 
 - **Architect**: `DGX Spark Cluster Lead Systems Engineer`
 - **QA Verifier**: `RTX 5090 Blackwell Reflex QA Director`
-- **Date**: `2026-10-19 20:45:05`
+- **Date**: `2026-10-19 20:56:18`
 
 ### Batch Overview
-Finalize the simulation loop by implementing deterministic state hashing for rapid save/load verification and optimizing the tick-based event queue for zero-allocation processing. These steps ensure the 5,500-tick campaign state is reproducible and memory-efficient, closing the final gaps in simulation determinism and performance.
+This batch finalizes the simulation loop by implementing deterministic state hashing for save/load integrity, optimizing the tick scheduler for zero-allocation execution, and compressing the colonist psychology state machine into a bit-packed structure. These changes ensure 100% coverage of the endgame phase with minimal memory footprint and maximum determinism.
 
 ---
 
 ### Prioritized Engineering Tasks
 
-#### [TASK-801] Implement Deterministic State Hashing for Save Verification (`P0 - Critical`)
+#### [TASK-801] Implement Zero-Heap Deterministic State Hasher (`P0 - Critical`)
 
 - **Domain**: `Engine/C++20`
 - **Estimated Complexity**: `Atomic`
 - **Target Files**:
-  - `Source/Runtime/Foundation/StateHash.h`
-  - `Source/Runtime/Foundation/StateHash.cpp`
+  - `src/engine/core/StateHasher.h`
+  - `src/engine/core/StateHasher.cpp`
 - **Architectural Specification**:
-  1. Define a struct `StateHash` using `std::array<uint64_t, 4>` for 256-bit output.
-2. Implement `ComputeStateHash` using a non-allocating FNV-1a variant or xxHash32.
-3. Iterate through all active entities and components in a fixed-order array.
-4. Accumulate hash values without heap allocation.
-5. Return the final hash struct.
-6. Ensure `constexpr` compatibility where possible for static initialization.
+  1. Define struct StateHasher with static constexpr uint64_t ComputeHash(const void* data, size_t size).
+2. Use FNV-1a algorithm for speed and determinism.
+3. No dynamic allocation; use stack-based iteration.
+4. Integrate with ez::Engine::SaveLoadSystem.
+5. Ensure endianness consistency (little-endian).
+6. Add static_assert for struct sizes.
+7. Provide inline implementations for header-only usage.
+8. Handle null pointers gracefully.
+9. Return 0 for empty data.
+10. Verify against known test vectors.
 - **Acceptance Criteria**:
-  ['Hash computation completes in < 1ms for 10,000 entities.', 'Zero heap allocations during hash calculation.', 'Identical simulation states produce identical hash values across runs.']
+  1. Hash output is identical across all platforms.
+2. No heap allocations during hashing.
+3. Unit tests pass for 1000 random states.
+4. Integration with SaveLoadSystem is seamless.
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Instant save/load verification and faster game startup times.
+  Faster save/load times and guaranteed deterministic replay.
 
-#### [TASK-802] Optimize Tick-Based Event Queue with Ring Buffer (`P1 - High`)
+#### [TASK-802] Bit-Packed Colonist Psychology State Machine (`P1 - High`)
 
 - **Domain**: `Simulation/Physics`
 - **Estimated Complexity**: `Small`
 - **Target Files**:
-  - `Source/Runtime/Simulation/EventQueue.h`
-  - `Source/Runtime/Simulation/EventQueue.cpp`
+  - `src/simulation/psychology/ColonistState.h`
+  - `src/simulation/psychology/ColonistState.cpp`
 - **Architectural Specification**:
-  1. Replace `std::vector` with a fixed-size `std::array` ring buffer of size 4096.
-2. Implement `Push` and `Pop` using index arithmetic modulo capacity.
-3. Store events as packed structs (ID, Timestamp, Payload).
-4. Process events in strict chronological order within the tick.
-5. Handle overflow by overwriting oldest entries if capacity is exceeded (deterministic drop).
-6. Ensure thread-safe access via atomic indices if multi-threaded.
+  1. Define enum class PsychState : uint8_t { Idle, Working, Resting, Panicked }.
+2. Create struct ColonistPsychState with bit-fields for state, priority, and timer.
+3. Use std::bit_cast for type punning if needed.
+4. Implement update() method with no branching where possible.
+5. Pack state into 32-bit integer for cache efficiency.
+6. Provide getters/setters for individual bits.
+7. Ensure alignment to 4 bytes.
+8. Add static_assert(sizeof(ColonistPsychState) == 4).
+9. Integrate with TickScheduler.
+10. Validate against existing 16,500 footsteps log.
 - **Acceptance Criteria**:
-  ['Event queue processes 100k events per tick without reallocation.', 'Memory footprint is constant and predictable.', 'No deadlocks or race conditions in multi-threaded simulation steps.']
+  1. Struct size is exactly 4 bytes.
+2. Update logic executes in < 10ns.
+3. No cache misses in tight loops.
+4. All 16,500 footsteps reproduce identically.
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Smoother frame rates during high-density simulation phases.
+  Smoother simulation performance and consistent AI behavior.
 
-#### [TASK-803] Cache Precomputed Narrative Branches for Instant Response (`P2 - Quality-of-Life`)
+#### [TASK-803] Deterministic Event Queue Compression (`P2 - Quality-of-Life`)
 
 - **Domain**: `Storyteller/AI`
 - **Estimated Complexity**: `Atomic`
 - **Target Files**:
-  - `Source/Runtime/Storyteller/NarrativeCache.h`
-  - `Source/Runtime/Storyteller/NarrativeCache.cpp`
+  - `src/storyteller/EventQueue.h`
+  - `src/storyteller/EventQueue.cpp`
 - **Architectural Specification**:
-  1. Create a static lookup table mapping Event IDs to precomputed narrative strings.
-2. Use `std::string_view` for zero-copy string references.
-3. Implement a simple hash map for O(1) lookup of narrative branches.
-4. Preload all 5,500 tick narrative states into the cache at initialization.
-5. Ensure cache is read-only during simulation ticks.
-6. Provide a fallback generator for uncached events.
+  1. Define struct EventEntry with uint32_t id, uint16_t tick, uint8_t type.
+2. Use std::array<EventEntry, 1024> for fixed-size queue.
+3. Implement circular buffer logic with modulo arithmetic.
+4. Add push() and pop() methods with bounds checking.
+5. Use std::span for iteration.
+6. Ensure no virtual functions.
+7. Add static_assert for array size.
+8. Provide reset() method.
+9. Integrate with MainLoop.
+10. Validate against 5,500 ticks.
 - **Acceptance Criteria**:
-  ['Narrative retrieval time < 0.1ms per event.', 'Cache size < 1MB for full campaign coverage.', 'No dynamic string allocations during gameplay ticks.']
+  1. Queue size is fixed at 1024.
+2. No heap allocations.
+3. Push/Pop operations are O(1).
+4. All 5,500 ticks processed without overflow.
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Immediate narrative feedback without stuttering.
+  Reduced memory usage and faster event processing.
 
