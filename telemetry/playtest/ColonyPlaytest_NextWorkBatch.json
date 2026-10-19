@@ -1,60 +1,49 @@
 {
-  "batch_id": "BATCH-43",
+  "batch_id": "BATCH-44",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "Finalize simulation coverage by implementing deterministic state compression for endgame snapshots and optimizing Monte Carlo convergence logic. This batch closes the last gaps in long-term stability and memory efficiency for the 5,500+ tick campaign.",
+  "overview": "Finalize the simulation loop by implementing deterministic state hashing for save/load integrity, optimizing the tick-based physics solver for 100% Monte Carlo survival, and compressing the colonist psychology state machine into a bit-packed structure to reduce memory footprint during long-run simulations.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Implement Zero-Heap Deterministic State Compressor",
+      "title": "Implement Deterministic State Hashing for Save/Load Integrity",
       "target_files": [
-        "Source/Engine/Core/StateCompressor.h",
-        "Source/Engine/Core/StateCompressor.cpp"
+        "src/engine/core/StateHasher.h",
+        "src/engine/core/StateHasher.cpp"
       ],
-      "architectural_spec": "struct CompressedState { uint64_t hash; uint32_t tick; uint16_t entityCount; alignas(8) uint8_t payload[256]; };\n\nnamespace ez {\n  class StateCompressor {\n  public:\n    static constexpr size_t MaxPayloadSize = 256;\n    \n    struct Result {\n      CompressedState state;\n      bool success;\n    };\n\n    // Compresses raw simulation state into fixed-size struct. No heap allocs.\n    static Result Compress(const void* rawData, size_t rawSize, uint32_t tick) noexcept;\n    \n    // Decompresses back to raw buffer. Returns bytes written.\n    static size_t Decompress(const CompressedState& compressed, void* rawData, size_t maxRawSize) noexcept;\n  };\n}",
-      "acceptance_criteria": [
-        "Compress/Decompress round-trip is bit-exact for 5,500 ticks.",
-        "Zero dynamic memory allocations during compression.",
-        "Compression ratio > 40% for typical entity states."
-      ],
-      "player_fun_impact": "Faster save/load times and reduced memory footprint for long campaigns.",
+      "architectural_spec": "1. Define `struct StateHash` using `std::array<uint64_t, 4>` for 256-bit output.\n2. Implement `FNV1a` variant with 64-bit mixing for speed.\n3. Use `constexpr` functions for compile-time hash calculation of static data.\n4. Ensure no dynamic allocation; use stack-based buffers.\n5. Integrate with `ez::World` snapshot mechanism.\n6. Validate against known test vectors.\n7. Handle endianness explicitly via `std::endian`.\n8. Provide `operator==` for hash comparison.\n9. Add `to_string()` for debug output.\n10. Ensure thread-safety via immutable snapshots.",
+      "acceptance_criteria": "1. Hash computation completes in <1ms for 10k entities.\n2. Identical states produce identical hashes.\n3. No heap allocations during hashing.\n4. Unit tests pass for 1000 random states.",
+      "player_fun_impact": "Faster save/load times and reliable state restoration.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Optimize Monte Carlo Convergence Check",
+      "title": "Optimize Tick-Based Physics Solver for 100% Monte Carlo Survival",
       "target_files": [
-        "Source/Simulation/MonteCarlo.h",
-        "Source/Simulation/MonteCarlo.cpp"
+        "src/simulation/physics/Solver.h",
+        "src/simulation/physics/Solver.cpp"
       ],
-      "architectural_spec": "namespace ez {\n  struct MCStats {\n    double mean;\n    double variance;\n    uint32_t samples;\n    bool converged;\n  };\n\n  class MonteCarloIntegrator {\n  public:\n    // Updates stats incrementally. O(1) per sample.\n    void AddSample(double value) noexcept;\n    \n    // Checks if variance < epsilon for last N samples.\n    bool IsConverged(double epsilon, uint32_t windowSize = 100) const noexcept;\n    \n    // Returns current stats.\n    MCStats GetStats() const noexcept;\n\n  private:\n    double m_sum = 0.0;\n    double m_sumSq = 0.0;\n    uint32_t m_count = 0;\n    double m_lastValues[100] = {0}; // Ring buffer for window check\n    uint32_t m_ringIndex = 0;\n  };\n}",
-      "acceptance_criteria": [
-        "Convergence detected within 100 samples for stable systems.",
-        "No floating-point drift over 10,000 samples.",
-        "Ring buffer implementation uses stack-only memory."
-      ],
-      "player_fun_impact": "More accurate physics predictions and faster simulation steps.",
+      "architectural_spec": "1. Refactor `Solver::step()` to use fixed-point arithmetic (`int64_t`).\n2. Precompute inverse masses in `Entity` struct.\n3. Use `std::span` for contiguous memory access.\n4. Implement spatial partitioning grid with 16x16 cells.\n5. Resolve collisions using iterative Gauss-Seidel method.\n6. Limit iterations to 4 for stability.\n7. Cache contact points in `ContactCache`.\n8. Avoid virtual calls in hot loop.\n9. Use `__restrict__` pointers for aliasing hints.\n10. Profile with `std::chrono::high_resolution_clock`.",
+      "acceptance_criteria": "1. 10k entities simulated in <5ms.\n2. Zero deadlocks in 5,500 ticks.\n3. Deterministic results across runs.\n4. Memory usage <1MB for 10k entities.",
+      "player_fun_impact": "Smoother frame rates and consistent physics behavior.",
       "estimated_complexity": "Small"
     },
     {
       "task_id": "TASK-803",
       "priority": "P2 - Quality-of-Life",
       "domain": "Storyteller/AI",
-      "title": "Cache Last 10 Footstep Events for UI",
+      "title": "Bit-Packed Colonist Psychology State Machine",
       "target_files": [
-        "Source/Storyteller/FootstepCache.h"
+        "src/ai/psychology/StatePack.h",
+        "src/ai/psychology/StatePack.cpp"
       ],
-      "architectural_spec": "namespace ez {\n  struct FootstepEvent {\n    uint32_t tick;\n    uint16_t entityId;\n    uint8_t type; // 0=Move, 1=Interact, 2=Combat\n    float x, y;\n  };\n\n  class FootstepCache {\n  public:\n    static constexpr size_t CacheSize = 10;\n    \n    void Push(const FootstepEvent& event) noexcept;\n    \n    // Returns pointer to array of last N events. N <= CacheSize.\n    const FootstepEvent* GetLast(size_t& count) const noexcept;\n\n  private:\n    FootstepEvent m_events[CacheSize];\n    size_t m_index = 0;\n    size_t m_count = 0;\n  };\n}",
-      "acceptance_criteria": [
-        "Cache holds exactly last 10 events.",
-        "GetLast returns correct order (oldest to newest).",
-        "No heap allocations."
-      ],
-      "player_fun_impact": "Instant access to recent activity log in UI.",
+      "architectural_spec": "1. Define `enum class Mood : uint8_t` with 8 states.\n2. Pack `Mood`, `Energy`, `Hunger` into `uint32_t`.\n3. Use `std::bit_cast` for type punning.\n4. Implement `unpack()` and `pack()` as `constexpr`.\n5. Store 1000 colonists in 4KB array.\n6. Update logic uses bitwise ops for speed.\n7. No dynamic memory for state storage.\n8. Integrate with `TickSystem`.\n9. Provide `debug_print()` for inspection.\n10. Ensure alignment to 4 bytes.",
+      "acceptance_criteria": "1. 1000 colonists stored in 4KB.\n2. Update time <0.1ms for 1000 entities.\n3. No fragmentation in memory.\n4. All states correctly unpacked.",
+      "player_fun_impact": "Reduced memory footprint and faster AI updates.",
       "estimated_complexity": "Atomic"
     }
   ]
