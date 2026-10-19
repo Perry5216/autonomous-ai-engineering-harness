@@ -1,61 +1,49 @@
 {
-  "batch_id": "BATCH-22",
+  "batch_id": "BATCH-23",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "Finalize simulation coverage by implementing deterministic state serialization for endgame snapshots and optimizing Monte Carlo convergence metrics. This batch closes the loop on long-running simulation stability and provides precise, low-overhead state recovery mechanisms for the 5,500+ tick campaign horizon.",
+  "overview": "This batch focuses on finalizing the ultra-endgame state by implementing deterministic compression for the 5,500-tick simulation history and optimizing the Monte Carlo survival verification loop. The goal is to reduce memory footprint by 40% while maintaining bit-exact reproducibility for all 16,500 logged footsteps, ensuring zero-latency state restoration for the final ascension phase.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Implement Zero-Copy Deterministic State Snapshotter",
+      "title": "Implement Bit-Packed Deterministic State Serializer",
       "target_files": [
-        "src/engine/core/StateSnapshot.h",
-        "src/engine/core/StateSnapshot.cpp"
+        "src/engine/core/StateSerializer.h",
+        "src/engine/core/StateSerializer.cpp"
       ],
-      "architectural_spec": "struct SnapshotHeader { uint64_t tick; uint32_t hash; };\nclass StateSnapshot {\n  std::span<const uint8_t> m_data;\n  SnapshotHeader m_header;\npublic:\n  void Capture(const SimulationState& state);\n  bool Restore(SimulationState& state) const;\n  uint32_t ComputeHash() const;\n};\n// Uses std::span for zero-copy access. No dynamic allocation in Capture/Restore.\n// Hashing uses FNV-1a for speed and determinism.",
-      "acceptance_criteria": [
-        "Snapshot capture time < 1ms for 5,500 tick state.",
-        "Restore produces bit-identical SimulationState.",
-        "Zero heap allocations during Capture/Restore cycle."
-      ],
-      "player_fun_impact": "Instant save/load with no stutter; reliable rollback for debugging.",
+      "architectural_spec": "Use std::span for zero-copy input. Implement a static constexpr struct for header metadata. Use bitwise operations for packing tick counts (16-bit) and footstep IDs (12-bit). No dynamic allocation; use a fixed-size buffer of 4KB for the 5,500-tick summary. Ensure all fields are aligned to 4-byte boundaries for SIMD-friendly access.",
+      "acceptance_criteria": "1. Serialization of 5,500 ticks completes in < 1ms. 2. Deserialization yields bit-exact identical state to original. 3. Memory usage < 4KB for full history summary.",
+      "player_fun_impact": "Instant load times for endgame saves; no perceptible lag during state restoration.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Optimize Monte Carlo Convergence Check for 100% Survival",
+      "title": "Optimize Monte Carlo Survival Verification Loop",
       "target_files": [
-        "src/simulation/MonteCarlo.h",
-        "src/simulation/MonteCarlo.cpp"
+        "src/simulation/MonteCarloVerifier.h",
+        "src/simulation/MonteCarloVerifier.cpp"
       ],
-      "architectural_spec": "struct MCResult { float mean; float variance; bool converged; };\nclass MonteCarloEngine {\n  std::array<float, 1024> m_samples;\n  size_t m_count;\npublic:\n  void AddSample(float val);\n  MCResult GetResult() const;\n  bool IsConverged(float epsilon = 1e-6f) const;\n};\n// Fixed-size array for cache locality. Welford's online algorithm for variance.",
-      "acceptance_criteria": [
-        "Convergence detected within 1000 samples for stable systems.",
-        "Variance calculation matches IEEE 754 reference within 1e-7.",
-        "No dynamic resizing of sample buffer."
-      ],
-      "player_fun_impact": "Faster simulation ticks; clearer feedback on system stability.",
+      "architectural_spec": "Refactor the verification loop to use a pre-allocated array of 16,500 uint32_t for footstep logs. Implement a branchless comparison using std::equal with execution policies. Remove all virtual function calls in the hot path. Use a static_assert to verify array sizes at compile time.",
+      "acceptance_criteria": "1. Verification of 16,500 footsteps completes in < 0.5ms. 2. Zero heap allocations during verification. 3. 100% match rate confirmed against BATCH-22 baseline.",
+      "player_fun_impact": "Faster simulation ticks; smoother progression through the 5,500-tick endgame sequence.",
       "estimated_complexity": "Small"
     },
     {
       "task_id": "TASK-803",
       "priority": "P2 - Quality-of-Life",
       "domain": "Storyteller/AI",
-      "title": "Compact Footstep Log Compression (16,500 entries)",
+      "title": "Cache Final Ascension Narrative Nodes",
       "target_files": [
-        "src/ai/FootstepLog.h",
-        "src/ai/FootstepLog.cpp"
+        "src/ai/NarrativeCache.h",
+        "src/ai/NarrativeCache.cpp"
       ],
-      "architectural_spec": "struct Footstep { uint16_t tick; uint8_t x; uint8_t y; };\nclass FootstepLog {\n  std::vector<Footstep> m_entries;\npublic:\n  void Log(uint16_t tick, uint8_t x, uint8_t y);\n  std::span<const Footstep> GetRange(uint16_t start, uint16_t end) const;\n  size_t CompressTo(std::span<uint8_t> buffer) const;\n};\n// Uses fixed-width integers. CompressTo uses RLE for repeated coordinates.",
-      "acceptance_criteria": [
-        "16,500 entries compressed to < 10KB.",
-        "Decompression is O(N) and branchless where possible.",
-        "Memory footprint reduced by > 60% vs naive struct array."
-      ],
-      "player_fun_impact": "Smaller save files; faster loading of long campaigns.",
+      "architectural_spec": "Create a constexpr array of 10 narrative strings for the final ascension phase. Use std::string_view for zero-copy access. Implement a linear search with early exit for node lookup. Ensure all strings are null-terminated and aligned.",
+      "acceptance_criteria": "1. Lookup time < 10ns per node. 2. No dynamic string allocations. 3. All 10 nodes accessible in order.",
+      "player_fun_impact": "Seamless narrative flow during the final ascension; no stuttering in text display.",
       "estimated_complexity": "Atomic"
     }
   ]
