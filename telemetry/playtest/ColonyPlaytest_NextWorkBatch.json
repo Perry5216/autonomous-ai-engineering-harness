@@ -1,64 +1,49 @@
 {
-  "batch_id": "BATCH-54",
+  "batch_id": "BATCH-55",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Finalization",
   "target_version": "v1.2.0",
-  "overview": "This batch finalizes the simulation loop by implementing deterministic state hashing for save/load integrity, optimizing the tick-based physics integration for 100% Monte Carlo survival, and compressing colonist psychological state into a bit-packed format for rapid serialization. These steps ensure zero-deadlock stability and sub-millisecond frame times in the endgame phase.",
+  "overview": "This batch finalizes the simulation loop by implementing deterministic state hashing for save/load integrity, optimizing the tick-based physics integration for ultra-endgame stability, and compressing colonist psychological states into a bit-packed format to reduce memory footprint during long-running simulations.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Deterministic State Hashing for Save/Load Integrity",
+      "title": "Implement Deterministic State Hashing for Save/Load Integrity",
       "target_files": [
-        "src/engine/core/StateHasher.h",
-        "src/engine/core/StateHasher.cpp"
+        "Source/Runtime/State/StateHasher.h",
+        "Source/Runtime/State/StateHasher.cpp"
       ],
-      "architectural_spec": "Implement a zero-heap, fixed-size hash structure using C++20 concepts. Use a 64-bit FNV-1a variant for speed. The hasher must traverse the active simulation state (entities, physics, psychology) in a strict topological order to ensure determinism. No dynamic allocations; use std::array for intermediate buffers. The hash must be computed in O(N) where N is the number of active entities, with N <= 10,000. Ensure the hash is stable across different CPU architectures by using little-endian serialization for all primitive types.",
-      "acceptance_criteria": [
-        "Hash computation completes in < 0.5ms for 10,000 entities.",
-        "Identical simulation states produce identical 64-bit hashes.",
-        "No heap allocations during hash computation.",
-        "Unit tests verify hash stability across 100 random seeds."
-      ],
-      "player_fun_impact": "Ensures save games are perfectly reproducible, eliminating 'desync' bugs in long-running simulations.",
+      "architectural_spec": "Use std::hash with a custom FNV-1a implementation for 64-bit integers. Iterate through all active subsystems (Physics, AI, Graphics) in a fixed order. Combine hashes using XOR and rotation. Ensure no floating-point non-determinism by using fixed-point arithmetic for hash inputs. Zero heap allocations during hashing.",
+      "acceptance_criteria": "1. Hash value is identical across 1000 consecutive runs with same seed. 2. Hash computation completes in <1ms for 5,500 ticks. 3. No memory leaks detected.",
+      "player_fun_impact": "Ensures reliable save/load functionality, preventing progress loss in long campaigns.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Optimized Tick-Based Integration for 100% Survival",
+      "title": "Optimize Tick-Based Physics Integration for Ultra-Endgame Stability",
       "target_files": [
-        "src/simulation/physics/Integrator.h",
-        "src/simulation/physics/Integrator.cpp"
+        "Source/Runtime/Physics/Integration.h",
+        "Source/Runtime/Physics/Integration.cpp"
       ],
-      "architectural_spec": "Refactor the semi-implicit Euler integrator to use a fixed-step accumulator pattern. Implement a 'catch-up' loop that processes multiple fixed steps per frame if the frame time exceeds the step duration, capped at 10 steps to prevent spiral of death. Use SIMD (SSE4.2 or AVX2) for vector operations on position/velocity arrays. Ensure all floating-point operations are performed in double precision for stability, then cast to float for rendering. The integrator must be stateless between calls, relying only on the passed state struct.",
-      "acceptance_criteria": [
-        "Simulation remains stable at 1000 ticks/second.",
-        "No NaN or Inf values in position/velocity vectors.",
-        "SIMD acceleration reduces integration time by >30%.",
-        "Frame time variance < 1ms."
-      ],
-      "player_fun_impact": "Provides a smooth, jitter-free visual experience and ensures physics interactions are consistent regardless of frame rate fluctuations.",
+      "architectural_spec": "Implement a semi-implicit Euler integrator with fixed timestep. Use a circular buffer for position/velocity history to enable interpolation without heap allocation. Clamp maximum velocity to prevent numerical explosion. Ensure all calculations use double precision for intermediate steps but store as float for memory efficiency.",
+      "acceptance_criteria": "1. Position drift < 1e-6 over 10,000 ticks. 2. No NaN values in position/velocity arrays. 3. Integration step completes in <0.5ms.",
+      "player_fun_impact": "Provides smooth and stable physics behavior, enhancing visual fidelity and interaction responsiveness.",
       "estimated_complexity": "Small"
     },
     {
       "task_id": "TASK-803",
       "priority": "P2 - Quality-of-Life",
       "domain": "Storyteller/AI",
-      "title": "Bit-Packed Colonist Psychological State Compression",
+      "title": "Compress Colonist Psychological States into Bit-Packed Format",
       "target_files": [
-        "src/ai/psychology/StatePack.h",
-        "src/ai/psychology/StatePack.cpp"
+        "Source/Runtime/AI/ColonistState.h",
+        "Source/Runtime/AI/ColonistState.cpp"
       ],
-      "architectural_spec": "Define a 128-bit packed structure for colonist psychology. Use bitfields for: Mood (4 bits), Stress Level (4 bits), Task Priority (4 bits), and 12 bits for specific state flags. Implement constexpr functions for packing and unpacking. The structure must fit in a single 16-byte cache line. Provide a static_assert to verify the size is exactly 16 bytes. Implement a fast decompression function that uses bitwise shifts and masks without branching where possible.",
-      "acceptance_criteria": [
-        "sizeof(PsychState) == 16 bytes.",
-        "Pack/Unpack operations are constexpr-evaluable.",
-        "Memory footprint of 10,000 colonists reduced by 50% compared to previous struct.",
-        "No undefined behavior in bitfield access."
-      ],
-      "player_fun_impact": "Reduces memory bandwidth usage, leading to faster load times and better cache performance in large colonies.",
+      "architectural_spec": "Define a struct with bit-fields for mood, hunger, and energy levels. Use std::bit_cast for efficient serialization. Implement a compact decoder that unpacks these fields into a standard struct for AI logic. Ensure all operations are constexpr where possible.",
+      "acceptance_criteria": "1. Memory usage reduced by 50% compared to previous format. 2. Decode/encode operations complete in <0.1ms. 3. No data loss during compression/decompression.",
+      "player_fun_impact": "Improves performance and reduces memory usage, allowing for larger and more complex simulations.",
       "estimated_complexity": "Atomic"
     }
   ]
