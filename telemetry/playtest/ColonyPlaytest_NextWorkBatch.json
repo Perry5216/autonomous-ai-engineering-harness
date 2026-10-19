@@ -1,59 +1,43 @@
 {
-  "batch_id": "BATCH-82",
+  "batch_id": "BATCH-83",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "Finalize simulation coverage by implementing deterministic state hashing for save/load integrity, optimizing colonist psychology state transitions for zero-allocation performance, and establishing a fixed-point physics accumulator for endgame stability.",
+  "overview": "Finalize simulation coverage by implementing deterministic state compression for ultra-endgame scenarios and optimizing colonist psychology state machines for zero-latency transitions. This batch closes the remaining gaps in long-term simulation stability and AI response fidelity.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Deterministic State Hashing for Save/Load Integrity",
+      "title": "Implement Deterministic State Compression for Ultra-Endgame Ticks",
       "target_files": [
-        "Source/Engine/Core/StateHash.h",
-        "Source/Engine/Core/StateHash.cpp"
+        "src/engine/core/StateCompression.h",
+        "src/engine/core/StateCompression.cpp"
       ],
-      "architectural_spec": "Implement a 64-bit FNV-1a hash accumulator for simulation state. Use constexpr where possible. No dynamic allocation. Hash struct members in declaration order. Provide a static inline function for combining hashes. Ensure endianness consistency via std::endian::native checks. Max 40 lines.",
+      "architectural_spec": "struct CompressedState {\n    uint64_t hash;\n    uint32_t tick;\n    uint16_t entity_count;\n    uint8_t flags;\n};\n\nconstexpr uint64_t ComputeHash(const CompressedState& s) {\n    uint64_t h = s.hash;\n    h ^= s.tick;\n    h *= 0x100000001b3ULL;\n    h ^= s.entity_count;\n    h *= 0x100000001b3ULL;\n    h ^= s.flags;\n    return h;\n}\n\nclass StateCompressor {\npublic:\n    static constexpr size_t MAX_STATES = 1024;\n    CompressedState states[MAX_STATES];\n    size_t count = 0;\n\n    void Push(const CompressedState& s) {\n        if (count < MAX_STATES) {\n            states[count++] = s;\n        }\n    }\n\n    uint64_t GetFinalHash() const {\n        uint64_t h = 0;\n        for (size_t i = 0; i < count; ++i) {\n            h ^= ComputeHash(states[i]);\n            h *= 0x100000001b3ULL;\n        }\n        return h;\n    }\n};",
       "acceptance_criteria": [
-        "Hash value is identical across 1000 Monte Carlo runs for identical state.",
-        "Zero heap allocations during hash computation.",
-        "Compiles with -std=c++20 -Wall -Wextra without warnings."
+        "StateCompressor handles up to 1024 states without heap allocation.",
+        "GetFinalHash produces identical results across all platforms for identical input sequences.",
+        "Zero dynamic memory allocations during compression cycle."
       ],
-      "player_fun_impact": "Guarantees save/load consistency, preventing desyncs in long-running simulations.",
+      "player_fun_impact": "Faster load times for long-running simulations; consistent save/load behavior.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Fixed-Point Physics Accumulator for Endgame Stability",
+      "title": "Optimize Colonist Psychology State Machine for Zero-Latency Transitions",
       "target_files": [
-        "Source/Simulation/Physics/FixedPointAccumulator.h"
+        "src/simulation/psychology/StateMachine.h",
+        "src/simulation/psychology/StateMachine.cpp"
       ],
-      "architectural_spec": "Define a struct FixedPointAccumulator using int64_t for position and velocity. Implement step() with a fixed delta time (1/60s). Use integer arithmetic for all operations. No floating-point types. Include a reset() method. Max 50 lines.",
+      "architectural_spec": "enum class PsychState : uint8_t {\n    Idle, Working, Resting, Eating, Dead\n};\n\nstruct PsychNode {\n    PsychState state;\n    uint8_t priority;\n    uint16_t next_state_index;\n};\n\nclass PsychologyEngine {\npublic:\n    static constexpr size_t MAX_NODES = 256;\n    PsychNode nodes[MAX_NODES];\n    size_t node_count = 0;\n\n    void AddNode(PsychState s, uint8_t p, uint16_t next) {\n        if (node_count < MAX_NODES) {\n            nodes[node_count++] = {s, p, next};\n        }\n    }\n\n    PsychState Transition(PsychState current) {\n        for (size_t i = 0; i < node_count; ++i) {\n            if (nodes[i].state == current) {\n                return nodes[nodes[i].next_state_index].state;\n            }\n        }\n        return current;\n    }\n};",
       "acceptance_criteria": [
-        "Position and velocity remain stable after 10,000 steps.",
-        "No floating-point drift observed in 1000-step test.",
-        "All operations are constexpr-compatible where applicable."
+        "State transitions complete in O(1) average time for common states.",
+        "No heap allocations during state machine initialization or transition.",
+        "All 16,500 logged footsteps map correctly to psychological states."
       ],
-      "player_fun_impact": "Eliminates floating-point drift in long simulations, ensuring precise object placement.",
-      "estimated_complexity": "Atomic"
-    },
-    {
-      "task_id": "TASK-803",
-      "priority": "P2 - Quality-of-Life",
-      "domain": "Storyteller/AI",
-      "title": "Zero-Alloc Colonist Psychology State Machine",
-      "target_files": [
-        "Source/AI/Colonist/PsychologyState.h"
-      ],
-      "architectural_spec": "Create a union-based state machine for colonist moods (Idle, Working, Resting, Panicked). Use std::variant with fixed-size alternatives. Implement transition() with switch-case. No heap allocation. Max 60 lines.",
-      "acceptance_criteria": [
-        "State transitions occur in O(1) time.",
-        "Memory footprint is exactly 16 bytes per colonist.",
-        "No dynamic memory allocation during state changes."
-      ],
-      "player_fun_impact": "Improves simulation performance and reduces memory usage for large colonist counts.",
+      "player_fun_impact": "Smoother animation transitions; more responsive colonist behavior in dense scenes.",
       "estimated_complexity": "Small"
     }
   ]
