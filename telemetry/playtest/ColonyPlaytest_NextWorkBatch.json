@@ -1,49 +1,63 @@
 {
-  "batch_id": "BATCH-50",
+  "batch_id": "BATCH-51",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Finalization",
   "target_version": "v1.2.0",
-  "overview": "Finalize the simulation loop by implementing deterministic state hashing for save/load integrity, optimizing the tick-based physics solver for zero-allocation stability, and compressing the storyteller narrative log into a fixed-size ring buffer. These steps ensure 100% coverage of the endgame state machine with minimal memory footprint.",
+  "overview": "This batch finalizes the simulation loop by implementing deterministic state hashing for save/load integrity, optimizing the Monte Carlo convergence check for endgame stability, and compressing the colonist psychology state machine into a bit-packed structure to reduce memory footprint during long-running sessions.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Implement Deterministic State Hashing for Save/Load Integrity",
+      "title": "Deterministic State Hashing for Save Integrity",
       "target_files": [
-        "Source/Engine/Core/StateHasher.h",
-        "Source/Engine/Core/StateHasher.cpp"
+        "Source/Engine/Core/StateHash.h",
+        "Source/Engine/Core/StateHash.cpp"
       ],
-      "architectural_spec": "1. Define a struct `StateHash` using `std::array<uint64_t, 4>` for 256-bit output.\n2. Implement `ComputeHash(const SimulationState& state)` using a custom FNV-1a variant optimized for C++20 constexpr evaluation.\n3. Ensure all primitive types (int, float, bool) are hashed in a fixed order.\n4. Use `std::bit_cast` for float-to-int conversion to ensure bitwise determinism.\n5. No dynamic allocation; use stack-based arrays for intermediate values.\n6. Provide `operator==` for fast comparison.\n7. Include `static_assert` for struct size alignment.\n8. Handle null pointers as 0x00.\n9. Integrate with `SimulationState::Serialize`.\n10. Return `StateHash` by value.",
-      "acceptance_criteria": "1. Hash output is identical across 1000 runs for the same state.\n2. Zero heap allocations during hashing.\n3. Compilation time < 100ms for the header.\n4. Unit tests cover edge cases (empty state, max int).",
-      "player_fun_impact": "Guarantees save/load consistency, preventing 'corrupted save' errors in long campaigns.",
+      "architectural_spec": "Implement a FNV-1a 64-bit hash function for the final simulation state. Use constexpr where possible. The hash must be computed over the raw byte representation of the core state structs (Tick, ColonistCount, ResourceTotals). Ensure no heap allocations during hash computation. The function signature should be `constexpr uint64_t ComputeStateHash(const CoreState& state)`. Include a static assertion for struct size alignment.",
+      "acceptance_criteria": [
+        "Hash function is constexpr.",
+        "Zero heap allocations during computation.",
+        "Identical states produce identical hashes across different compilations.",
+        "Unit tests verify hash stability for 1000 random states."
+      ],
+      "player_fun_impact": "Ensures save files are valid and prevents 'corrupted save' errors in long campaigns.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Zero-Allocation Fixed-Step Physics Solver Optimization",
+      "title": "Monte Carlo Convergence Early-Exit Optimization",
       "target_files": [
-        "Source/Simulation/Physics/FixedStepSolver.h",
-        "Source/Simulation/Physics/FixedStepSolver.cpp"
+        "Source/Simulation/MonteCarlo.h",
+        "Source/Simulation/MonteCarlo.cpp"
       ],
-      "architectural_spec": "1. Replace `std::vector` with `std::span` for entity lists.\n2. Implement `Step(float dt)` using a fixed 1/60s timestep accumulator.\n3. Use `__builtin_expect` for branch prediction hints on collision checks.\n4. Pre-allocate all physics bodies in a contiguous `std::array<Body, MAX_BODIES>`.\n5. Implement a simple AABB broad-phase using 1D sort-and-sweep.\n6. Narrow-phase uses sphere-sphere and sphere-plane tests only.\n7. No virtual functions; use template specialization for body types.\n8. Cache inverse masses in the body struct.\n9. Ensure `dt` is clamped to [0.0, 0.1] to prevent spiral of death.\n10. Return `void` from `Step`.",
-      "acceptance_criteria": "1. 10,000 bodies updated in < 1ms on i7-12700.\n2. No heap allocations in the hot loop.\n3. Deterministic results for identical inputs.\n4. Passes all existing physics regression tests.",
-      "player_fun_impact": "Smoother frame rates and consistent physics behavior in large colonies.",
+      "architectural_spec": "Refactor the Monte Carlo simulation loop to support early exit based on variance threshold. Define a struct `MCResult` with `double mean`, `double variance`, and `uint32_t iterations`. Implement a `Converged` flag. The loop should break if `variance < epsilon` for 3 consecutive iterations. Use `std::numbers::pi` for constants. Ensure the loop is unrolled for small iteration counts (N<10).",
+      "acceptance_criteria": [
+        "Simulation terminates early when variance stabilizes.",
+        "No dynamic memory allocation in the hot loop.",
+        "Variance calculation is numerically stable (Welford's algorithm).",
+        "Performance benchmark shows >15% speedup for stable states."
+      ],
+      "player_fun_impact": "Faster loading times and smoother frame rates during complex simulation steps.",
       "estimated_complexity": "Small"
     },
     {
       "task_id": "TASK-803",
       "priority": "P2 - Quality-of-Life",
       "domain": "Storyteller/AI",
-      "title": "Fixed-Size Ring Buffer for Narrative Event Log",
+      "title": "Bit-Packed Colonist Psychology State",
       "target_files": [
-        "Source/Storyteller/NarrativeLog.h",
-        "Source/Storyteller/NarrativeLog.cpp"
+        "Source/AI/ColonistState.h"
       ],
-      "architectural_spec": "1. Define `struct Event { uint32_t id; uint16_t type; uint8_t priority; }`.\n2. Implement `class NarrativeLog` with a `std::array<Event, 256>`.\n3. Use a `uint8_t` index for circular buffer management.\n4. `Push(Event)` overwrites the oldest entry if full.\n5. `GetRecent(int count)` returns a `std::span` of the last N events.\n6. No dynamic resizing; fixed capacity 256.\n7. Use `constexpr` for buffer size.\n8. Provide `Clear()` method.\n9. Ensure thread-safe writes via atomic index if multi-threaded.\n10. Integrate with `Storyteller::Update`.",
-      "acceptance_criteria": "1. Memory usage is exactly 256 * sizeof(Event).\n2. No fragmentation.\n3. Fast access to recent events (< 10ns per lookup).\n4. Correctly handles wrap-around.",
-      "player_fun_impact": "Faster UI updates for the event log, reducing stutter in the HUD.",
+      "architectural_spec": "Convert the `ColonistPsychology` struct to use bit-fields for compact storage. Fields: `mood` (3 bits), `energy` (5 bits), `hunger` (5 bits), `social_need` (3 bits). Total 16 bits. Provide inline getter/setter methods. Ensure the struct is `alignas(2)`. Add a `ToString()` method for debugging that formats the bits into a readable string without heap allocation (use `std::string_view` or fixed buffer).",
+      "acceptance_criteria": [
+        "Struct size is exactly 2 bytes.",
+        "Getters/Setters are inline and zero-overhead.",
+        "Debug string generation uses a fixed-size stack buffer.",
+        "All existing tests pass with the new layout."
+      ],
+      "player_fun_impact": "Reduced memory usage allows for larger colony sizes without performance degradation.",
       "estimated_complexity": "Atomic"
     }
   ]
