@@ -1,72 +1,93 @@
-# Project Deep-Mantle :: Engineering Work Batch: BATCH-49
+# Project Deep-Mantle :: Engineering Work Batch: BATCH-50
 
 ## Ultra-Endgame Ascension & Deterministic State Finalization (Target: `v1.2.0`)
 
 - **Architect**: `DGX Spark Cluster Lead Systems Engineer`
 - **QA Verifier**: `RTX 5090 Blackwell Reflex QA Director`
-- **Date**: `2026-10-19 16:16:28`
+- **Date**: `2026-10-19 16:23:39`
 
 ### Batch Overview
-This batch finalizes the simulation loop by implementing the deterministic state compression for the endgame and the atomic ascension logic. It ensures that the 5,500-tick campaign state is serialized into a minimal, hash-verifiable format and that the final ascension event triggers a clean, non-blocking shutdown of the simulation loop with 100% reproducibility.
+Finalize the simulation loop by implementing deterministic state hashing for save/load integrity, optimizing the tick-based physics solver for zero-allocation stability, and compressing the storyteller narrative log into a fixed-size ring buffer. These steps ensure 100% coverage of the endgame state machine with minimal memory footprint.
 
 ---
 
 ### Prioritized Engineering Tasks
 
-#### [TASK-801] Implement Deterministic State Hashing for Endgame Snapshot (`P0 - Critical`)
+#### [TASK-801] Implement Deterministic State Hashing for Save/Load Integrity (`P0 - Critical`)
 
 - **Domain**: `Engine/C++20`
 - **Estimated Complexity**: `Atomic`
 - **Target Files**:
-  - `Source/Runtime/Simulation/StateCompressor.h`
-  - `Source/Runtime/Simulation/StateCompressor.cpp`
+  - `Source/Engine/Core/StateHasher.h`
+  - `Source/Engine/Core/StateHasher.cpp`
 - **Architectural Specification**:
-  1. Define struct `EndgameSnapshot` with fixed-size arrays for tick count, survival rate, and footstep count.
-2. Implement `constexpr uint64_t ComputeHash(const EndgameSnapshot&)` using FNV-1a 64-bit.
-3. Ensure no dynamic allocation; use `std::array` for all members.
-4. Add static assertion for struct size <= 64 bytes.
-5. Provide `inline` functions for serialization to `std::span<uint8_t>`.
-6. Verify hash stability across 100 Monte Carlo runs in unit tests.
+  1. Define a struct `StateHash` using `std::array<uint64_t, 4>` for 256-bit output.
+2. Implement `ComputeHash(const SimulationState& state)` using a custom FNV-1a variant optimized for C++20 constexpr evaluation.
+3. Ensure all primitive types (int, float, bool) are hashed in a fixed order.
+4. Use `std::bit_cast` for float-to-int conversion to ensure bitwise determinism.
+5. No dynamic allocation; use stack-based arrays for intermediate values.
+6. Provide `operator==` for fast comparison.
+7. Include `static_assert` for struct size alignment.
+8. Handle null pointers as 0x00.
+9. Integrate with `SimulationState::Serialize`.
+10. Return `StateHash` by value.
 - **Acceptance Criteria**:
-  ['Hash value is identical across 100 consecutive runs with same seed.', 'Struct size is exactly 64 bytes.', 'Zero heap allocations during serialization.', 'Unit tests pass with 100% coverage.']
+  1. Hash output is identical across 1000 runs for the same state.
+2. Zero heap allocations during hashing.
+3. Compilation time < 100ms for the header.
+4. Unit tests cover edge cases (empty state, max int).
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Instant, verifiable endgame results without loading delays.
+  Guarantees save/load consistency, preventing 'corrupted save' errors in long campaigns.
 
-#### [TASK-802] Atomic Ascension Trigger Logic (`P1 - High`)
+#### [TASK-802] Zero-Allocation Fixed-Step Physics Solver Optimization (`P1 - High`)
 
 - **Domain**: `Simulation/Physics`
-- **Estimated Complexity**: `Atomic`
-- **Target Files**:
-  - `Source/Runtime/Simulation/AscensionLogic.h`
-  - `Source/Runtime/Simulation/AscensionLogic.cpp`
-- **Architectural Specification**:
-  1. Create `enum class AscensionState { Pending, Completed, Failed }`.
-2. Implement `void ProcessAscension(const EndgameSnapshot&)`.
-3. Logic: If tick count == 5500 and survival rate == 1.0, set state to Completed.
-4. Use `std::atomic<AscensionState>` for thread-safe state updates.
-5. No cascading dependencies; include only `<atomic>` and `<cstdint>`.
-6. Ensure `ProcessAscension` is `noexcept`.
-- **Acceptance Criteria**:
-  ['State transitions correctly from Pending to Completed at tick 5500.', 'No deadlocks observed in multi-threaded simulation.', 'Function is `noexcept` and completes in < 1 microsecond.', 'State is readable by UI layer without mutex contention.']
-- **Player Fun & Anti-Spreadsheet Impact**:
-  Immediate feedback on campaign completion status.
-
-#### [TASK-803] Minimalist Endgame Log Formatter (`P2 - Quality-of-Life`)
-
-- **Domain**: `Storyteller/AI`
 - **Estimated Complexity**: `Small`
 - **Target Files**:
-  - `Source/Runtime/Simulation/EndgameFormatter.h`
-  - `Source/Runtime/Simulation/EndgameFormatter.cpp`
+  - `Source/Simulation/Physics/FixedStepSolver.h`
+  - `Source/Simulation/Physics/FixedStepSolver.cpp`
 - **Architectural Specification**:
-  1. Define `struct EndgameLog` with `std::string_view` members.
-2. Implement `std::string_view FormatLog(const EndgameSnapshot&, const AscensionState&)`.
-3. Use `std::format` (C++20) for concise output.
-4. Pre-allocate buffer of 256 bytes for stack-based formatting.
-5. Return `std::string_view` pointing to static buffer.
-6. Ensure no locale-dependent formatting issues.
+  1. Replace `std::vector` with `std::span` for entity lists.
+2. Implement `Step(float dt)` using a fixed 1/60s timestep accumulator.
+3. Use `__builtin_expect` for branch prediction hints on collision checks.
+4. Pre-allocate all physics bodies in a contiguous `std::array<Body, MAX_BODIES>`.
+5. Implement a simple AABB broad-phase using 1D sort-and-sweep.
+6. Narrow-phase uses sphere-sphere and sphere-plane tests only.
+7. No virtual functions; use template specialization for body types.
+8. Cache inverse masses in the body struct.
+9. Ensure `dt` is clamped to [0.0, 0.1] to prevent spiral of death.
+10. Return `void` from `Step`.
 - **Acceptance Criteria**:
-  ['Output string is < 256 characters.', 'Formatting is consistent across platforms.', 'No heap allocations in `FormatLog`.', 'Readable by human and parser alike.']
+  1. 10,000 bodies updated in < 1ms on i7-12700.
+2. No heap allocations in the hot loop.
+3. Deterministic results for identical inputs.
+4. Passes all existing physics regression tests.
 - **Player Fun & Anti-Spreadsheet Impact**:
-  Clean, concise summary of the 5,500-tick journey.
+  Smoother frame rates and consistent physics behavior in large colonies.
+
+#### [TASK-803] Fixed-Size Ring Buffer for Narrative Event Log (`P2 - Quality-of-Life`)
+
+- **Domain**: `Storyteller/AI`
+- **Estimated Complexity**: `Atomic`
+- **Target Files**:
+  - `Source/Storyteller/NarrativeLog.h`
+  - `Source/Storyteller/NarrativeLog.cpp`
+- **Architectural Specification**:
+  1. Define `struct Event { uint32_t id; uint16_t type; uint8_t priority; }`.
+2. Implement `class NarrativeLog` with a `std::array<Event, 256>`.
+3. Use a `uint8_t` index for circular buffer management.
+4. `Push(Event)` overwrites the oldest entry if full.
+5. `GetRecent(int count)` returns a `std::span` of the last N events.
+6. No dynamic resizing; fixed capacity 256.
+7. Use `constexpr` for buffer size.
+8. Provide `Clear()` method.
+9. Ensure thread-safe writes via atomic index if multi-threaded.
+10. Integrate with `Storyteller::Update`.
+- **Acceptance Criteria**:
+  1. Memory usage is exactly 256 * sizeof(Event).
+2. No fragmentation.
+3. Fast access to recent events (< 10ns per lookup).
+4. Correctly handles wrap-around.
+- **Player Fun & Anti-Spreadsheet Impact**:
+  Faster UI updates for the event log, reducing stutter in the HUD.
 
