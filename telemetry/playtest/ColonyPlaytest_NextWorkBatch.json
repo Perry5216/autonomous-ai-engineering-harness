@@ -1,49 +1,60 @@
 {
-  "batch_id": "BATCH-14",
+  "batch_id": "BATCH-15",
   "batch_title": "Ultra-Endgame Ascension & Deterministic State Compression",
   "target_version": "v1.2.0",
-  "overview": "Finalize simulation coverage by implementing deterministic state compression for long-running campaigns and optimizing the endgame ascension logic. This batch focuses on reducing memory footprint for 5,500+ tick simulations and ensuring zero-latency state restoration for Monte Carlo validation.",
+  "overview": "Finalize simulation coverage by implementing deterministic state compression for long-running campaigns and optimizing the Monte Carlo convergence logic for ultra-endgame scenarios. This batch focuses on reducing memory footprint and ensuring 100% reproducibility in 5,500+ tick simulations.",
   "tasks": [
     {
       "task_id": "TASK-801",
       "priority": "P0 - Critical",
       "domain": "Engine/C++20",
-      "title": "Implement Deterministic State Compression for Long-Running Campaigns",
+      "title": "Implement Zero-Heap Deterministic State Hasher",
       "target_files": [
-        "Source/Runtime/Simulation/StateCompression.h",
-        "Source/Runtime/Simulation/StateCompression.cpp"
+        "Source/Engine/Core/StateHasher.h",
+        "Source/Engine/Core/StateHasher.cpp"
       ],
-      "architectural_spec": "Use C++20 concepts to define a fixed-size, zero-heap compression scheme for simulation state. Implement a bit-packing algorithm for integer-based state variables (ticks, entity IDs, resource counts). Ensure all operations are constexpr-friendly where possible. The compressor must handle 5,500+ ticks with <1KB overhead per snapshot. No dynamic allocations during compression/decompression cycles.",
-      "acceptance_criteria": "1. Compression ratio > 85% for standard simulation states. 2. Decompression time < 1ms for 5,500-tick state. 3. Zero heap allocations during compression/decompression. 4. All unit tests pass with deterministic output.",
-      "player_fun_impact": "Faster load times and reduced memory usage for long campaigns, enabling smoother gameplay on lower-end hardware.",
+      "architectural_spec": "struct StateHasher {\n  static constexpr uint64_t kPrime = 1099511628211ULL;\n  uint64_t m_Hash = 14695981039346656037ULL;\n  \n  constexpr void Update(uint64_t value) noexcept {\n    m_Hash ^= value;\n    m_Hash *= kPrime;\n  }\n  \n  constexpr uint64_t GetHash() const noexcept {\n    return m_Hash;\n  }\n};",
+      "acceptance_criteria": [
+        "Hasher produces identical uint64_t for identical input sequences across 10,000 Monte Carlo runs.",
+        "Zero dynamic allocations during hashing phase.",
+        "Compile-time evaluation supported for static initial states."
+      ],
+      "player_fun_impact": "Ensures save/load consistency and enables rapid state comparison for debugging.",
       "estimated_complexity": "Atomic"
     },
     {
       "task_id": "TASK-802",
       "priority": "P1 - High",
       "domain": "Simulation/Physics",
-      "title": "Optimize Monte Carlo Validation Loop for Endgame States",
+      "title": "Optimize Footstep Log Compression for 5k+ Ticks",
       "target_files": [
-        "Source/Runtime/Simulation/MonteCarloValidator.h",
-        "Source/Runtime/Simulation/MonteCarloValidator.cpp"
+        "Source/Simulation/Physics/FootstepLog.h",
+        "Source/Simulation/Physics/FootstepLog.cpp"
       ],
-      "architectural_spec": "Refactor the Monte Carlo validation loop to use a fixed-size ring buffer for state snapshots. Implement a branchless comparison algorithm for state equivalence checks. Ensure the validator can process 16,500 footsteps in <10ms total. Use C++20 std::span for zero-copy access to state data. No virtual functions in the hot path.",
-      "acceptance_criteria": "1. Validation of 16,500 footsteps completes in <10ms. 2. Zero deadlocks detected in 100 consecutive runs. 3. Memory usage remains constant regardless of tick count. 4. All validation results are bitwise identical across runs.",
-      "player_fun_impact": "Immediate feedback on simulation correctness, ensuring consistent game behavior across different hardware configurations.",
+      "architectural_spec": "struct FootstepEntry {\n  uint16_t m_Tick;\n  uint8_t m_X, m_Y;\n  uint8_t m_Flags;\n};\n\nstruct FootstepLog {\n  static constexpr size_t kMaxEntries = 16500;\n  FootstepEntry m_Entries[kMaxEntries];\n  size_t m_Count = 0;\n\n  void Push(uint16_t tick, uint8_t x, uint8_t y, uint8_t flags) noexcept {\n    if (m_Count < kMaxEntries) {\n      m_Entries[m_Count++] = {tick, x, y, flags};\n    }\n  }\n};",
+      "acceptance_criteria": [
+        "Memory footprint reduced by 60% compared to previous std::vector implementation.",
+        "No heap fragmentation after 5,500 ticks.",
+        "Linear access time O(1) for sequential playback."
+      ],
+      "player_fun_impact": "Faster save file loading and reduced memory usage for long campaigns.",
       "estimated_complexity": "Small"
     },
     {
       "task_id": "TASK-803",
       "priority": "P2 - Quality-of-Life",
       "domain": "Storyteller/AI",
-      "title": "Cache Endgame Ascension Events for Instant Replay",
+      "title": "Cache Monte Carlo Convergence Results",
       "target_files": [
-        "Source/Runtime/Storyteller/AscensionCache.h",
-        "Source/Runtime/Storyteller/AscensionCache.cpp"
+        "Source/AI/Storyteller/MonteCarloCache.h"
       ],
-      "architectural_spec": "Implement a static cache for the last 10 ascension events using C++20 std::array. Each event is a POD struct with fixed-size fields. Use a simple index-based lookup for O(1) access. Ensure the cache is thread-safe via atomic indices. No dynamic memory allocation. The cache must be serializable to a binary blob for quick restoration.",
-      "acceptance_criteria": "1. Cache hit rate > 95% for repeated ascension queries. 2. Lookup time < 100ns. 3. Thread-safe access verified with 4 concurrent readers. 4. Binary serialization size < 2KB for 10 events.",
-      "player_fun_impact": "Instant access to endgame summaries and event logs, improving the user experience during campaign review.",
+      "architectural_spec": "struct MCResult {\n  uint64_t m_Hash;\n  uint32_t m_SurvivalRate;\n};\n\nstruct MCCache {\n  static constexpr size_t kCacheSize = 1024;\n  MCResult m_Cache[kCacheSize];\n  size_t m_Size = 0;\n\n  bool Find(uint64_t hash, uint32_t& outRate) const noexcept {\n    for (size_t i = 0; i < m_Size; ++i) {\n      if (m_Cache[i].m_Hash == hash) {\n        outRate = m_Cache[i].m_SurvivalRate;\n        return true;\n      }\n    }\n    return false;\n  }\n};",
+      "acceptance_criteria": [
+        "Cache hit rate > 85% for repetitive endgame scenarios.",
+        "Lookup time < 1 microsecond.",
+        "No invalidation issues with deterministic hashing."
+      ],
+      "player_fun_impact": "Instantaneous response for repeated simulation steps in endgame.",
       "estimated_complexity": "Atomic"
     }
   ]
